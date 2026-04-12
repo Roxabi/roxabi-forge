@@ -22,7 +22,8 @@ ${CLAUDE_PLUGIN_ROOT}/references/base/components.css — concatenate fourth
 ${CLAUDE_PLUGIN_ROOT}/references/base/explainer-base.css — concatenate fifth (visual explainer components)
 ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/         — select one based on detection logic
 ${CLAUDE_PLUGIN_ROOT}/references/shells/split.html   — HTML template with placeholders
-${CLAUDE_PLUGIN_ROOT}/references/base/tab-loader.js  — substitute {NAME}, then inline
+${CLAUDE_PLUGIN_ROOT}/references/base/tab-loader.js    — substitute {NAME}, then inline via {TAB_LOADER_JS}
+${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md     — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md    — dependency/breakdown diagrams
 ```

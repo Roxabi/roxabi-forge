@@ -6,7 +6,7 @@
    kebab-case slug (e.g., "lyra-user-guide"). The fetch URL uses it
    to locate tab fragment files at tabs/{NAME}/tab-{id}.html.
 
-   Theme toggle is NOT here — it lives inline in shells/ per ADR-011.
+   Theme toggle is in theme-toggle.js (same base/ layer) — inlined into shells via {THEME_TOGGLE_JS} placeholder.
    ══════════════════════════════════════════════════════════════════ */
 
 ;(() => {

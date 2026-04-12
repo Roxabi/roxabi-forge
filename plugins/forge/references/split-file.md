@@ -5,7 +5,7 @@ Multi-tab explainers use four file groups relative to the diagram root:
 ```
 <name>.html              — shell: head, nav, empty panel placeholders
 css/<name>.css           — all styles (base + aesthetic + diagram-specific)
-js/<name>.js             — tab-loader + theme toggle + optional Mermaid init
+js/<name>.js             — tab-loader + optional Mermaid init
 tabs/<name>/
   tab-<id>.html          — one fragment per tab (lazy-loaded, no DOCTYPE/html/body)
 ```
@@ -44,6 +44,7 @@ Read `shells/split.html` for the complete template. It contains all necessary pl
 | `{AESTHETIC_STYLES}` | Selected aesthetic CSS |
 | `{TABS}` | Tab button elements |
 | `{PANELS}` | Panel container elements |
+| `{THEME_TOGGLE_JS}` | theme-toggle.js with `{NAME}` substituted |
 | `{TAB_LOADER_JS}` | tab-loader.js with `{NAME}` substituted |
 | `{HEAD_EXTRAS}` | Optional (e.g., svg-pan-zoom CDN) |
 | `{EXTRA_STYLES}` | Diagram-specific CSS |

@@ -9,9 +9,10 @@ See also: `split-file.md` for the file layout pattern (version isolation, tab fr
 1. Read `shells/split.html` template
 2. Concatenate base CSS files in order: `reset → layout → typography → components → explainer-base`
 3. Read selected aesthetic CSS
-4. Read `base/tab-loader.js`, substitute `{NAME}` with the skill-defined name value
-5. Substitute placeholders:
-   - `{NAME}` → skill-defined (for localStorage key scoping + tab-loader.js)
+4. Read `base/theme-toggle.js`, substitute `{NAME}` with the skill-defined name value
+5. Read `base/tab-loader.js`, substitute `{NAME}` with the skill-defined name value
+6. Substitute placeholders:
+   - `{NAME}` → skill-defined, must match `/^[a-z0-9-]+$/` (kebab-case only — used inside `<script>` string literals)
    - `{BASE_STYLES}` → concatenated base CSS
    - `{AESTHETIC_STYLES}` → selected aesthetic CSS
    - `{TITLE}` → skill-defined
@@ -20,11 +21,12 @@ See also: `split-file.md` for the file layout pattern (version isolation, tab fr
    - `{TABS}` → tab button elements (one per tab)
    - `{PANELS}` → panel container elements (one per tab)
    - `{MAIN_WRAP_START}` / `{MAIN_WRAP_END}` → content area wrapper (standard or with TOC sidebar)
+   - `{THEME_TOGGLE_JS}` → theme-toggle.js with `{NAME}` substituted
    - `{TAB_LOADER_JS}` → tab-loader.js with `{NAME}` substituted
    - `{HEAD_EXTRAS}` → optional (e.g., svg-pan-zoom CDN for Mermaid)
    - `{EXTRA_STYLES}` → skill-specific CSS additions
    - `{EXTRA_SCRIPTS}` → optional (e.g., mermaid-init.js)
-6. Output: split-file HTML (requires HTTP serve)
+7. Output: split-file HTML (requires HTTP serve)
 
 ## Skill-Specific Overrides
 
