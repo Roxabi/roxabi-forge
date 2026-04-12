@@ -160,7 +160,10 @@
 .fgraph-edges .fg-edge.async    { stroke: var(--edge-async,    var(--text-muted)); stroke-dasharray: 2 3; }
 .fgraph-edges .fg-edge.feedback { stroke: var(--edge-feedback, var(--amber)); }
 
-/* arrow modifiers — compose with tone classes */
+/* arrow modifiers — compose with color tone classes only.
+   ¬combine with semantic classes that already carry stroke patterns
+   (.write, .async): the modifier is declared later and would overwrite
+   the semantic's stroke-dasharray. Semantic + .thick is safe. */
 .fgraph-edges .fg-edge.dashed   { stroke-dasharray: 4 3; }
 .fgraph-edges .fg-edge.thick    { stroke-width: 2.8; }
 .fgraph-edges .fg-edge.animated { stroke-dasharray: 8 4; animation: fg-dash 1s linear infinite; }

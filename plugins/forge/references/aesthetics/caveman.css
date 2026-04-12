@@ -61,6 +61,8 @@
    Added for gallery theme-toggle compatibility. Dark is canonical.
 */
 [data-theme="light"] {
+  color-scheme: light;
+
   /* Surface system — inverted whites */
   --bg:           #fafafa;
   --bg-elevated:  #ffffff;
@@ -394,7 +396,7 @@ h3 { font-size: 1.125rem; }
 
 /* ── CLI Widget ── */
 .cli-widget {
-  background: rgba(5, 5, 5, 0.9);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 12px 16px;
