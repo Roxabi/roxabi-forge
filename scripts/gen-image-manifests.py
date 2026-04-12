@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate manifest.json files for image galleries — API-style listing for static hosting.
+"""Generate img-manifest.json files for image galleries — API-style listing for static hosting.
 
-Writes two kinds of manifest.json under FORGE_DIR so galleries can discover
+Writes two kinds of img-manifest.json under FORGE_DIR so galleries can discover
 content without the serve.py /api/list/ endpoint:
 
 1. **Leaf manifests** — one per directory containing image files.
@@ -51,8 +51,8 @@ for dirpath, dirnames, filenames in os.walk(FORGE_DIR, followlinks=True):
         }
         for f in images
     ]
-    (d / 'manifest.json').write_text(json.dumps(entries, indent=2) + '\n')
-    print(f'  [leaf]   {d.relative_to(FORGE_DIR)}/manifest.json: {len(entries)} images')
+    (d / 'img-manifest.json').write_text(json.dumps(entries, indent=2) + '\n')
+    print(f'  [leaf]   {d.relative_to(FORGE_DIR)}/img-manifest.json: {len(entries)} images')
 
 # ── Pass 2: parent manifests ─────────────────────────────────────────────
 # For each dir that has images, propagate its existence up to every ancestor
@@ -60,8 +60,8 @@ for dirpath, dirnames, filenames in os.walk(FORGE_DIR, followlinks=True):
 # children (subdirs) that are themselves in `dirs_with_images` or are ancestors
 # of a dir that is.
 #
-# FORGE_DIR itself is excluded: the root manifest.json is the diagrams registry
-# (produced by gen-manifest.py) with a different schema — must not overwrite.
+# FORGE_DIR root excluded: gen-manifest.py writes a diagram-registry manifest.json
+# there — img-manifest.json avoids collision.
 parents_with_image_subtree: dict[Path, set[str]] = {}
 for img_dir in dirs_with_images:
     cur = img_dir
@@ -78,7 +78,7 @@ for parent, child_names in parents_with_image_subtree.items():
     # subdirs that have image subtrees.
     existing: list[dict] = []
     if parent in dirs_with_images:
-        existing = json.loads((parent / 'manifest.json').read_text())
+        existing = json.loads((parent / 'img-manifest.json').read_text())
     dir_entries = []
     for name in sorted(child_names):
         sub = parent / name
@@ -95,9 +95,9 @@ for parent, child_names in parents_with_image_subtree.items():
         except OSError:
             continue
     merged = existing + dir_entries
-    (parent / 'manifest.json').write_text(json.dumps(merged, indent=2) + '\n')
+    (parent / 'img-manifest.json').write_text(json.dumps(merged, indent=2) + '\n')
     label = 'merged' if existing else 'parent'
     print(
-        f'  [{label}] {parent.relative_to(FORGE_DIR)}/manifest.json: '
+        f'  [{label}] {parent.relative_to(FORGE_DIR)}/img-manifest.json: '
         f'{len(existing)} images + {len(dir_entries)} subdirs'
     )

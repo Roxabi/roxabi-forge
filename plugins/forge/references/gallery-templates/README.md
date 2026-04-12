@@ -107,7 +107,7 @@ All templates share:
 - Same toolbar pattern (`.toolbar > .ctrl > .ctrl-label + .segs/.check-group`)
 - Dynamic filters (OFF by default = inactive = show everything)
 - Search, sort, size +/−, stats counter, lightbox
-- manifest.json + /api/list/ discovery
+- img-manifest.json + /api/list/ discovery
 - `{{PLACEHOLDER}}` markers for all customisation points
 
 **Asset path placeholders:** all templates use `{{GALLERY_BASE_CSS}}` and `{{GALLERY_BASE_JS}}` for the shared asset paths. Replace with the correct relative path for your deploy location (e.g. `../../_shared/gallery-base.css`, `../../_shared/gallery-base.js`).
@@ -202,7 +202,7 @@ Best for iterative exploration (V1 → V2 → V3 batches) with starring.
 ### Generated batches — enriched manifest (no hardcoded CATALOGUE)
 
 When images are script-generated (e.g. `generate_prompts.py` producing 2000+ images), the
-`manifest.json` inside the image dir carries `label` and `tags` per entry. `discoverBatch`
+`img-manifest.json` inside the image dir carries `label` and `tags` per entry. `discoverBatch`
 reads them directly — no `CATALOGUE_VNN` object needed:
 
 ```javascript
@@ -214,7 +214,7 @@ const BATCHES = [
 ];
 ```
 
-The enriched `manifest.json` format (written by `generate_prompts.py`):
+The enriched `img-manifest.json` format (written by `generate_prompts.py`):
 ```json
 [
   { "name": "P0012.png", "label": "Headshot · Three-quarter right · Soft smirk · Studio · Dark",
@@ -462,9 +462,9 @@ const subdirs = await discoverDirs('concepts/avatar-lyra-benchmark/')
 // → ['v22_face', 'v22_island0', 'v22_top30', 'v23d_2000', …, 'v23f_4000']
 ```
 
-Symmetric with `discoverFiles`: tries `{dir}/manifest.json` first (static hosts), then `/api/list/{dir}` (forge dev server). Manifest entries must have `is_dir: true` to be treated as directories. Returns sorted array of names, `[]` if neither path resolves.
+Symmetric with `discoverFiles`: tries `{dir}/img-manifest.json` first (static hosts), then `/api/list/{dir}` (forge dev server). Manifest entries must have `is_dir: true` to be treated as directories. Returns sorted array of names, `[]` if neither path resolves.
 
-**Static-hosting requirement.** On static hosts (Cloudflare Pages, file://), the parent dir needs a `manifest.json` listing its subdirs. The `gen-image-manifests.py` build step writes these automatically at every directory level whose subtree contains image files — no manual curation needed.
+**Static-hosting requirement.** On static hosts (Cloudflare Pages, file://), the parent dir needs an `img-manifest.json` listing its subdirs. The `gen-image-manifests.py` build step writes these automatically at every directory level whose subtree contains image files — no manual curation needed.
 
 **Worked example — two-level gallery with metadata overlay**
 

@@ -125,7 +125,7 @@ make forge logs      # tail stdout
 make forge deploy    # build + deploy
 ```
 
-If not set up, `python3 -m http.server` works fine — just regenerate `manifest.json` manually after adding new diagrams.
+If not set up, `python3 -m http.server` works fine — just regenerate `manifest.json` (diagram registry) manually after adding new diagrams.
 
 ---
 

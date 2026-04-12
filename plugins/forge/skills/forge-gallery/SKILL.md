@@ -205,7 +205,7 @@ These are implemented in the templates. Read the template source for details.
 
 **Data-driven enrichment:** When a JSON file exists (scores, clusters), the template loads it and enables score sorting/filtering and cluster grouping as additional dimensions.
 
-**Image discovery:** manifest.json (Cloudflare) → /api/list/ fallback (local dev) → data JSON keys fallback.
+**Image discovery:** img-manifest.json (Cloudflare) → /api/list/ fallback (local dev) → data JSON keys fallback.
 
 ---
 
@@ -215,7 +215,7 @@ Every gallery MUST include:
 
 | Feature | Required | Notes |
 |---------|----------|-------|
-| Image discovery | ✅ | manifest.json + API fallback |
+| Image discovery | ✅ | img-manifest.json + API fallback |
 | Lightbox | ✅ | Click → full-size overlay, Escape to close |
 | Lazy loading | ✅ | `loading="lazy"` on all images |
 | diagram-meta | ✅ | Standard meta tags |
