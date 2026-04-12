@@ -581,7 +581,7 @@ const CAVEMAN = {
 
 // Auto-init on DOM ready
 document.addEventListener('DOMContentLoaded', CAVEMAN.init);
-</script>
+<\/script>
 */
 
 /* ══════════════════════════════════════════════════════════════════
@@ -602,7 +602,7 @@ To use with forge gallery templates:
 3. Override accent in your gallery HTML if needed:
    <style>
      :root { --accent: #ff3300; --accent-dim: rgba(255,51,0,0.15); }
-   </style>
+   <\/style>
 
 4. Apply glass-card to your card elements:
    <div class="card glass-card">...</div>
