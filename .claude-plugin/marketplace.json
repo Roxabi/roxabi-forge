@@ -1,0 +1,18 @@
+{
+  "name": "roxabi-forge",
+  "version": "1.0.0",
+  "description": "Forge — HTML visual artifacts for Claude Code (diagrams, galleries, guides, epics). Brand-aware, manifest-indexed, Cloudflare Pages ready.",
+  "owner": {
+    "name": "Roxabi",
+    "url": "https://github.com/Roxabi"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "description": "Forge HTML visuals for ~/.roxabi/forge/ — forge-guide (split-file multi-tab doc), forge-epic (issue-linked analysis), forge-chart (single-file Mermaid), forge-gallery (image/audio with shared gallery-base.css/js). Brand-aware, manifest-indexed, Cloudflare Pages ready.",
+      "source": "./plugins/forge",
+      "category": "productivity",
+      "version": "0.4.0"
+    }
+  ]
+}

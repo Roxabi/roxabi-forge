@@ -1,5 +1,6 @@
 FORGE_DIR       ?= $(HOME)/.roxabi/forge
 PLUGIN_DIR      := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+REPO_ROOT       := $(abspath $(PLUGIN_DIR)../..)
 
 SUPERVISOR_HUB  ?= $(HOME)/projects
 -include $(SUPERVISOR_HUB)/hub.mk
@@ -27,13 +28,13 @@ deploy:
 	@chmod +x $(FORGE_DIR)/run.sh
 	@cp -v $(PLUGIN_DIR)runtime/Makefile $(FORGE_DIR)/Makefile
 	@cp -v $(PLUGIN_DIR)runtime/.env.example $(FORGE_DIR)/.env.example
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/build.sh $(FORGE_DIR)/scripts/build.sh
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/gen-manifest.py $(FORGE_DIR)/scripts/gen-manifest.py
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/gen-deps.py $(FORGE_DIR)/scripts/gen-deps.py
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/gen-image-manifests.py $(FORGE_DIR)/scripts/gen-image-manifests.py
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/seed-meta.py $(FORGE_DIR)/scripts/seed-meta.py
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/update-meta.py $(FORGE_DIR)/scripts/update-meta.py
-	@cp -v $(PLUGIN_DIR)../../forge/scripts/render-md.py $(FORGE_DIR)/scripts/render-md.py
+	@cp -v $(REPO_ROOT)/scripts/build.sh $(FORGE_DIR)/scripts/build.sh
+	@cp -v $(REPO_ROOT)/scripts/gen-manifest.py $(FORGE_DIR)/scripts/gen-manifest.py
+	@cp -v $(REPO_ROOT)/scripts/gen-deps.py $(FORGE_DIR)/scripts/gen-deps.py
+	@cp -v $(REPO_ROOT)/scripts/gen-image-manifests.py $(FORGE_DIR)/scripts/gen-image-manifests.py
+	@cp -v $(REPO_ROOT)/scripts/seed-meta.py $(FORGE_DIR)/scripts/seed-meta.py
+	@cp -v $(REPO_ROOT)/scripts/update-meta.py $(FORGE_DIR)/scripts/update-meta.py
+	@cp -v $(REPO_ROOT)/scripts/render-md.py $(FORGE_DIR)/scripts/render-md.py
 	@chmod +x $(FORGE_DIR)/scripts/build.sh
 	@chmod +x $(FORGE_DIR)/scripts/render-md.py
 	@echo "Done."

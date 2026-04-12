@@ -5,7 +5,7 @@ Generate HTML diagrams, visuals, and galleries for the `~/.roxabi/forge/` ecosys
 ## Install
 
 ```bash
-claude plugin marketplace add Roxabi/roxabi-plugins
+claude plugin marketplace add Roxabi/roxabi-forge
 claude plugin install forge
 ```
 

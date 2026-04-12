@@ -1,0 +1,20 @@
+pre-commit:
+  commands:
+    lint:
+      run: bunx biome check --write {staged_files}
+      glob: "*.{js,jsx}"
+    trufflehog:
+      run: scripts/trufflehog-check.sh
+      skip:
+        - merge
+        - rebase
+
+commit-msg:
+  commands:
+    conventional-commits:
+      run: bunx commitlint --edit {1}
+
+pre-push:
+  commands:
+    trufflehog:
+      run: scripts/trufflehog-check.sh
