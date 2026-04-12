@@ -14,8 +14,9 @@ palette injection, component pre-fill, Deliver constraint checking), but duplica
 each `SKILL.md` creates drift. Instead, each `SKILL.md` says "run Brand Book Loader" at invocation
 start, and all skills behave consistently.
 
-Who reads this: Claude, at the start of a forge skill invocation, before running Frame. Skills that
-read this document should not re-implement any of the steps here — they should execute them.
+Who reads this: Claude, at the start of a forge skill invocation, before the Frame inference step.
+Skills that read this document should not re-implement any of the steps here — they should execute
+them.
 
 Who does not read this: end users. They receive a one-line report (see Reporting section). The
 internals are a skill concern.
@@ -26,7 +27,7 @@ internals are a skill concern.
 
 Run this check at the start of every forge skill invocation, immediately after project detection
 (see `forge-ops.md § Project Detection`). Do not defer it — brand book presence determines whether
-Frame runs in full or reduced form.
+Frame infers all signals from scratch or uses brand-constrained tone.
 
 Check order (first match wins — do not continue after a match):
 
@@ -62,6 +63,9 @@ Good: "Brand book loaded: ~/.roxabi/forge/lyra/brand/BRAND-BOOK.md (palette-only
 Good: "No brand book found — Track B exploration mode"
 Bad:  (silently applying or skipping brand book with no report)
 ```
+
+Note: Frame always runs silently after this report — no questions are asked. The brand book report
+is the only user-visible output before generation begins.
 
 ---
 
@@ -239,7 +243,7 @@ execute the full Apply logic for their relevant phases.
 | Phase | Brand book fields consulted | How they apply |
 |---|---|---|
 | Phase 1 — Context | `aesthetic`, `palette`, `typography` | Inject aesthetic CSS file from `references/aesthetics/{value}` into the HTML shell. Then overlay `palette` tokens as CSS custom properties in `:root` and theme blocks, overriding matching tokens in the aesthetic file. Emit `typography` as Google Fonts links + font-family rules, overriding aesthetic defaults. |
-| Frame (Phase 1) | `deliver_must_match` (voice / vocabulary rules that pre-constrain tone) | If brand book is present (Track A): skip Frame Q3 (tone). Tone axes are pre-constrained by the brand book's voice rules embedded in `deliver_must_match` (banned vocab, voice register, passive-voice rules). Still ask Q1 (reader-action) and Q2 (takeaway) — these are content-driven, not brand-driven. In Track B: run all four Frame questions in full. Note: the schema has no dedicated `tone` override key — voice constraints live in `deliver_must_match` by convention. |
+| Frame (Phase 1) | `deliver_must_match` (voice / vocabulary rules that pre-constrain tone) | If brand book is present (Track A): tone is pre-constrained — no tone inference needed. Read tone axes from the brand book's voice rules embedded in `deliver_must_match` (banned vocab, voice register, passive-voice rules). Infer Signal 1 (reader-action) and Signal 2 (takeaway) from the prompt — these are content-driven, not brand-driven. In Track B: infer all four Frame signals from prompt and content. Note: the schema has no dedicated `tone` override key — voice constraints live in `deliver_must_match` by convention. |
 | Phase 2 — Structure | `structure_defaults`, `allow_override.structure` | Apply `structure_defaults` as tiebreakers only when content topology is genuinely ambiguous between two equally valid choices. If `allow_override.structure: open`, content topology always wins regardless of tiebreakers. If `locked`, the brand default always wins even when content suggests a different topology. |
 | Phase 3 — Style | `components`, `allow_override.components` | Pre-fill each Style slot (hero, section_label, card_default, timeline, badges, mermaid_theme_bias) from `components`. If `allow_override.components: partial`, content may substitute a specific slot only when there is no valid option using the brand default (see override rule below). If `locked`, brand component values are immutable. |
 | Phase 4 — Deliver | `examples`, `deliver_must_match` | Before writing the output file: (1) run each `deliver_must_match` rule against the generated output and report pass/fail per rule; (2) if `examples` list is non-empty and at least one example path resolves, offer to diff the generated output against one example for visual consistency spot-check. |
@@ -265,8 +269,8 @@ overriding.
 
 ## Reporting
 
-Report brand book load status immediately after discovery, before asking any Frame questions or
-producing any output.
+Report brand book load status immediately after discovery, before the Frame inference step or any
+output.
 
 ### On invocation
 
@@ -328,7 +332,7 @@ detail that the user can act on a failure without reading the brand book themsel
 | `deliver_must_match` rule is ambiguous (cannot be mechanically verified against the output) | Report: `"Rule '{rule}' cannot be mechanically verified — human review required"`. Do not fail the Deliver phase; surface it as a manual item. |
 | `allow_override` key has an unknown value | Treat as `partial`. Warn: `"allow_override.{key}: unknown value '{value}' — treating as partial"`. Continue. |
 | Explicit `--brand-book PATH` resolves to a file that does not exist | Report: `"--brand-book {PATH} not found"`. Fall through to step 2 (mirror path) and continue. |
-| Content Structure output has no matching Style row AND brand book does not lock that slot | Do not silently pick. Ask the user which Style row to use. Offer the closest match as a suggestion. |
+| Content Structure output has no matching Style row AND brand book does not lock that slot | Use the closest matching Style row. Surface the mismatch in the Phase 4 report with a note on which row was used and why. |
 | `extends:` path resolves to a file that does not exist | Warn `"extends: {path} not found — ignoring extends, using child file alone"`. Load only the child. Do not abort. |
 | `extends:` chain exceeds 10 levels | Warn `"extends: chain exceeds 10 levels — stopping at {path}"`. Use the merged result up to the cutoff. |
 | `extends:` cycle detected | Warn `"extends: cycle detected: {path-A} → ... → {path-A} — stopping chain at repeat"`. Use the merged result up to the repeat. |
@@ -344,5 +348,5 @@ brand book has a problem. Report, fall back, continue.
 
 - `forge-ops.md` — Aesthetic Detection precedence chain; Brand Book Detection paths; Project Detection
 - `brand-book-schema.md` — full `forge.yml` field reference, component enums, `allow_override` values
-- `frame-phase.md` — Frame behavior in Track A (reduced) vs. Track B (full); tone dimension table
+- `frame-phase.md` — Frame inference behavior in Track A (reduced) vs. Track B (full); tone dimension table
 - `examples/forge.yml.example` — concrete example filled in for the Lyra project

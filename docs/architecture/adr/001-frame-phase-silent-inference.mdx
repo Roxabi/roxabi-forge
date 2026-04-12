@@ -1,0 +1,60 @@
+---
+title: "ADR-001: Frame Phase Runs as Silent Inference"
+description: The forge Design Phase Frame sub-phase infers all signals from prompt context without asking the user interactive questions.
+---
+
+## Status
+
+Accepted
+
+## Context
+
+The forge Design Phase has four sub-phases: Frame → Structure → Style → Deliver. Frame is the first and answers: who reads this, what do they do next, what tone does the content deserve?
+
+The original design required Claude to ask the user 1–4 questions (Q1–Q4) before proceeding to Structure. This created friction: for experienced users who write precise prompts, the questions were redundant. For exploratory invocations, the back-and-forth interrupted flow. The Frame signals (reader, takeaway, tone, sentence-verb) are almost always inferable from a well-formed forge invocation — the project context, issue reference, and noun phrases in the prompt supply sufficient signal.
+
+The change needed a clear decision about whether Frame is a _judgment step_ (can be inferred) or an _elicitation step_ (requires user input). The answer has downstream consequences: Track A vs. Track B behavior, the brand-book-loader reporting convention, and how all four SKILL.md files describe Phase 1.
+
+## Options Considered
+
+### Option A: Silent inference (selected)
+Frame derives all three required signals (reader-action, takeaway, tone) from the user's prompt, project context, and brand book without asking questions. An optional fourth signal (sentence verb) is inferred internally when Signal 1 is ambiguous. No user-facing questions in Phase 1.
+
+- **Pros:** Zero friction for well-formed prompts; consistent with how brand-book-loader works (it also runs silently and only reports after detection); enables sub-agent delegation without a blocking round-trip; frame trace is reproducible and auditable in the skill's internal log.
+- **Cons:** If the prompt is genuinely ambiguous between two reader-action rows (e.g. stakeholder vs. engineer for the same topology), the skill commits to one and may produce the wrong layout. The user has to re-invoke with a more specific prompt.
+
+### Option B: Interactive Q1 when ambiguous, silent otherwise
+Frame runs silently when Signal 1 is clearly inferable (confidence > 80%). When the reader-action row is ambiguous between two candidates, it asks a single focused question ("Is this for a new contributor learning the system, or an engineer debugging a production issue?").
+
+- **Pros:** Covers the ambiguous-prompt case without disrupting high-confidence invocations.
+- **Cons:** Requires a confidence scoring mechanism across the reader-action matrix. The threshold is arbitrary and hard to calibrate. Breaks the clean "Frame is always silent" contract that the brand-book-loader and sub-agent prompt template both rely on. Makes Phase 1 non-deterministic from the user's perspective.
+
+### Option C: Always ask Q1–Q4
+Frame always presents four questions before Structure regardless of prompt clarity.
+
+- **Pros:** Guarantees the correct reader-action and tone even for vague prompts.
+- **Cons:** Introduces 4 round-trips before any generation begins. Alienates experienced users with clear prompts. Incompatible with sub-agent delegation (sub-agent cannot do interactive back-and-forth).
+
+## Decision
+
+Option A — silent inference for all forge invocations.
+
+The reader-action matrix in `frame-phase.md` covers seven rows with explicit topology, component, and tone biases. A skill invocation that cannot be mapped to at least one row with the prompt alone is a poorly-formed invocation, not a gap in Frame. The mitigation is documentation: `frame-phase.md` shows a concrete example trace so users can write prompts that surface the right signals.
+
+Signal 4 (sentence verb) is retained as an internal disambiguation tool: when Signal 1 is ambiguous between two matrix rows, the skill infers a single action verb to break the tie without asking the user.
+
+## Consequences
+
+### Positive
+- Frame adds near-zero latency to Phase 1; the purpose statement is derived before the first file read.
+- Sub-agent delegation (Phase 3) does not require a blocking round-trip — all Frame signals are resolved in Phase 1 before spawning.
+- brand-book-loader and Frame now share the same "silent, then report" contract: both run without asking questions and surface their outcome in a one-line status message.
+- All four SKILL.md files can describe Frame identically: "infer silently from prompt and context — no questions asked."
+
+### Negative
+- Ambiguous prompts (e.g., "draw the architecture") produce a committed layout choice the user may not have intended. Recovery requires re-invoking with a more specific prompt.
+- There is no explicit user checkpoint between Frame and Structure. If the Frame signals are wrong, the user only discovers this after seeing the output.
+
+### Neutral
+- The Frame trace (which signals were inferred, from which cues) is internal to the skill — not surfaced to the user unless they ask or the output is clearly misaligned.
+- The reader-action matrix in `frame-phase.md` becomes the single reference for what "inferable" means — additions to the matrix are the primary extension point.

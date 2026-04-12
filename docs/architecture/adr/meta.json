@@ -1,0 +1,7 @@
+{
+  "title": "ADRs",
+  "pages": [
+    "001-frame-phase-silent-inference",
+    "002-sub-agent-phase3-delegation"
+  ]
+}

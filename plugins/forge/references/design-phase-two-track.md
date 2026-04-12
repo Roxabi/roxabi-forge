@@ -57,32 +57,34 @@ judgment phases begin.
 
 ## Frame in Track A vs Track B
 
-Frame answers: who reads this, what do they do next, what tone does the content deserve? In Track A,
-the brand book pre-answers the tone question. In Track B, all axes are open.
+Frame answers: who reads this, what do they do next, what tone does the content deserve? Frame
+derives all answers silently from the prompt and context — it never asks the user. In Track A, the
+brand book pre-constrains tone; in Track B, all axes are inferred from the content.
 
 | Sub-step | Track A (branded) | Track B (exploration) |
 |---|---|---|
-| Q1 — Reader + action | ASK — content-driven, not brand-driven | ASK |
-| Q2 — Takeaway | ASK — content-driven, not brand-driven | ASK |
-| Q3 — Tone (4 axes) | PRE-FILLED from brand book voice rules; only ask for axes the brand leaves open | ASK all 4 tone axes |
-| Q4 — Sentence verb (optional) | OPTIONAL — useful if Q1 is ambiguous between two reader types | OPTIONAL |
-| Output: purpose statement | Produced — Q1 + Q2 drive it | Produced — Q1 + Q2 + Q3 drive it |
+| Signal 1 — Reader + action | INFER from prompt — content-driven, not brand-driven | INFER from prompt |
+| Signal 2 — Takeaway | INFER from content — content-driven, not brand-driven | INFER from content |
+| Signal 3 — Tone (4 axes) | PRE-CONSTRAINED by brand book voice rules; infer only axes the brand leaves open | INFER all 4 tone axes from content type and project context |
+| Signal 4 — Sentence verb (optional) | INFER internally if Signal 1 is ambiguous between two reader types | INFER internally if needed |
+| Output: purpose statement | Produced — Signals 1 + 2 drive it | Produced — Signals 1 + 2 + 3 drive it |
 | Output: aesthetic signal | Not produced — brand book locks aesthetic at priority 2 | Produced — flows to Aesthetic Detection priority 5 as content-type fallback |
 
-**Rationale — Track A tone pre-fill:** In branded mode, tone is pre-constrained by the brand. For
-example, Lyra's brand book encodes "warm + technical" as a voice rule and prohibits AI marketing
-cliches. Asking the author to re-derive tone from scratch would contradict the brand book and
-introduce drift. The brand's tone answers Q3 directly; skills read it from `deliver_must_match` or
-an equivalent voice field and skip the Q3 elicitation.
+**Rationale — Track A tone pre-constraint:** In branded mode, tone is pre-constrained by the brand.
+For example, Lyra's brand book encodes "warm + technical" as a voice rule and prohibits AI
+marketing cliches. Re-inferring tone from scratch would contradict the brand book and introduce
+drift. The brand's tone answers Signal 3 directly; skills read it from `deliver_must_match` or an
+equivalent voice field and treat those axes as settled.
 
 **Rationale — Track B aesthetic signal:** In exploration mode, no higher-priority signal exists (no
-`forge.yml`, no project-name match). Frame's Q1 + Q3 output produces a content-type signal that
-Aesthetic Detection priority 5 maps to a fallback aesthetic CSS file. This is the only path where
-Frame indirectly influences aesthetic selection, and only as the lowest-priority fallback.
+`forge.yml`, no project-name match). Frame's Signal 1 + Signal 3 output produces a content-type
+signal that Aesthetic Detection priority 5 maps to a fallback aesthetic CSS file. This is the only
+path where Frame indirectly influences aesthetic selection, and only as the lowest-priority
+fallback.
 
-In both tracks, Q1 and Q2 are always asked because they are content-driven, not brand-driven. A
-brand book describes how a project looks and sounds, not what this specific visual is about or who
-its reader is.
+In both tracks, Signals 1 and 2 are always inferred from the content — they are never pre-filled
+by the brand book. A brand book describes how a project looks and sounds, not what this specific
+visual is about or who its reader is.
 
 ---
 
@@ -177,11 +179,11 @@ typography (Chakra Petch / Outfit / Inter / JetBrains Mono), `components.hero` (
 `components.section_label` (`dot`). Voice rules: warm + technical; prohibit AI marketing cliches.
 Track A fires.
 
-**Frame:**
-- Q1 — "New contributor, onboarding" — asked; content-driven
-- Q2 — "Three processes communicate only via NATS topics — no direct imports between them" — asked; content-driven
-- Q3 — SKIPPED — tone pre-filled from brand book voice rules: warm + technical
-- Q4 — OPTIONAL — skipped; Q1 is unambiguous
+**Frame (silent inference):**
+- Signal 1 — "New contributor, onboarding" — inferred from "help a new contributor understand"
+- Signal 2 — "Three processes communicate only via NATS topics — no direct imports between them" — inferred from topology content
+- Signal 3 — SKIPPED — tone pre-constrained by brand book voice rules: warm + technical
+- Signal 4 — not needed; Signal 1 is unambiguous
 
 **Structure:**
 Four nodes, hub-and-spoke topology. `prefer_fgraph_under: 6` → fgraph. Content wins; brand
@@ -204,14 +206,14 @@ for spot-check; author may accept or decline.
 **Phase 1 — Track selection:**
 No brand book found. No project-name match. Track B fires.
 
-**Frame:**
-- Q1 — "New contributor, onboarding" — asked
-- Q2 — "Three processes communicate only via NATS topics — no direct imports between them" — asked
-- Q3 — FULL — all 4 axes asked: warm + technical + spacious + reflective
-- Q4 — OPTIONAL — skipped
+**Frame (silent inference):**
+- Signal 1 — "New contributor, onboarding" — inferred from "help a new contributor understand"
+- Signal 2 — "Three processes communicate only via NATS topics — no direct imports between them" — inferred from topology content
+- Signal 3 — FULL INFERENCE — all 4 axes from content type: warm + technical + spacious + reflective
+- Signal 4 — not needed; Signal 1 is unambiguous
 
-Aesthetic signal produced from Q1 + Q3 → warm + agent-adjacent content → Aesthetic Detection
-priority 5 → `lyra.css`.
+Aesthetic signal produced from Signal 1 + Signal 3 → warm + agent-adjacent content → Aesthetic
+Detection priority 5 → `lyra.css`.
 
 **Structure:**
 Four nodes, hub-and-spoke. Plugin default `prefer_fgraph_under: 6` → fgraph. Same result.
@@ -242,7 +244,7 @@ to enforce.
 | Aesthetic | Locked by brand book (`allow_override.aesthetic: locked`) | Content-type fallback (Aesthetic Detection priority 5) |
 | Palette | Locked by brand book (`allow_override.palette: locked`) | Aesthetic CSS file defaults |
 | Typography | Locked by brand book (`allow_override.typography: locked`) | Aesthetic CSS file defaults |
-| Tone | Brand voice rules pre-fill Q3; brand wins | Frame Q3 judgment — all 4 axes asked |
+| Tone | Brand voice rules pre-constrain Signal 3; brand wins | Frame Signal 3 inference — all 4 axes derived from content |
 | Topology | Content-driven; brand `structure_defaults` as tiebreakers | Content-driven; plugin defaults as tiebreakers |
 | Component slots | Brand defaults; partial override only when slot is inapplicable | Frame tone drives variant selection |
 | Deliver verification | Brand `must_match` rules + built-in checklist | Built-in checklist only |
@@ -254,5 +256,5 @@ to enforce.
 
 - `brand-book-schema.md` — full `forge.yml` schema, field reference, `allow_override` values, per-skill consumption table
 - `brand-book-loader.md` — discovery paths, parse and apply pseudocode, logged output format
-- `frame-phase.md` — Frame reference: three Frame questions, reader-action matrix, tone dimensions, how Frame output flows downstream
+- `frame-phase.md` — Frame reference: three Frame signals, reader-action matrix, tone dimensions, how Frame output flows downstream
 - `forge-ops.md` — Aesthetic Detection precedence chain (mechanical; runs during Phase 1 in both tracks); content-type fallback matrix

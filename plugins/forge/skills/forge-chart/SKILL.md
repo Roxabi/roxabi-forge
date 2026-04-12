@@ -2,7 +2,7 @@
 name: forge-chart
 description: 'Create a quick self-contained single-file HTML visual — Mermaid flowchart, dependency tree, sequence diagram, or CSS layout. No server needed, works with file://. Triggers: "draw" | "diagram" | "visualize" | "sketch" | "map" | "show the flow" | "quick visual".'
 version: 0.3.0
-allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch
+allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 ---
 
 # Chart — Single-File Quick Visual
@@ -55,12 +55,12 @@ Report the loaded brand book (or its absence) before starting Frame. Track is fi
 
 ### Frame — What's this visual for?
 
-Full reference: `${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md` — three Frame questions, reader-action matrix, tone dimensions, example trace.
+Full reference: `${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md` — three Frame signals, reader-action matrix, tone dimensions, example trace.
 
-**For forge-chart specifically, Q4 (sentence verb) is the most useful prompt.** A chart is usually a single visual with one dominant reader action — *see*, *debug*, *decide*, *learn*, *trust*. Commit to the verb before picking topology: a *see* verb tolerates spacious fgraph; a *debug* verb demands dense stat-grid + high contrast.
+**For forge-chart specifically, Signal 4 (sentence verb) is the most useful internal check.** A chart is usually a single visual with one dominant reader action — *see*, *debug*, *decide*, *learn*, *trust*. Infer the verb from the prompt before picking topology: a *see* verb tolerates spacious fgraph; a *debug* verb demands dense stat-grid + high contrast.
 
-- **Track A:** ask Q1 (reader-action) and Q2 (takeaway). **Skip Q3 (tone)** — tone is pre-constrained by brand voice rules in `deliver_must_match`. Q4 optional.
-- **Track B:** ask Q1, Q2, and full Q3 (all four tone axes). Frame output produces a content-type signal for Aesthetic Detection priority 5.
+- **Track A:** infer Signal 1 (reader-action) and Signal 2 (takeaway) from the prompt. Tone is pre-constrained by brand voice rules in `deliver_must_match` — no tone inference needed.
+- **Track B:** infer Signal 1, Signal 2, and full Signal 3 (all four tone axes) from the prompt and content. Frame output produces a content-type signal for Aesthetic Detection priority 5.
 
 Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aesthetic Detection`). Frame produces purpose, not CSS.
 
@@ -86,7 +86,7 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 
 **Arrow modifiers (fgraph):** `.dashed` = optional/async, `.thick` = critical path, `.animated` = live stream. Compose with tones: `<path class="fg-edge amber thick">`.
 
-**Ask:** How many nodes? Any cycles? If you sketch the content twice — once radial, once linear — which reads faster on a 1200px screen? Content that takes two sketches to understand is a signal to split the diagram, not to cram both into one.
+**Check:** How many nodes? Any cycles? If the content sketches twice — once radial, once linear — which reads faster on a 1200px screen? Content that takes two sketches to understand is a signal to split the diagram, not to cram both into one.
 
 ### Style — Which components?
 
@@ -116,10 +116,13 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`.
 | CSS Grid cards | `.cards` container + `.card`/`.card.accent` per row |
 | Timeline | `.steps` container + `.step > .step-num` per entry |
 | Explainer I/O flow | `.io-strip` + `.io-box` + `.io-arrow` |
+| Progressive disclosure | `details.disclosure` for secondary info, `.has-tip` for term definitions |
+| Metadata strip | `.kv-strip` for inline key-value pairs |
+| Section anchor | `.summary-card` at start of each tab/section |
 
 Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline tonal callouts.
 
-**Ask:** What's the ONE thing the reader should walk away remembering? A number → `.stat-grid`. A path through steps → `.steps` timeline. A comparison → `.table-wrap > table`. A decision with trade-offs → `.io-strip`. If more than one answer fits, the diagram is doing too much — Frame Q2 is underspecified.
+**Signal:** What's the ONE thing the reader should walk away remembering (Frame Signal 2)? A number → `.stat-grid`. A path through steps → `.steps` timeline. A comparison → `.table-wrap > table`. A decision with trade-offs → `.io-strip`. If more than one answer fits, the diagram is doing too much — Frame Signal 2 is underspecified.
 
 ### Deliver — Generate + verify
 
@@ -136,6 +139,10 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 - Run every `brand.deliver_must_match` rule against the generated output. Report pass/fail per rule with location. Do not write the file until all rules pass or the user explicitly overrides a failing rule.
 - If `brand.examples` list is non-empty, offer to visually diff the generated output against one example before writing.
 
+- Every tab/section starts with a `.summary-card` or `.stat-grid` (glance layer present).
+- No visible text block exceeds 4 sentences without a break or disclosure wrapper.
+- Metadata uses `.kv-strip` or structured table, not inline prose.
+
 **If the chart is a rich explainer** (multi-section, long-form):
 - Hero section present (`.hero.left-border` / `.elevated` / `.top-border`) with eyebrow + title accent.
 - Section labels present (`.section-label.dot` / `.triangle` / `.square`).
@@ -144,6 +151,14 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 **If the chart is a single quick diagram** (one Mermaid / fgraph block, no narrative):
 - Hero and section labels are **optional** — a minimal title + diagram is acceptable.
 - Reveal observer is **not needed** (no `.reveal` elements to observe).
+
+---
+
+## Output UX — Schema Over Prose
+
+Full reference: `${CLAUDE_PLUGIN_ROOT}/references/output-ux.md` — three-layer information architecture, 10 mandatory rules, anti-patterns.
+
+**For forge-chart specifically:** the Glance layer (`.hero` + `.stat-grid` or `.summary-card`) is critical — a single chart must communicate its takeaway above the fold. Use progressive disclosure (`details.disclosure`) for explanatory text below the diagram.
 
 ---
 
@@ -172,6 +187,62 @@ Let:
 
 ---
 
+## Context Isolation — Sub-Agent Generation
+
+Heavy HTML/CSS/JS generation runs in a **sub-agent** to keep the main conversation context clean. The main skill thread handles decisions (Phase 1–2); the sub-agent handles file generation (Phase 3).
+
+### When to delegate
+
+| Condition | Action |
+|---|---|
+| Single quick diagram (one Mermaid / fgraph block, no narrative) | Generate inline (no sub-agent) |
+| Rich explainer (multi-section with hero + phases + diagram) | **Delegate Phase 3 to sub-agent** |
+| Any output > ~300 lines total | **Delegate to sub-agent** |
+
+### How to delegate
+
+1. Complete Phase 1 (context) and Phase 2 (visual type selection) in the main thread
+2. Spawn a sub-agent with a self-contained prompt that includes:
+   - The resolved decisions: aesthetic, visual type, output paths, slug
+   - The content to render (extracted from user's request + any read context)
+   - All file paths for base CSS, aesthetic CSS, shell template, JS files
+   - The exact placeholder values for shell substitution
+3. The sub-agent generates all files and returns the file paths
+4. Main thread runs Phase 4 (report) with the returned paths
+
+### Sub-agent prompt template
+
+```
+Generate forge-chart output file.
+
+Decisions (from Phase 1-2):
+- Track: {A|B}
+- Aesthetic: {file}
+- Visual type: {Mermaid flowchart|fgraph radial|CSS Grid|etc.}
+- Output path: {path}
+- Slug: {slug}
+
+Read these reference files:
+- {list of base CSS, aesthetic CSS, shell template, JS files}
+
+Then generate:
+- {output file path}
+
+Content to render:
+{extracted content/topic}
+
+Rules:
+- Inline all CSS (base + aesthetic) into output
+- Follow shell-processing.md substitution pipeline
+- Use semantic tokens from components.css
+- Mermaid (if used) wrapped in .diagram-shell — never bare <pre class="mermaid">
+- Single-file output must work with file://
+```
+
+The sub-agent has access to Read, Write, Bash, Glob, Grep tools — it can read all reference files and write the output file independently.
+
+---
+
 ## Phase 1 — Context
 
 1. Detect project from ARGS or cwd.
@@ -179,6 +250,18 @@ Let:
 3. Cross-project / no project → `~/.roxabi/forge/_shared/diagrams/`.
 4. **Run the brand book loader** (`${CLAUDE_PLUGIN_ROOT}/references/brand-book-loader.md`): Discovery → Parse → Apply. Determine Track A or Track B. Report the result before continuing.
 5. Apply the Aesthetic Detection precedence algorithm (see `${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md` § Aesthetic Detection) to select the correct aesthetic file. If Track A, `forge.yml` already locks it at priority 2.
+
+---
+
+### Frame Trace
+
+After inferring all signals, emit a one-line summary before proceeding to Phase 2. This is not a question — it is a statement the user can interrupt if the inference is wrong:
+
+```
+Frame: reader={signal1_reader}, action={signal1_action}, takeaway={signal2}, tone={signal3_summary}. Generating...
+```
+
+Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-process NATS topology, tone=warm+technical. Generating...`
 
 ---
 

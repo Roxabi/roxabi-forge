@@ -8,7 +8,7 @@ Shared operational details for all forge skills. Read this once per invocation.
 
 All forge skills follow this judgment flow during phases 1–4 (it is an overlay on top of the mechanical phases, not a separate pre-phase):
 
-1. **Frame** (Phase 1) — Define **purpose**: who reads this, what do they do next, what tone does the content deserve. Full reference: [`frame-phase.md`](frame-phase.md) — three Frame questions, reader-action matrix, tone dimensions.
+1. **Frame** (Phase 1) — **Infer purpose silently**: who reads this, what do they do next, what tone does the content deserve. Derived from the user's prompt and context — no questions asked. Full reference: [`frame-phase.md`](frame-phase.md) — three Frame signals, reader-action matrix, tone dimensions.
 2. **Structure** (Phase 2) — Choose topology / template / tab set (skill-specific — see each SKILL.md).
 3. **Style** (Phase 3) — Select component variants (skill-specific — see each SKILL.md).
 4. **Deliver** (Phase 4) — Verify against the skill's Deliver checklist and the brand book's `deliver_must_match` rules (if `forge.yml` is present).
@@ -17,7 +17,7 @@ All forge skills follow this judgment flow during phases 1–4 (it is an overlay
 
 ### Content-type fallback matrix
 
-Used only when the Aesthetic Detection chain reaches priority 5 (no explicit arg, no brand book, no project-name match). Derived from Frame Q1 (reader) + Q3 (tone). Full reader-action matrix lives in `frame-phase.md`.
+Used only when the Aesthetic Detection chain reaches priority 5 (no explicit arg, no brand book, no project-name match). Derived from Frame Signal 1 (reader) + Signal 3 (tone). Full reader-action matrix lives in `frame-phase.md`.
 
 | Content signal | Fallback aesthetic | Reason |
 |---|---|---|
@@ -41,13 +41,13 @@ Runs top-to-bottom; first match wins. Explicit args and brand book always overri
 | 2 | **`forge.yml` present** (structured brand book — see `brand-book-schema.md`) | Per brand book `aesthetic:` field; full component/palette lock applies |
 | 3 | Legacy `BRAND-BOOK.md` found (palette only) | Derived from palette table |
 | 4 | Project = `lyra` / `voicecli` / `roxabi*` / `2ndBrain` | `lyra.css` or `roxabi.css` per project |
-| 5 | **Frame content-type fallback** (from matrix above, using Frame Q1+Q3 output) | Per matrix |
+| 5 | **Frame content-type fallback** (from matrix above, using Frame Signal 1 + Signal 3 output) | Per matrix |
 | 6 | Default | `editorial.css` |
 
 **Two-track mode based on priority 2:**
 
-- **Track A — branded mode** (`forge.yml` present): priority 2 fires. Frame runs in reduced form — tone is pre-constrained by brand book's `deliver_must_match` rules. Structure/Style pre-fill from brand book's `components:` field. Aesthetic is locked.
-- **Track B — exploration mode** (no `forge.yml`): priority 2 skips. Frame runs in full — all four Frame questions asked. Aesthetic falls through to priority 3/4/5 as normal.
+- **Track A — branded mode** (`forge.yml` present): priority 2 fires. Frame runs in reduced form — tone is pre-constrained by brand book's `deliver_must_match` rules; Signals 1 and 2 inferred from prompt. Structure/Style pre-fill from brand book's `components:` field. Aesthetic is locked.
+- **Track B — exploration mode** (no `forge.yml`): priority 2 skips. Frame runs in full — all four signals inferred from prompt and content. Aesthetic falls through to priority 3/4/5 as normal.
 
 When priority 5 fires (exploration mode, unknown project), the fallback matrix maps Frame's purpose statement to one of the 5 aesthetic CSS files. When nothing matches, priority 6 (`editorial.css`) is the last resort.
 
@@ -65,7 +65,7 @@ ls ~/.roxabi/forge/{PROJ}/brand/forge.yml 2>/dev/null
 ls ~/.roxabi/forge/{PROJ}/brand/BRAND-BOOK.md 2>/dev/null
 ```
 
-**`forge.yml` found** → load as full decision substrate. Aesthetic, palette, typography, components, examples, and deliver constraints all apply per the schema in `brand-book-schema.md`. Skills skip Frame phase and enter **branded mode**.
+**`forge.yml` found** → load as full decision substrate. Aesthetic, palette, typography, components, examples, and deliver constraints all apply per the schema in `brand-book-schema.md`. Skills enter **Track A (branded mode)** — Frame runs in reduced form (Signals 1 and 2 inferred from prompt; tone pre-constrained by brand book voice rules).
 
 **Legacy `BRAND-BOOK.md` found** → derive CSS tokens from its palette table only (override defaults in `tokens.md`). Components, structure, and deliver constraints fall through to plugin defaults.
 

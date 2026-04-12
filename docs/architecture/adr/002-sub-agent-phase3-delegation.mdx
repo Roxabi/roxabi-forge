@@ -1,0 +1,64 @@
+---
+title: "ADR-002: Sub-Agent Delegation for Phase 3 (Heavy Generation)"
+description: Forge skills delegate HTML/CSS/JS file generation (Phase 3) to a sub-agent when output exceeds ~300 lines or the skill is multi-file (guide, epic).
+---
+
+## Status
+
+Accepted
+
+## Context
+
+Forge skills (forge-chart, forge-guide, forge-gallery, forge-epic) generate HTML visual artifacts. Heavy generation — multi-tab guides (5–15 files), epic shells with CSS+JS+tab fragments — produces 500–2000 lines of output across multiple files. Running this generation in the main conversation context has two costs: (1) the main context fills with raw HTML that obscures the decision trace and makes Phase 4 reporting noisy; (2) large single-pass generation in the main thread leaves no clean boundary for Phase 4 verification.
+
+The decision: where to draw the boundary between the main skill thread and delegated work, and what state must cross that boundary.
+
+## Options Considered
+
+### Option A: Main thread only (no sub-agent)
+All four phases run in the main thread. Phase 3 generates files inline.
+
+- **Pros:** No prompt engineering overhead; simpler skill implementation; no risk of sub-agent prompt diverging from main-thread decisions.
+- **Cons:** Main context fills with HTML/CSS/JS; Phase 4 verification runs in a context that already holds the generation noise; large outputs (1000+ lines) increase error risk on the Phase 3 pass.
+
+### Option B: Phase 3 sub-agent with structured handoff (selected)
+Phases 1–2 run in the main thread and produce a structured decisions block. Phase 3 spawns a sub-agent with a self-contained prompt containing those decisions plus file path lists. Phase 4 runs back in the main thread on the returned file paths.
+
+- **Pros:** Main context stays clean — only decisions (50–100 lines) cross the boundary, not the generated HTML. Sub-agent has full Read/Write/Glob/Grep tool access to reference files and output directories independently. Clean Phase 4 boundary: main thread verifies against a list of file paths, not inline HTML. Threshold table makes the rule explicit (`> ~300 lines` or multi-file → delegate; single quick diagram → inline).
+- **Cons:** Sub-agent prompt must be self-contained — if a decision is omitted from the handoff block, the sub-agent will make its own judgment on that field. The sub-agent cannot ask clarifying questions back. Adds one tool call (Agent spawn) to every non-trivial invocation.
+
+### Option C: Always delegate Phase 3 (no inline generation)
+Phase 3 always runs in a sub-agent, even for single-diagram outputs.
+
+- **Pros:** Fully uniform behavior; main thread never generates HTML.
+- **Cons:** Overhead of sub-agent spawn is disproportionate for a 50-line single-diagram chart. `forge-chart` would always pay the overhead even for trivial outputs.
+
+## Decision
+
+Option B — conditional delegation based on output size and file count.
+
+| Condition | Action |
+|---|---|
+| Single quick diagram (one Mermaid / fgraph block, no narrative), ≤ ~200–300 lines | Inline (main thread) |
+| Rich explainer (multi-section, hero + phases + diagram) | Delegate Phase 3 to sub-agent |
+| Multi-tab guide or epic (shell + CSS + JS + tab fragments) | Always delegate Phase 3 to sub-agent |
+| Any output > ~300 lines total | Delegate to sub-agent |
+
+For `forge-guide` and `forge-epic`, the "always delegate" rule applies unconditionally because multi-tab outputs always exceed the threshold and always produce multiple files.
+
+The sub-agent prompt template in each SKILL.md defines the required handoff fields: track (A/B), aesthetic file, visual type / tab plan, output paths, slug, content to render, and the list of reference files to read. The sub-agent uses these to generate all output files independently.
+
+## Consequences
+
+### Positive
+- Main conversation context is bounded: only Phase 1–2 decisions (track, aesthetic, topology, tab plan) accumulate in the main thread, regardless of output size.
+- Phase 4 report is clean: main thread reads file paths from the sub-agent return and runs the Deliver checklist against them without holding the generated HTML in its context.
+- Consistent with the existing gallery skill behavior where `forge-gallery` is already template-driven and mostly inline — the threshold correctly identifies it as rarely needing delegation.
+
+### Negative
+- The sub-agent prompt template is a second specification of the same decisions that Phase 1–2 already established. If Phase 2 adds a new decision field (e.g., a new diagram inventory key), the sub-agent prompt template in each SKILL.md must be updated in sync.
+- Sub-agent cannot ask questions mid-generation. If the handoff block is underspecified (e.g., missing a file path, ambiguous content description), the sub-agent makes a judgment call that may diverge from the user's intent.
+
+### Neutral
+- `forge-gallery` delegates only for complex multi-mode galleries (many DIMS + custom logic). Simple template-copy galleries remain inline. This is the correct bias: galleries are template-driven and most customization is data binding, not structural generation.
+- The 300-line threshold is a heuristic, not a hard limit. Skills use it as a guideline; the multi-file condition is the stricter rule.

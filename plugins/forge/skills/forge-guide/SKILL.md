@@ -2,7 +2,7 @@
 name: forge-guide
 description: 'Create a split-file multi-tab HTML document — user guide, architecture overview, project recap, comparison analysis, roadmap, or any rich multi-section doc. Triggers: "write a guide" | "create a guide" | "forge guide" | "multi-tab doc" | "visual doc" | "create a doc" | "make a recap" | "illustrate architecture" | "explain visually" | "document with forge".'
 version: 0.3.0
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ToolSearch
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ToolSearch, Agent
 ---
 
 # Guide — Split-File Multi-Tab Document
@@ -52,12 +52,12 @@ Report the loaded brand book (or its absence) before starting Frame. Track is fi
 
 ### Frame — What's this visual for?
 
-Full reference: `${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md` — three Frame questions, reader-action matrix, tone dimensions, example trace.
+Full reference: `${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md` — three Frame signals, reader-action matrix, tone dimensions, example trace.
 
-**For forge-guide specifically, Q2 (the ONE takeaway) is the most useful prompt.** A guide is a multi-tab document with multiple sections — without a committed Q2 takeaway, the tab set sprawls and the reader loses the thread. State Q2 in one sentence before picking tabs. If you can't, the scope is too wide — split into multiple guides.
+**For forge-guide specifically, Signal 2 (the ONE takeaway) is the most critical to infer.** A guide is a multi-tab document with multiple sections — without a committed Signal 2 takeaway, the tab set sprawls and the reader loses the thread. Commit to it in one sentence internally before picking tabs. If the content scope is too wide to express in one sentence, split into multiple guides.
 
-- **Track A:** ask Q1 (reader-action) and Q2 (takeaway). **Skip Q3 (tone)** — tone is pre-constrained by brand voice rules in `deliver_must_match`. Q4 optional.
-- **Track B:** ask Q1, Q2, and full Q3 (all four tone axes). Frame output produces a content-type signal for Aesthetic Detection priority 5.
+- **Track A:** infer Signal 1 (reader-action) and Signal 2 (takeaway) from the prompt. Tone is pre-constrained by brand voice rules in `deliver_must_match` — no tone inference needed.
+- **Track B:** infer Signal 1, Signal 2, and full Signal 3 (all four tone axes) from the prompt and content. Frame output produces a content-type signal for Aesthetic Detection priority 5.
 
 Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aesthetic Detection`). Frame produces purpose, not CSS.
 
@@ -77,7 +77,7 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 
 **Key distinction:** if the content is structural (nodes + edges + labels + badges), use fgraph even inside a guide. CSS Grid cards are for text-heavy content where each stage has paragraphs, not for topology diagrams with slot badges. Read `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` to pick the right shape per node.
 
-**Ask:** Is the content scannable (headings + lists + tables) or narrative (paragraphs + inline diagrams)? Scannable → TOC sidebar or multi-tab with stat-grid heroes. Narrative → flat long-form with inline diagrams. A guide that is both scannable and narrative is a sign of unclear Frame Q2 — one takeaway can be skimmed *or* read, not both.
+**Check:** Is the content scannable (headings + lists + tables) or narrative (paragraphs + inline diagrams)? Scannable → TOC sidebar or multi-tab with stat-grid heroes. Narrative → flat long-form with inline diagrams. A guide that is both scannable and narrative is a sign of underspecified Frame Signal 2 — one takeaway can be skimmed *or* read, not both.
 
 ### Style — Which components?
 
@@ -103,10 +103,13 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`. Ro
 | HTML table | `.table-wrap > table` with `<thead>` (enables sticky header + horizontal scroll) |
 | CSS Grid cards | `.cards` container + `.card`/`.card.accent` per row |
 | TOC sidebar | `.wrap--toc > .toc + .main--toc` layout (see Phase 3 TOC Sidebar section) |
+| Progressive disclosure | `details.disclosure` for secondary info, `.has-tip` for term definitions |
+| Metadata strip | `.kv-strip` for inline key-value pairs |
+| Section anchor | `.summary-card` at start of each tab/section |
 
 Cross-doc: use `.card.info` / `.card.warning` / `.card.critical` for inline tonal callouts.
 
-**Ask:** What visual hierarchy does this need? Quick scan → `.stat-grid`. Deep dive → `.finding` cards by severity. Ordered walk → `.phases`. Data compare → `.table-wrap > table`. Pick one — if two apply equally, the Frame Q2 takeaway is underspecified.
+**Check:** What visual hierarchy does this need? Quick scan → `.stat-grid`. Deep dive → `.finding` cards by severity. Ordered walk → `.phases`. Data compare → `.table-wrap > table`. Pick one — if two apply equally, the Frame Signal 2 takeaway is underspecified.
 
 ### Deliver — Generate + verify
 
@@ -126,9 +129,21 @@ Cross-doc: use `.card.info` / `.card.warning` / `.card.critical` for inline tona
 - Run every `brand.deliver_must_match` rule against the generated tab fragments and shell. Report pass/fail per rule with the tab/line location. Do not write any file until all rules pass or the user explicitly overrides a failing rule.
 - If `brand.examples` list is non-empty, offer to visually diff the generated output against one canonical example tab before writing.
 
+- Every tab/section starts with a `.summary-card` or `.stat-grid` (glance layer present).
+- No visible text block exceeds 4 sentences without a break or disclosure wrapper.
+- Metadata uses `.kv-strip` or structured table, not inline prose.
+
 **If the doc has a TOC sidebar (audit / long-form):**
 - TOC scroll observer wired (see Phase 3).
 - Sections have stable `id` anchors matching TOC links.
+
+---
+
+## Output UX — Schema Over Prose
+
+Full reference: `${CLAUDE_PLUGIN_ROOT}/references/output-ux.md` — three-layer information architecture, 10 mandatory rules, anti-patterns.
+
+**For forge-guide specifically:** multi-tab docs need a `.summary-card` at the start of every tab (Rule 9). The Overview tab IS the Glance layer — it must contain the Signal 2 takeaway, stat-grid, and key-value context. Deep content (edge cases, implementation details) lives in `details.disclosure` within later tabs.
 
 ---
 
@@ -150,6 +165,67 @@ Let:
 
 ---
 
+## Context Isolation — Sub-Agent Generation
+
+Heavy HTML/CSS/JS generation runs in a **sub-agent** to keep the main conversation context clean. The main skill thread handles decisions (Phase 1–2); the sub-agent handles file generation (Phase 3).
+
+### When to delegate
+
+| Condition | Action |
+|---|---|
+| Single-file chart, ≤ 200 lines output | Generate inline (no sub-agent) |
+| Multi-tab guide (shell + CSS + JS + tabs) | **Always delegate Phase 3 to sub-agent** |
+| Any output > ~300 lines total | **Delegate to sub-agent** |
+
+Multi-tab guides produce 5–15 files. Always delegate Phase 3.
+
+### How to delegate
+
+1. Complete Phase 1 (context) and Phase 2 (tab plan + diagram inventory) in the main thread
+2. Spawn a sub-agent with a self-contained prompt that includes:
+   - The resolved decisions: aesthetic, tab plan, diagram inventory, output paths, slug
+   - The content to render (extracted from user's request + any read context)
+   - All file paths for base CSS, aesthetic CSS, shell template, JS files
+   - The exact placeholder values for shell substitution
+3. The sub-agent generates all files and returns the file paths
+4. Main thread runs Phase 4 (report) with the returned paths
+
+### Sub-agent prompt template
+
+```
+Generate forge-guide output files.
+
+Decisions (from Phase 1-2):
+- Track: {A|B}
+- Aesthetic: {file}
+- Tab plan: {tab IDs and labels}
+- Diagrams: {inventory from Phase 2}
+- Output root: {path}
+- Slug: {slug}
+
+Read these reference files:
+- {list of base CSS, aesthetic CSS, shell template, JS files}
+
+Then generate:
+- {ROOT}/{SLUG}.html
+- {ROOT}/css/{SLUG}.css
+- {ROOT}/js/{SLUG}.js
+- {ROOT}/tabs/{SLUG}/tab-{ID}.html (one per tab)
+
+Content to render:
+{extracted content/topic}
+
+Rules:
+- Inline all CSS (base + aesthetic) into {ROOT}/css/{SLUG}.css
+- Follow shell-processing.md substitution pipeline
+- Use semantic tokens from components.css
+- Mermaid (if used) wrapped in .diagram-shell — never bare <pre class="mermaid">
+```
+
+The sub-agent has access to Read, Write, Edit, Bash, Glob, Grep tools — it can read all reference files and write all output files independently.
+
+---
+
 ## Phase 1 — Context Discovery
 
 1. **Detect project** from ARGS or cwd. Unknown → DP(B). (See `forge-ops.md` for detection signals.)
@@ -165,6 +241,18 @@ Let:
    ∃ v<N> → propose vN+1 and offer to mark old version `archived` in its meta.
 
 5. **Apply the Aesthetic Detection precedence algorithm** (see `${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md` § Aesthetic Detection) to select the correct aesthetic file.
+
+---
+
+### Frame Trace
+
+After inferring all signals, emit a one-line summary before proceeding to Phase 2. This is not a question — it is a statement the user can interrupt if the inference is wrong:
+
+```
+Frame: reader={signal1_reader}, action={signal1_action}, takeaway={signal2}, tone={signal3_summary}. Generating...
+```
+
+Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-process NATS topology, tone=warm+technical. Generating...`
 
 ---
 
