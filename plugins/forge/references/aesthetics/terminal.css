@@ -317,3 +317,70 @@ pre code {
 .glow {
   text-shadow: 0 0 8px var(--accent);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Slide mode — terminal aesthetic (used by forge-slides)
+   CRT/code-heavy look: mono everything, cyan accent, scanline bg.
+   ══════════════════════════════════════════════════════════════════ */
+
+.deck .slide--title {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      var(--bg) 0px, var(--bg) 2px,
+      var(--surface) 2px, var(--surface) 3px
+    ),
+    radial-gradient(ellipse at 50% 30%, var(--accent-dim) 0%, transparent 50%);
+}
+.deck .slide--title .slide__display {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -1px;
+  text-shadow: 0 0 20px var(--accent-glow, rgba(0,212,255,0.3));
+}
+.deck .slide--title .slide__subtitle::before {
+  content: "$ ";
+  color: var(--accent);
+}
+.deck .slide--title .slide__subtitle {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  color: var(--text);
+}
+.deck .slide--content .slide__heading,
+.deck .slide--section .slide__heading,
+.deck .slide--diagram .slide__heading,
+.deck .slide--table .slide__heading,
+.deck .slide--comparison .slide__heading {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+.deck .slide--content .slide__label {
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+.deck .slide--content li::before { content: ">"; color: var(--accent); font-weight: 700; }
+.deck .slide--section .slide__number { color: var(--accent); font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+.deck .slide--code .slide__code-block { border-color: var(--accent); }
+.deck .slide--code .slide__code-filename { color: var(--accent); }
+.deck .slide--closing {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      var(--bg) 0px, var(--bg) 2px,
+      var(--surface) 2px, var(--surface) 3px
+    ),
+    radial-gradient(ellipse at 50% 70%, var(--accent-dim) 0%, transparent 60%);
+}
+.deck .slide--closing .slide__heading {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  color: var(--accent);
+  text-shadow: 0 0 20px var(--accent-glow, rgba(0,212,255,0.3));
+}
+.deck .slide--closing .cta {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.deck .slide--quote blockquote {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}

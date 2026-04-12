@@ -343,3 +343,288 @@ body.deck-body { overflow: hidden; }  /* opt-in so non-deck pages unaffected */
   .deck-dot   { width: 6px; height: 6px; }
   .deck-hints { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   V2 SLIDE TYPES — section, diagram, table, code, quote, image, comparison
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── section ── breathing-room divider with oversized numeral */
+.slide--section {
+  justify-content: center;
+  text-align: left;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 140px);
+}
+.slide--section .slide__number {
+  font-size: clamp(100px, 22vw, 260px);
+  font-weight: 200;
+  line-height: 0.85;
+  opacity: 0.08;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -55%);
+  pointer-events: none;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.slide--section .slide__content {
+  position: relative;
+  z-index: 1;
+}
+.slide--section .slide__subtitle {
+  margin-top: 1rem;
+  color: var(--text-dim);
+  max-width: 50ch;
+}
+
+/* ── diagram ── in-slide Mermaid or fgraph */
+.slide--diagram {
+  padding: clamp(24px, 4vh, 48px) clamp(32px, 6vw, 80px);
+  justify-content: center;
+  gap: 1.25rem;
+}
+.slide--diagram .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.slide--diagram .slide__diagram-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-height: 75vh;
+  overflow: hidden;
+}
+.slide--diagram .slide__diagram-wrap svg,
+.slide--diagram .slide__diagram-wrap .fgraph-wrap {
+  width: 100%;
+  max-width: 100%;
+  max-height: 75vh;
+  height: auto;
+}
+.slide--diagram .slide__caption {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  color: var(--text-dim);
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── table ── presentation-scale data grid */
+.slide--table {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+}
+.slide--table .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+.slide--table .table-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.slide--table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(14px, 1.6vw, 18px);
+}
+.slide--table th,
+.slide--table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.slide--table th {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: sticky; top: 0;
+}
+.slide--table tbody tr:hover { background: var(--surface); }
+.slide--table td { color: var(--text-muted); }
+
+/* ── code ── code-focused slide */
+.slide--code {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+  justify-content: center;
+}
+.slide--code .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.slide--code .slide__code-block {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 1rem 1.25rem;
+  position: relative;
+}
+.slide--code .slide__code-filename {
+  position: absolute;
+  top: -0.75rem; left: 1rem;
+  background: var(--bg);
+  padding: 0 0.5rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.slide--code pre {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: clamp(13px, 1.5vw, 18px);
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre;
+  overflow-x: auto;
+}
+.slide--code .hl { color: var(--accent); font-weight: 600; }
+.slide--code .cm { color: var(--text-dim); font-style: italic; }
+
+/* ── quote ── pull-quote / callout */
+.slide--quote {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-image:
+    radial-gradient(ellipse at 50% 50%, var(--accent-dim) 0%, transparent 35%);
+}
+.slide--quote .slide__quote-mark {
+  font-size: clamp(80px, 15vw, 200px);
+  line-height: 0.6;
+  color: var(--accent);
+  opacity: 0.3;
+  margin-bottom: 0.5rem;
+  font-family: Georgia, serif;
+}
+.slide--quote blockquote {
+  font-size: clamp(24px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+  max-width: 24ch;
+  margin: 0 auto;
+  color: var(--text);
+  text-wrap: balance;
+}
+.slide--quote cite {
+  display: block;
+  margin-top: 1.5rem;
+  font-style: normal;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+/* ── image ── full-bleed image slide */
+.slide--image {
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.slide--image .slide__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.slide--image .slide__bg--gradient {
+  background:
+    linear-gradient(135deg, var(--accent) 0%, var(--bg) 100%);
+}
+.slide--image .slide__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.85) 100%);
+  z-index: 1;
+}
+.slide--image .slide__content {
+  position: relative;
+  z-index: 2;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+  margin-top: auto;
+  max-width: 70ch;
+}
+.slide--image .slide__heading,
+.slide--image .slide__label,
+.slide--image .slide__subtitle {
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+}
+
+/* ── comparison ── 2-column side-by-side */
+.slide--comparison {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+}
+.slide--comparison .slide__heading {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: clamp(22px, 3vw, 36px);
+}
+.slide--comparison .slide__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 3vw, 40px);
+  align-items: stretch;
+}
+.slide--comparison .slide__col {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.slide--comparison .slide__col h3 {
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+.slide--comparison .slide__col.accent {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.slide--comparison .slide__col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--text-muted);
+}
+.slide--comparison .slide__col li {
+  padding-left: 1.25rem;
+  position: relative;
+}
+.slide--comparison .slide__col li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .slide--comparison .slide__columns { grid-template-columns: 1fr; }
+}
