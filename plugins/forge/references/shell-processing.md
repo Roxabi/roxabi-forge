@@ -12,7 +12,7 @@ See also: `split-file.md` for the file layout pattern (version isolation, tab fr
 4. Read `base/theme-toggle.js`, substitute `{NAME}` with the skill-defined name value
 5. Read `base/tab-loader.js`, substitute `{NAME}` with the skill-defined name value
 6. Substitute placeholders:
-   - `{NAME}` → skill-defined (for localStorage key scoping + tab-loader.js)
+   - `{NAME}` → skill-defined, must match `/^[a-z0-9-]+$/` (kebab-case only — used inside `<script>` string literals)
    - `{BASE_STYLES}` → concatenated base CSS
    - `{AESTHETIC_STYLES}` → selected aesthetic CSS
    - `{TITLE}` → skill-defined
