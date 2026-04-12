@@ -16,7 +16,7 @@
 set -euo pipefail
 
 # Config
-REMOTE_HOST="mickael@192.168.1.16"
+REMOTE_HOST="${REMOTE_HOST:-mickael@192.168.1.16}"
 MARKETPLACE_REPO="$HOME/.claude/plugins/marketplaces/roxabi-forge"
 CACHE_BASE="$HOME/.claude/plugins/cache/roxabi-forge"
 
@@ -36,12 +36,8 @@ if [[ "${1:-}" == "--remote" ]]; then DO_LOCAL=false; fi
 
 # Step 1: Push current branch to origin
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [[ "$CURRENT_BRANCH" != "staging" ]]; then
-    warn "Not on staging (on '$CURRENT_BRANCH') — aborting push to prevent pushing wrong branch"
-    exit 1
-fi
-step "Pushing staging to origin..."
-git push origin staging
+step "Pushing $CURRENT_BRANCH to origin..."
+git push origin "$CURRENT_BRANCH"
 
 # sync_cache REPO CACHE — rsync all plugins into all discovered cache dirs
 sync_cache() {
@@ -105,13 +101,13 @@ sync_cache_safe() {
 
 # Step 2-3: Local sync
 if [[ "$DO_LOCAL" == true ]]; then
-    step "Pulling staging into local marketplace..."
+    step "Pulling $CURRENT_BRANCH into local marketplace..."
     git -C "$MARKETPLACE_REPO" fetch origin
-    if git -C "$MARKETPLACE_REPO" rev-parse --verify staging &>/dev/null; then
-        git -C "$MARKETPLACE_REPO" checkout staging
-        git -C "$MARKETPLACE_REPO" merge --ff-only origin/staging
+    if git -C "$MARKETPLACE_REPO" rev-parse --verify "$CURRENT_BRANCH" &>/dev/null; then
+        git -C "$MARKETPLACE_REPO" checkout "$CURRENT_BRANCH"
+        git -C "$MARKETPLACE_REPO" merge --ff-only "origin/$CURRENT_BRANCH"
     else
-        git -C "$MARKETPLACE_REPO" checkout -b staging origin/staging
+        git -C "$MARKETPLACE_REPO" checkout -b "$CURRENT_BRANCH" "origin/$CURRENT_BRANCH"
     fi
 
     step "Syncing all plugins → local cache (with rollback-on-failure)..."
@@ -121,8 +117,8 @@ fi
 
 # Step 4-5: Remote sync (Machine 1)
 if [[ "$DO_REMOTE" == true ]]; then
-    step "Pulling staging on Machine 1 marketplace..."
-    ssh "$REMOTE_HOST" "cd '$MARKETPLACE_REPO' && git fetch origin && git merge --ff-only origin/staging"
+    step "Pulling $CURRENT_BRANCH on Machine 1 marketplace..."
+    ssh "$REMOTE_HOST" "cd '$MARKETPLACE_REPO' && git fetch origin && git checkout '$CURRENT_BRANCH' && git merge --ff-only 'origin/$CURRENT_BRANCH'"
 
     step "Syncing all plugins → Machine 1 cache..."
     ssh "$REMOTE_HOST" "

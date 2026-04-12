@@ -3,14 +3,22 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -n "${DIAGRAMS_DIR:-}" ] && [ -z "${FORGE_DIR:-}" ]; then
+  echo "⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR" >&2
+fi
 export FORGE_DIR="${FORGE_DIR:-${DIAGRAMS_DIR:-$HOME/.roxabi/forge}}"
 DIST="$FORGE_DIR/_dist"
 
 echo "▸ Regenerating manifest.json…"
 python3 "$SCRIPT_DIR/gen-manifest.py"
 
-echo "▸ Generating dependency tab from roadmap-deps.json…"
-python3 "$SCRIPT_DIR/gen-deps.py"
+DEPS_JSON="$FORGE_DIR/lyra/visuals/deps/roadmap-deps.json"
+if [ -f "$DEPS_JSON" ]; then
+  echo "▸ Generating dependency tab from roadmap-deps.json…"
+  python3 "$SCRIPT_DIR/gen-deps.py"
+else
+  echo "▸ Skipping dependency tab (no roadmap-deps.json)"
+fi
 
 echo "▸ Generating image gallery manifests…"
 python3 "$SCRIPT_DIR/gen-image-manifests.py"
@@ -20,7 +28,7 @@ mkdir -p "$DIST"
 # -L dereferences symlinks as real files so deployed _dist/ ships actual
 # content rather than dangling symlinks. Required for galleries that
 # symlink into external directories (e.g. ai-toolkit training output).
-rsync -aL --delete --delete-excluded --ignore-errors \
+rsync -aL --delete --delete-excluded \
   --exclude='_dist/' \
   --exclude='*.py' \
   --exclude='__pycache__/' \

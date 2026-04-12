@@ -7,6 +7,8 @@ then run gen-manifest.py to regenerate manifest.json.
 import os, re
 from pathlib import Path
 
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 
 # Source of truth: one entry per diagram file.

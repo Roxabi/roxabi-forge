@@ -11,5 +11,5 @@ echo 'node_modules' > "$excl"
 if [ -f .git ] && grep -q '^gitdir:' .git; then
   trufflehog filesystem . --only-verified --fail -x "$excl"
 else
-  trufflehog git file://. --only-verified --fail
+  trufflehog git file://. --only-verified --fail -x "$excl"
 fi

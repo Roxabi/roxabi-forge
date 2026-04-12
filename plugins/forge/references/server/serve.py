@@ -14,7 +14,11 @@ import http.server, json, os, re, threading, time
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', SCRIPT_DIR)))
+if 'DIAGRAMS_PORT' in os.environ and 'FORGE_PORT' not in os.environ:
+    print('⚠ DIAGRAMS_PORT is deprecated — use FORGE_PORT')
 PORT = int(os.environ.get('FORGE_PORT', os.environ.get('DIAGRAMS_PORT', 8080)))
 
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
@@ -35,7 +39,7 @@ def normalize_color(color, filepath=''):
 
 # ── Manifest generation (same logic as gen-manifest.py) ──────────
 
-def parse_html(filepath):
+def parse_html(filepath, rel=''):
     buf = ''
     try:
         with open(filepath, encoding='utf-8', errors='ignore') as f:
@@ -62,17 +66,16 @@ def parse_html(filepath):
     badges = [b.strip() for b in metas.get('badges', '').split(',') if b.strip()]
     kb = max(1, round(filepath.stat().st_size / 1024))
 
-    # Infer category from path for symlinks without meta
+    # Infer category from path when not in meta (must match gen-manifest.py)
     cat = metas.get('category', '')
     cat_label = metas.get('cat-label', '')
     color = metas.get('color', '')
     if not cat:
-        name = filepath.name.lower()
-        if '/brand/' in str(filepath):
-            cat, cat_label, color = 'brand', 'Lyra Branding', 'purple'
-        elif name.startswith('lyra-'):
+        if rel.startswith('brand/'):
+            cat, cat_label, color = 'brand', 'Lyra Brand', 'amber'
+        elif rel.startswith('lyra-visuals/') or filepath.name.startswith('lyra-'):
             cat, cat_label, color = 'lyra', 'Lyra Docs', 'blue'
-        elif name.startswith('ve-'):
+        elif filepath.name.startswith('ve-'):
             cat, cat_label, color = 've', 'Visual Explainer', 'purple'
         else:
             cat, cat_label, color = 'ext', 'External', 'green'
@@ -83,7 +86,7 @@ def parse_html(filepath):
     if not date:
         date = time.strftime('%Y-%m-%d', time.localtime(filepath.stat().st_mtime))
 
-    return {
+    entry = {
         'f': filepath.name,
         't': metas['title'],
         'd': date,
@@ -93,6 +96,10 @@ def parse_html(filepath):
         'c': color,
         'b': badges,
     }
+    issue = metas.get('issue', '')
+    if issue:
+        entry['i'] = issue
+    return entry
 
 
 def gen_manifest():
@@ -107,7 +114,7 @@ def gen_manifest():
         if not target.exists():
             skipped.append(rel + ' (broken link)')
             continue
-        entry = parse_html(target)
+        entry = parse_html(target, rel)
         if entry:
             entry['f'] = rel
             entries.append(entry)
@@ -187,6 +194,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     # and svgs keep default caching: they live at stable unique filenames and
     # are too large to re-fetch on every pageview.
     _NO_CACHE_EXTS = ('.html', '.htm', '.css', '.js', '.mjs', '.json')
+    _CORS_ORIGIN = f'http://localhost:{PORT}'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIR), **kwargs)
@@ -233,7 +241,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'text/event-stream')
             self.send_header('Cache-Control', 'no-cache')
             self.send_header('Connection', 'keep-alive')
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Access-Control-Allow-Origin', self._CORS_ORIGIN)
             self.end_headers()
             # Send initial heartbeat
             self.wfile.write(b': connected\n\n')
@@ -265,18 +273,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         import urllib.parse
         rel = urllib.parse.unquote(self.path[len('/api/list/'):]).strip('/')
 
-        # Prevent directory traversal — verify the unresolved path stays under DIR
-        # (symlinks within DIR are allowed, so we check before resolving)
-        candidate = DIR / rel
+        # Prevent directory traversal — resolve first, then verify containment.
+        # (resolving normalizes '..' segments before the boundary check)
+        target = (DIR / rel).resolve()
         try:
-            # Ensure no '..' escapes above DIR
-            candidate.relative_to(DIR)
+            target.relative_to(DIR.resolve())
         except ValueError:
             self.send_error(403, 'Forbidden')
             return
-
-        # Resolve symlinks for actual access
-        target = candidate.resolve()
         if not target.is_dir():
             self.send_error(404, 'Not a directory')
             return
@@ -301,7 +305,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Cache-Control', 'no-cache')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', self._CORS_ORIGIN)
         self.end_headers()
         self.wfile.write(body)
 

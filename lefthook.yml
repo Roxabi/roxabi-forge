@@ -2,7 +2,7 @@ pre-commit:
   commands:
     lint:
       run: bunx biome check --write {staged_files}
-      glob: "*.{js,jsx}"
+      glob: "*.{js,jsx}"  # must track biome.json files.includes
     trufflehog:
       run: scripts/trufflehog-check.sh
       skip:

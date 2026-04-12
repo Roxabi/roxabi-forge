@@ -9,8 +9,6 @@ name: Auto Merge
 on:
   pull_request:
     types: [labeled, synchronize, closed]
-  check_suite:
-    types: [completed]
   push:
     branches: [staging, main]
 
@@ -22,7 +20,7 @@ permissions:
 jobs:
   auto-merge:
     name: Enable auto-merge
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: >-
       github.event.action != 'closed' &&
       contains(github.event.pull_request.labels.*.name, 'reviewed')
@@ -36,7 +34,7 @@ jobs:
 
   update-behind-prs:
     name: Update behind PRs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push'
     timeout-minutes: 5
     steps:
@@ -52,15 +50,16 @@ jobs:
             NUM=$(echo "$pr" | jq -r .number)
             SHA=$(echo "$pr" | jq -r .headRefOid)
             echo "Updating PR #$NUM..."
-            gh api "repos/${{ github.repository }}/pulls/$NUM/update-branch" \
+            gh api "repos/$REPO/pulls/$NUM/update-branch" \
               --method PUT -f expected_head_sha="$SHA" || true
           done
         env:
           GH_TOKEN: ${{ secrets.PAT }}
+          REPO: ${{ github.repository }}
 
   close-linked-issues:
     name: Close linked issues
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event.action == 'closed' && github.event.pull_request.merged == true
     timeout-minutes: 5
     steps:

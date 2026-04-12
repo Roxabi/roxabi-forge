@@ -15,6 +15,8 @@ import subprocess
 from pathlib import Path
 from collections import defaultdict
 
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR', file=sys.stderr)
 FORGE_DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 DEFAULT_DATA = FORGE_DIR / "lyra/visuals/deps/roadmap-deps.json"
 DEFAULT_OUT  = FORGE_DIR / "lyra/visuals/tabs/lyra-status/tab-dependencies.html"

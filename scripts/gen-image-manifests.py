@@ -20,7 +20,9 @@ import json
 import os
 from pathlib import Path
 
-FORGE_DIR = Path(os.environ.get('FORGE_DIR', Path.home() / '.roxabi' / 'forge'))
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
+FORGE_DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 SKIP = {'_dist', '__pycache__', '.git', '.stversions'}
 EXTS = ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif')
 

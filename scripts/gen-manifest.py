@@ -18,6 +18,8 @@ import glob as globmod
 import json, os, re, time
 from pathlib import Path
 
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
 TITLE_RE = re.compile(r'<title>([^<]+)</title>', re.IGNORECASE)
@@ -87,7 +89,7 @@ def parse(filepath, rel=''):
     if not date:
         date = time.strftime('%Y-%m-%d', time.localtime(filepath.stat().st_mtime))
 
-    return {
+    entry = {
         'f':  filepath.name,
         't':  metas['title'],
         'd':  date,
@@ -97,6 +99,10 @@ def parse(filepath, rel=''):
         'c':  color,
         'b':  badges,
     }
+    issue = metas.get('issue', '')
+    if issue:
+        entry['i'] = issue
+    return entry
 
 
 entries, skipped = [], []

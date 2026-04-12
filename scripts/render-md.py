@@ -33,7 +33,9 @@ from pathlib import Path
 
 import markdown
 
-FORGE_DIR = Path(os.environ.get("FORGE_DIR", Path.home() / ".roxabi" / "forge"))
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR', file=sys.stderr)
+FORGE_DIR = Path(os.environ.get("FORGE_DIR", os.environ.get("DIAGRAMS_DIR", Path.home() / ".roxabi" / "forge")))
 DEFAULT_INPUT = FORGE_DIR / "roxabi-site" / "visuals" / "new-shape-of-tools.md"
 
 # ══════════════════════════════════════════════════════════════════

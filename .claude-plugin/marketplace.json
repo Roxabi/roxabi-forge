@@ -1,6 +1,7 @@
 {
   "name": "roxabi-forge",
   "version": "1.0.0",
+  "_versionNote": "top-level version is the marketplace format version, not the plugin version (see plugins[].version)",
   "description": "Forge — HTML visual artifacts for Claude Code (diagrams, galleries, guides, epics). Brand-aware, manifest-indexed, Cloudflare Pages ready.",
   "owner": {
     "name": "Roxabi",
