@@ -24,6 +24,10 @@ deploy:
 	@mkdir -p "$(FORGE_DIR)/scripts"
 	@cp -v $(PLUGIN_DIR)references/server/serve.py $(FORGE_DIR)/serve.py
 	@cp -v $(PLUGIN_DIR)references/server/index.html $(FORGE_DIR)/index.html
+	@cp -v $(PLUGIN_DIR)references/server/assets/favicon.svg $(FORGE_DIR)/favicon.svg
+	@cp -v $(PLUGIN_DIR)references/server/assets/favicon-32.png $(FORGE_DIR)/favicon-32.png
+	@cp -v $(PLUGIN_DIR)references/server/assets/apple-touch-icon.png $(FORGE_DIR)/apple-touch-icon.png
+	@cp -v $(PLUGIN_DIR)references/server/assets/og-image.png $(FORGE_DIR)/og-image.png
 	@cp -v $(PLUGIN_DIR)supervisor/scripts/run.sh $(FORGE_DIR)/run.sh
 	@chmod +x $(FORGE_DIR)/run.sh
 	@cp -v $(PLUGIN_DIR)runtime/Makefile $(FORGE_DIR)/Makefile

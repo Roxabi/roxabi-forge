@@ -18,6 +18,7 @@ if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 
 BASE_URL = 'https://diagrams.roxabi.dev'
+OG_IMAGE_URL = f'{BASE_URL}/og-image.png'
 
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
 TITLE_RE = re.compile(r'<title>([^<]+)</title>', re.IGNORECASE)
@@ -39,14 +40,20 @@ def build_og_block(title, description, url):
     t = escape(title, quote=True)
     d = escape(description, quote=True)
     u = escape(url, quote=True)
+    img = escape(OG_IMAGE_URL, quote=True)
     return (
         f'<meta property="og:title" content="{t}">\n'
         f'<meta property="og:description" content="{d}">\n'
         f'<meta property="og:type" content="article">\n'
         f'<meta property="og:url" content="{u}">\n'
-        f'<meta name="twitter:card" content="summary">\n'
+        f'<meta property="og:image" content="{img}">\n'
+        f'<meta property="og:image:width" content="1200">\n'
+        f'<meta property="og:image:height" content="630">\n'
+        f'<meta property="og:site_name" content="Roxabi Forge">\n'
+        f'<meta name="twitter:card" content="summary_large_image">\n'
         f'<meta name="twitter:title" content="{t}">\n'
         f'<meta name="twitter:description" content="{d}">\n'
+        f'<meta name="twitter:image" content="{img}">\n'
     )
 
 
