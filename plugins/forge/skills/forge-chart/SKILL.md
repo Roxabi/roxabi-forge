@@ -23,6 +23,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/base/components.css       — concatenate fourt
 ${CLAUDE_PLUGIN_ROOT}/references/base/explainer-base.css   — concatenate fifth (visual explainer components)
 ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/               — select one based on detection logic
 ${CLAUDE_PLUGIN_ROOT}/references/shells/single.html        — HTML template with placeholders
+${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js      — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md           — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture/topology)
 ${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md          — Mermaid patterns for dynamic tabs
@@ -159,7 +160,8 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
    - `{HEAD_EXTRAS}` → mermaid CDN script + svg-pan-zoom CDN (for diagrams)
    - `{CONTENT}` → diagram body (hero section, Mermaid container, cards, etc.)
    - `{EXTRA_STYLES}` → diagram-specific CSS (if any)
-   - `{EXTRA_SCRIPTS}` → theme toggle JS + Mermaid init + pan/zoom init + reveal observer
+   - `{THEME_TOGGLE_JS}` → theme-toggle.js with `{NAME}` substituted (runs before {EXTRA_SCRIPTS})
+   - `{EXTRA_SCRIPTS}` → Mermaid init + pan/zoom init + reveal observer
 5. Output: single self-contained HTML file (file:// safe)
 
 Mermaid note: single-file has **no dynamic-tab pitfalls** — use standard `startOnLoad: true`. No need for `mermaid.render()`, no `rgba()` restriction.
@@ -206,7 +208,7 @@ Choose `diagram:category` + `diagram:color` from `references/diagram-meta.md`.
 ## Phase 3 — Generate
 
 Read `shells/single.html` → substitute placeholders with content. The shell already contains:
-- Theme toggle JS
+- `{THEME_TOGGLE_JS}` placeholder (inline theme-toggle.js with `{NAME}` substituted)
 - Diagram meta placeholders
 - CSS placeholder slots
 

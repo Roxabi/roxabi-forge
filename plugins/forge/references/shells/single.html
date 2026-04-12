@@ -36,25 +36,9 @@
   <button class="theme-btn" id="theme-toggle" aria-label="Toggle color theme" aria-pressed="false">◑ light</button>
 
   <script>
-    /* ── Theme Toggle (inline per ADR-011) ── */
-    ;(function () {
-      var THEME_KEY = 'diag-{NAME}-theme'
-      var saved = localStorage.getItem(THEME_KEY) || 'dark'
-      document.documentElement.setAttribute('data-theme', saved)
-      var themeBtn = document.getElementById('theme-toggle')
-      if (themeBtn) {
-        themeBtn.textContent = saved === 'dark' ? '◑ light' : '◑ dark'
-        themeBtn.setAttribute('aria-pressed', saved === 'light' ? 'true' : 'false')
-        themeBtn.addEventListener('click', function () {
-          var cur  = document.documentElement.getAttribute('data-theme')
-          var next = cur === 'dark' ? 'light' : 'dark'
-          document.documentElement.setAttribute('data-theme', next)
-          localStorage.setItem(THEME_KEY, next)
-          this.textContent = next === 'dark' ? '◑ light' : '◑ dark'
-          this.setAttribute('aria-pressed', next === 'light' ? 'true' : 'false')
-        })
-      }
-    })()
+    /* THEME_TOGGLE_JS: theme-toggle.js content with {NAME} already substituted.
+       Must run before any script that reads data-theme. */
+    {THEME_TOGGLE_JS}
   </script>
   <!-- EXTRA_SCRIPTS: Mermaid init + pan/zoom + reveal observer -->
   <script>
