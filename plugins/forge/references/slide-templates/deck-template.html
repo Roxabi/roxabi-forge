@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{DECK_TITLE}</title>
+
+<!--
+  deck-template.html — reference shell for forge-slides decks.
+  Inline order (consumed by the forge-slides skill):
+    1. {RESET_CSS}        — plugins/forge/references/base/reset.css
+    2. {TYPOGRAPHY_CSS}   — plugins/forge/references/base/typography.css
+    3. {AESTHETIC_CSS}    — plugins/forge/references/aesthetics/<name>.css
+    4. {SLIDE_DECK_BASE_CSS} — plugins/forge/references/slide-templates/slide-deck-base.css
+  Module script:
+    5. {SLIDE_DECK_BASE_JS}  — plugins/forge/references/slide-templates/slide-deck-base.js
+
+  V1 ships 3 slide types (title, content, closing).
+  V2 appends: section, diagram, table, code, quote, image, comparison.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* {RESET_CSS} */
+/* {TYPOGRAPHY_CSS} */
+/* {AESTHETIC_CSS} */
+/* {SLIDE_DECK_BASE_CSS} */
+</style>
+</head>
+<body class="deck-body">
+
+<div class="deck" role="region" aria-label="Presentation deck">
+
+  <!-- ── title ── -->
+  <section class="slide slide--title" id="slide-1">
+    <p class="slide__label reveal" style="--i:0">{DECK_LABEL}</p>
+    <h1 class="slide__display reveal" style="--i:1">{DECK_TITLE}</h1>
+    <p class="slide__subtitle reveal" style="--i:2">{DECK_SUBTITLE}</p>
+  </section>
+
+  <!-- ── content ── -->
+  <section class="slide slide--content" id="slide-2">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">{SECTION_LABEL}</p>
+      <h2 class="slide__heading reveal" style="--i:1">{CONTENT_HEADING}</h2>
+      <ul class="reveal" style="--i:2">
+        <li>{BULLET_1}</li>
+        <li>{BULLET_2}</li>
+        <li>{BULLET_3}</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── closing ── -->
+  <section class="slide slide--closing" id="slide-3">
+    <p class="slide__label reveal" style="--i:0">{CLOSING_LABEL}</p>
+    <h2 class="slide__heading reveal" style="--i:1">{CLOSING_HEADING}</h2>
+    <p class="slide__body reveal" style="--i:2">{CLOSING_BODY}</p>
+    <a href="{CTA_HREF}" class="cta reveal" style="--i:3">{CTA_LABEL}</a>
+  </section>
+
+</div><!-- /.deck -->
+
+<script type="module">
+/* {SLIDE_DECK_BASE_JS} */
+</script>
+
+</body>
+</html>
