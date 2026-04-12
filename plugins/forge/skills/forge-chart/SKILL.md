@@ -152,7 +152,8 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 1. Read `shells/single.html` template
 2. Concatenate base CSS files in order: `reset → layout → typography → components → explainer-base`
 3. Read selected aesthetic CSS
-4. Substitute placeholders:
+4. Read `base/theme-toggle.js`, substitute `{NAME}` with the diagram slug
+5. Substitute placeholders:
    - `{NAME}` → diagram slug (for localStorage key scoping)
    - `{BASE_STYLES}` → concatenated base CSS
    - `{AESTHETIC_STYLES}` → aesthetic CSS (editorial.css if default)
@@ -162,7 +163,7 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
    - `{EXTRA_STYLES}` → diagram-specific CSS (if any)
    - `{THEME_TOGGLE_JS}` → theme-toggle.js with `{NAME}` substituted (runs before {EXTRA_SCRIPTS})
    - `{EXTRA_SCRIPTS}` → Mermaid init + pan/zoom init + reveal observer
-5. Output: single self-contained HTML file (file:// safe)
+6. Output: single self-contained HTML file (file:// safe)
 
 Mermaid note: single-file has **no dynamic-tab pitfalls** — use standard `startOnLoad: true`. No need for `mermaid.render()`, no `rgba()` restriction.
 

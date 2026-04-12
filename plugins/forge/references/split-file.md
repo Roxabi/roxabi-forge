@@ -5,7 +5,7 @@ Multi-tab explainers use four file groups relative to the diagram root:
 ```
 <name>.html              — shell: head, nav, empty panel placeholders
 css/<name>.css           — all styles (base + aesthetic + diagram-specific)
-js/<name>.js             — tab-loader + optional Mermaid init (theme toggle is base/theme-toggle.js, inlined via {THEME_TOGGLE_JS})
+js/<name>.js             — tab-loader + optional Mermaid init
 tabs/<name>/
   tab-<id>.html          — one fragment per tab (lazy-loaded, no DOCTYPE/html/body)
 ```
