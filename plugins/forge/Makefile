@@ -38,6 +38,7 @@ deploy:
 	@cp -v $(REPO_ROOT)/scripts/gen-image-manifests.py $(FORGE_DIR)/scripts/gen-image-manifests.py
 	@cp -v $(REPO_ROOT)/scripts/seed-meta.py $(FORGE_DIR)/scripts/seed-meta.py
 	@cp -v $(REPO_ROOT)/scripts/update-meta.py $(FORGE_DIR)/scripts/update-meta.py
+	@cp -v $(REPO_ROOT)/scripts/gen-og-tags.py $(FORGE_DIR)/scripts/gen-og-tags.py
 	@cp -v $(REPO_ROOT)/scripts/render-md.py $(FORGE_DIR)/scripts/render-md.py
 	@chmod +x $(FORGE_DIR)/scripts/build.sh
 	@chmod +x $(FORGE_DIR)/scripts/render-md.py

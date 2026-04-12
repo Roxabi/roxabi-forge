@@ -33,7 +33,7 @@ build:
 	@bash "$(SCRIPTS_DIR)/build.sh"
 
 deploy: build
-	@cd "$(FORGE_DIR)" && git diff --quiet 2>/dev/null || { echo "Error: dirty tree — commit changes before deploying"; exit 1; }
+	@cd "$(FORGE_DIR)" && { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && ! git diff --quiet 2>/dev/null; } && { echo "Error: dirty tree — commit changes before deploying"; exit 1; } || true
 	@echo "Deploying to Cloudflare Pages..."
 	@npx wrangler pages deploy "$(FORGE_DIR)_dist" --project-name=forge --branch=main
 
