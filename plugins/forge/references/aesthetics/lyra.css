@@ -8,6 +8,7 @@
 
 /* ── Brand Tokens — Dark (default) ── */
 :root, [data-theme="dark"] {
+  color-scheme: light dark;
   --bg:         #0a0a0f;
   --surface:    #18181f;
   --border:     #2a2a35;
@@ -18,7 +19,7 @@
   --accent-dim: #7c2d0e;
 }
 
-/* ── Brand Tokens — Light ── */
+/* ── Brand Tokens — Light (manual override) ── */
 [data-theme="light"] {
   --bg:         #fafaf9;
   --surface:    #f4f4f0;
@@ -28,4 +29,18 @@
   --text-dim:   #78716c;
   --accent:     #c2410c;
   --accent-dim: #fef2e8;
+}
+
+/* ── Brand Tokens — Light (OS preference, unless manually dark) ── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:         #fafaf9;
+    --surface:    #f4f4f0;
+    --border:     #d1ccc7;
+    --text:       #1c1917;
+    --text-muted: #57534e;
+    --text-dim:   #78716c;
+    --accent:     #c2410c;
+    --accent-dim: #fef2e8;
+  }
 }

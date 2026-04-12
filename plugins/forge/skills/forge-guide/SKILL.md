@@ -114,6 +114,7 @@ Cross-doc: use `.card.info` / `.card.warning` / `.card.critical` for inline tona
 ### Deliver — Generate + verify
 
 **Always** (both tracks):
+- Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - Hero section present with eyebrow + title accent + subtitle.
 - Section titles use `.section-title` or `.section-label` (never plain `<h2>`).
 - Mermaid (if used) wrapped in `.diagram-shell` — never bare `<pre class="mermaid">`.

@@ -14,6 +14,8 @@
 
 /* ── Root Tokens (Light Default) ── */
 :root {
+  color-scheme: light dark;
+
   /* Surface system — light layers */
   --bg:           #f8fafc;     /* slate-50 — base background */
   --surface:      #ffffff;     /* white — canvas / cards */
@@ -37,8 +39,39 @@
   --shadow:     none;
 }
 
+/* ── Light Mode Override (explicit — symmetric with dark override below) ── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surface system — light layers (same as :root default) */
+  --bg:           #f8fafc;
+  --surface:      #ffffff;
+  --surface2:     #f1f5f9;
+  --border:       #cbd5e1;
+  --border-bright: #94a3b8;
+
+  --text:         #0f172a;
+  --text-muted:   #334155;
+  --text-dim:     #64748b;
+
+  --accent:       #dc2626;
+  --accent-dim:   #fef2f2;
+  --accent-glow:  rgba(220,38,38,0.15);
+
+  --success:     #047857;
+  --success-dim: rgba(4,120,87,0.1);
+  --warning:     #d97706;
+  --warning-dim: rgba(217,119,6,0.1);
+  --error:       #dc2626;
+  --error-dim:   rgba(220,38,38,0.1);
+  --info:        #2563eb;
+  --info-dim:    rgba(37,99,235,0.1);
+}
+
 /* ── Dark Mode Override ── */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   /* Surface system — inverted */
   --bg:           #0f172a;     /* slate-900 */
   --surface:      #1e293b;     /* slate-800 */
@@ -79,6 +112,35 @@
   --error-dim:   rgba(248,113,113,0.12);
   --info:        #60a5fa;     /* blue-400 */
   --info-dim:    rgba(96,165,250,0.12);
+}
+
+/* ── Blueprint Dark — OS preference (unless manually light).
+   Blueprint is LIGHT-default; this inverts the usual pattern. ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:           #0f172a;
+    --surface:      #1e293b;
+    --surface2:     #283548;
+    --border:       #334155;
+    --border-bright: #475569;
+
+    --text:         #f8fafc;
+    --text-muted:   #cbd5e1;
+    --text-dim:     #64748b;
+
+    --accent:       #f87171;
+    --accent-dim:   rgba(248,113,113,0.12);
+    --accent-glow:  rgba(248,113,113,0.2);
+
+    --success:     #34d399;
+    --success-dim: rgba(52,211,153,0.12);
+    --warning:     #fbbf24;
+    --warning-dim: rgba(251,191,36,0.12);
+    --error:       #f87171;
+    --error-dim:   rgba(248,113,113,0.12);
+    --info:        #60a5fa;
+    --info-dim:    rgba(96,165,250,0.12);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════

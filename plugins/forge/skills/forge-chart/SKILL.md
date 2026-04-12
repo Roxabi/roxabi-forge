@@ -127,6 +127,7 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 ### Deliver — Generate + verify
 
 **Always** (both tracks):
+- Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - Mermaid (if used) wrapped in `.diagram-shell` with zoom controls — never bare `<pre class="mermaid">`.
 - SVG gets `height: 100%; width: 100%; max-width: none` after `mermaid.render()`.
 - No ASCII art, no emoji in section headers.

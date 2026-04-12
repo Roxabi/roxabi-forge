@@ -150,7 +150,20 @@
 .fgraph-edges .fg-edge.red    { stroke: var(--red); }
 .fgraph-edges .fg-edge.dim    { stroke: var(--text-muted); opacity: 0.5; }
 
-/* arrow modifiers — compose with tone classes */
+/* Semantic flow classes — prefer these over raw tone classes above.
+   Each uses var(--edge-{name}, fallback-tone) so aesthetics can remap
+   semantics to their own palette by declaring --edge-{name} on :root. */
+.fgraph-edges .fg-edge.control  { stroke: var(--edge-control,  var(--accent)); }
+.fgraph-edges .fg-edge.write    { stroke: var(--edge-write,    var(--green));      stroke-dasharray: 4 3; }
+.fgraph-edges .fg-edge.read     { stroke: var(--edge-read,     var(--cyan)); }
+.fgraph-edges .fg-edge.data     { stroke: var(--edge-data,     var(--purple)); }
+.fgraph-edges .fg-edge.async    { stroke: var(--edge-async,    var(--text-muted)); stroke-dasharray: 2 3; }
+.fgraph-edges .fg-edge.feedback { stroke: var(--edge-feedback, var(--amber)); }
+
+/* arrow modifiers — compose with color tone classes only.
+   ¬combine with semantic classes that already carry stroke patterns
+   (.write, .async): the modifier is declared later and would overwrite
+   the semantic's stroke-dasharray. Semantic + .thick is safe. */
 .fgraph-edges .fg-edge.dashed   { stroke-dasharray: 4 3; }
 .fgraph-edges .fg-edge.thick    { stroke-width: 2.8; }
 .fgraph-edges .fg-edge.animated { stroke-dasharray: 8 4; animation: fg-dash 1s linear infinite; }

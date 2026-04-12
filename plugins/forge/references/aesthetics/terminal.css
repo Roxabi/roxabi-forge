@@ -13,6 +13,8 @@
 
 /* ── Root Tokens (Dark Default) ── */
 :root {
+  color-scheme: light dark;
+
   /* Surface system — deep blacks */
   --bg:           #0c0c0c;     /* near-black */
   --surface:      #121212;     /* card bg */
@@ -38,6 +40,8 @@
 
 /* ── Light Mode Override (optional, keeps terminal feel) ── */
 [data-theme="light"] {
+  color-scheme: light;
+
   /* Surface system — inverted */
   --bg:           #ffffff;
   --surface:      #f5f5f5;
@@ -78,6 +82,34 @@
   --error-dim:   rgba(185,28,28,0.1);
   --info:        #0891b2;
   --info-dim:    rgba(8,145,178,0.1);
+}
+
+/* ── Terminal Light — OS preference (unless manually dark) ── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:           #ffffff;
+    --surface:      #f5f5f5;
+    --surface2:     #ebebeb;
+    --border:       rgba(0,0,0,0.15);
+    --border-bright: rgba(0,0,0,0.25);
+
+    --text:         #1a6b1a;
+    --text-muted:   #2d8a2d;
+    --text-dim:     #5a7a57;
+
+    --accent:       #0891b2;
+    --accent-dim:   rgba(8,145,178,0.1);
+    --accent-glow:  rgba(8,145,178,0.15);
+
+    --success:     #1a6b1a;
+    --success-dim: rgba(26,107,26,0.1);
+    --warning:     #b45309;
+    --warning-dim: rgba(180,83,9,0.1);
+    --error:       #b91c1c;
+    --error-dim:   rgba(185,28,28,0.1);
+    --info:        #0891b2;
+    --info-dim:    rgba(8,145,178,0.1);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
