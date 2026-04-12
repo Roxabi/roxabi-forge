@@ -121,7 +121,8 @@ Reference consumer: `tab-target.html` M3 (dual-hub lyra_hub-1 + lyra_hub-2 shari
         node-4 (bottom)
 ```
 
-Reference consumer: (future) consensus-visualizer for distributed systems.
+Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-project-ring.html`
+(6 active projects — voiceCLI, lyra, 2ndBrain, imageCLI, roxabi-plugins, roxabi-forge — as peers in a ring showing cross-consume dependencies).
 
 ### Layered
 
@@ -158,7 +159,8 @@ Reference consumer: (future) consensus-visualizer for distributed systems.
 └────────────────────────────────┘
 ```
 
-Reference consumer: (future) service-architecture explainer.
+Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-stack-layers.html`
+(lyra 4-layer architecture: Adapters → Hub → Services → Infrastructure).
 
 ### Machine Clusters
 
@@ -181,7 +183,8 @@ Reference consumer: (future) service-architecture explainer.
                     cross-machine edges (bulge routing)
 ```
 
-Reference consumer: (future) distributed-deployment map.
+Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-two-machine-deployment.html`
+(ROXABITOWER dev + roxabituwer prod side-by-side with deploy + GitHub cross-machine edges).
 
 ### Deployment Tiers
 
@@ -209,7 +212,8 @@ Reference consumer: (future) distributed-deployment map.
 └───────────────────────────────────────────────────────┘
 ```
 
-Reference consumer: (future) deployment-flow explainer.
+Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html`
+(lyra dev → staging → prod promotion flow via `make deploy` + pytest gate).
 
 ---
 
