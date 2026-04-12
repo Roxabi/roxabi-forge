@@ -300,6 +300,37 @@ Arrow modifiers compose with tones on `.fg-edge`:
 Shapes compose with tones and sizes: `<div class="fgraph-node hexagon amber wide">`.
 Arrow modifiers stack: `<path class="fg-edge cyan thick animated">`.
 
+### Edge Flow Semantics
+
+Prefer semantic classes over raw color tones on `.fg-edge`. They describe intent rather than appearance and let individual aesthetics remap meanings by declaring `--edge-{name}` tokens on `:root`.
+
+| Class | Intent | Default color | Stroke style | When to use |
+|-------|--------|---------------|--------------|-------------|
+| `.control` | Command / signal / invocation — "A tells B what to do" | accent | solid | API call, RPC, trigger, action dispatch |
+| `.write` | Mutating data flow — "A persists into B" | green | dashed (4 3) | DB insert/update, cache set, queue enqueue |
+| `.read` | Non-mutating data flow — "A pulls from B" | cyan | solid | DB select, cache get, config load |
+| `.data` | Bulk transfer / ingest / ETL payload | purple | solid | Batch pipeline, import job, stream replay |
+| `.async` | Fire-and-forget / event bus / deferred work | text-muted | short-dashed (2 3) | Webhook, background job, pub/sub |
+| `.feedback` | Reverse flow / ack / return signal / retry | amber | solid (curved paths read best) | Response, ack, error return, compensating action |
+
+Example:
+
+```html
+<path class="fg-edge control"  d="..." />
+<path class="fg-edge write"    d="..." />
+<path class="fg-edge feedback" d="..." />
+```
+
+Override per aesthetic by declaring the token on the aesthetic's `:root`:
+
+```css
+:root { --edge-control: var(--cyan); }   /* terminal aesthetic: control flows in cyan */
+```
+
+### Legacy color-tone classes
+
+The raw color classes (`.amber`, `.cyan`, `.purple`, `.green`, `.red`, `.dim`) remain fully supported — no existing template needs to change. Treat them as **legacy**: new work should reach for the semantic classes above so aesthetics can re-tint without editing markup. If both a semantic class and a color class are applied to the same path, the semantic rule is declared later in `fgraph-base.css` and therefore wins the cascade.
+
 ---
 
 ## Inlined vs shared — when to promote

@@ -77,10 +77,21 @@ Generated HTML must be **scannable in 5 seconds** (glance), **navigable in 30 se
 
 ---
 
+## Fact-sheet
+
+Before emitting HTML, the sub-agent enumerates every factual claim the output will make — file paths, line numbers, version strings, counts (tab/section/row totals), component/class names, command invocations, and any quoted identifier from source. Each item is re-read against its source file or authoritative command output and confirmed correct.
+
+The fact-sheet is a throwaway checklist (not committed), compiled in the same turn as output generation. Its purpose is to catch the drift that occurs when a sub-agent paraphrases structure from memory instead of re-reading source — the single most common cause of hallucinated paths, stale counts, and fabricated component names in `forge-epic` and `forge-guide` output.
+
+One bullet per claim. A claim is verified only when the agent has actually re-read or re-run the source since drafting the output — not when it "looks right."
+
+---
+
 ## Deliver Checklist (Output UX)
 
 Every skill's Deliver phase must verify:
 
+- Fact-sheet compiled and every claim verified against source (see Fact-sheet section above).
 - Every tab/section starts with a `.summary-card` or `.stat-grid` (glance layer present).
 - No visible text block exceeds 4 sentences without a break or disclosure wrapper.
 - Metadata uses `.kv-strip` or structured table, not inline prose.

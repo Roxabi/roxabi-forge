@@ -103,6 +103,7 @@ Cross-tab: use `.card.info` / `.card.warning` / `.card.critical` for inline tona
 ### Deliver — Generate + verify
 
 **Always** (both tracks):
+- Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - `.epic-hero` shows issue number prominently.
 - Status badges use correct colors (green `done`, amber `wip`, cyan `todo`) via the inline `.status` styles in Phase 3.
 - Mermaid dep diagram wrapped in `.diagram-shell` — never bare `<pre class="mermaid">`.

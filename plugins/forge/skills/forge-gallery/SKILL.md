@@ -80,6 +80,7 @@ See **Phase 2 — Pick Template** below for the full template table (single sour
 ### Deliver — Generate + verify
 
 **Always** (both tracks):
+- Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - DIMS object defines all grouping dimensions.
 - Filter buttons auto-built from data (not hardcoded — use `buildDimFilters`).
 - Lightbox works (click → overlay, Escape to close).
