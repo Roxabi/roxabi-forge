@@ -1,0 +1,53 @@
+---
+title: Tier-1 lift from competitor analysis — anti-slop, arrow semantics, fact-sheet, light mode
+issue: 5
+status: approved
+tier: F-lite
+date: 2026-04-12
+---
+
+## Problem
+
+The 2026-04-12 competitor analysis (`artifacts/analyses/2026-04-12-competitor-skills-analysis.md`) identified four high-ROI, low-effort patterns present in `nicobailon/visual-explainer` and `yizhiyanhua-ai/fireworks-tech-graph` that are absent from Roxabi Forge:
+
+1. Anti-slop restrictions are scattered across aesthetics files with no consolidated reference — sub-agents cannot reliably avoid visual clichés at Deliver time.
+2. `fgraph` edges have a single untyped stroke — readers cannot distinguish control vs. data vs. async vs. feedback flows at a glance.
+3. `forge-epic` / `forge-guide` outputs contain factual drift (wrong file paths, stale counts, fabricated component names) because sub-agents skip a verification checkpoint before emitting HTML.
+4. Aesthetic tokens are dark-mode-only; outputs look wrong when a reader's OS is in light mode or when screenshotting for print.
+
+All four are additive extensions to `plugins/forge/references/` — no architectural changes, no new skills, no breaking changes to existing templates.
+
+## Who
+
+- **Primary:** Mickael — forge plugin maintainer + primary consumer. Uses forge skills daily to generate HTML artifacts (diagrams, galleries, guides, epics) that must look polished and accurate.
+- **Secondary:** Forge sub-agents (the skills themselves) — consume references at Deliver phase to enforce quality gates.
+- **Tertiary:** Downstream viewers of forge-generated HTML — benefit from semantic arrows and correct light/dark rendering.
+
+## Constraints
+
+- **Single bundled PR** — all four sub-tasks ship together; they share the same review surface (`references/` + aesthetic CSS).
+- **No breaking changes** to existing templates or SKILL.md consumers — additions only.
+- **File-locality** — all changes confined to `plugins/forge/references/` tree; no skill logic changes.
+- **Must pass `sync-plugins.sh --local`** before merge so local + cached plugin copies stay in sync.
+- **Must work with `file://`** — no new external dependencies, no build-step additions.
+- **Backwards-compatible CSS tokens** — existing dark-mode token names must not change; light mode added via `@media (prefers-color-scheme: light)` block only.
+
+## Out of Scope
+
+- Build-time enforcement / linting of anti-patterns (Deliver-phase checklist only).
+- New aesthetic files beyond the existing 6 (lyra, roxabi, blueprint, editorial, terminal, caveman).
+- New fgraph templates — only edge-tone variants added to existing `fgraph-base.css`.
+- Retro-fitting the 4 patterns into existing forge artifacts under `~/.roxabi/forge/` — forward-looking only, existing artifacts stay as-is.
+- Changes to `forge-chart` or `forge-gallery` skills — Tier-1 lift targets shared references consumed by all skills.
+- Automated fact-verification tooling — fact-sheet is a manual sub-agent checklist, not a validator script.
+
+## Complexity
+
+**Tier: F-lite** — clear scope, single domain (`plugins/forge/references/`), no unknowns, additive changes only.
+
+Signals:
+- Issue body enumerates 4 concrete actions with source references and acceptance criteria.
+- All edits confined to one directory tree.
+- No architectural decisions — each sub-task is an isolated extension.
+- No new patterns introduced; all four replicate proven patterns from the source repos.
+- Medium-sized change (6 aesthetic files + 3 new/modified references), bundled for review economy.
