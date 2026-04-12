@@ -1,3 +1,5 @@
+@.claude/stack.yml
+
 # Roxabi Forge
 
 HTML visual artifacts for Claude Code — diagrams, galleries, guides, epics.
