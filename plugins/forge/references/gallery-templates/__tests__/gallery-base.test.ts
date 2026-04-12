@@ -669,7 +669,7 @@ describe('showToast', () => {
 })
 
 // ---------------------------------------------------------------------------
-// discoverFiles + discoverBatch (manifest.json + /api/list/ fallback chain)
+// discoverFiles + discoverBatch (img-manifest.json + /api/list/ fallback chain)
 // ---------------------------------------------------------------------------
 
 describe('discoverFiles', () => {
@@ -677,7 +677,7 @@ describe('discoverFiles', () => {
     vi.restoreAllMocks()
   })
 
-  it('returns filenames from manifest.json filtered by ext, sorted', async () => {
+  it('returns filenames from img-manifest.json filtered by ext, sorted', async () => {
     // Arrange
     const discoverFiles = getGlobal<Function>('discoverFiles')
     const manifest = [
@@ -695,12 +695,12 @@ describe('discoverFiles', () => {
     expect(result).toEqual(['alpha.png', 'zebra.png'])
   })
 
-  it('falls back to /api/list/ when manifest.json fetch fails', async () => {
+  it('falls back to /api/list/ when img-manifest.json fetch fails', async () => {
     // Arrange
     const discoverFiles = getGlobal<Function>('discoverFiles')
     const apiListing = [{ name: 'img1.png' }, { name: 'doc.pdf' }, { name: 'img2.png' }]
     globalThis.fetch = vi.fn()
-      .mockRejectedValueOnce(new Error('404')) // manifest.json fails
+      .mockRejectedValueOnce(new Error('404')) // img-manifest.json fails
       .mockResolvedValueOnce({ ok: true, json: async () => apiListing }) as typeof fetch
     // Act
     const result = await discoverFiles('concepts/', '.png')
@@ -708,12 +708,12 @@ describe('discoverFiles', () => {
     expect(result).toEqual(['img1.png', 'img2.png'])
   })
 
-  it('falls back to /api/list/ when manifest.json returns ok=false', async () => {
+  it('falls back to /api/list/ when img-manifest.json returns ok=false', async () => {
     // Arrange
     const discoverFiles = getGlobal<Function>('discoverFiles')
     const apiListing = [{ name: 'img1.png' }]
     globalThis.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: false }) // manifest.json not-ok
+      .mockResolvedValueOnce({ ok: false }) // img-manifest.json not-ok
       .mockResolvedValueOnce({ ok: true, json: async () => apiListing }) as typeof fetch
     // Act
     const result = await discoverFiles('concepts/', '.png')
@@ -737,7 +737,7 @@ describe('discoverBatch', () => {
     vi.restoreAllMocks()
   })
 
-  it('builds items from manifest.json with default itemBuilder', async () => {
+  it('builds items from img-manifest.json with default itemBuilder', async () => {
     // Arrange
     const discoverBatch = getGlobal<Function>('discoverBatch')
     const manifest = [{ name: 'hero-v1.png' }, { name: 'hero-v2.png' }]
@@ -755,12 +755,12 @@ describe('discoverBatch', () => {
     expect(result[0].file).toBe('hero-v1.png')
   })
 
-  it('falls back to /api/list/ when manifest.json is unavailable', async () => {
+  it('falls back to /api/list/ when img-manifest.json is unavailable', async () => {
     // Arrange
     const discoverBatch = getGlobal<Function>('discoverBatch')
     const apiListing = [{ name: 'img-a.png' }, { name: 'img-b.png' }]
     globalThis.fetch = vi.fn()
-      .mockRejectedValueOnce(new Error('fail')) // manifest.json
+      .mockRejectedValueOnce(new Error('fail')) // img-manifest.json
       .mockResolvedValueOnce({ ok: true, json: async () => apiListing }) as typeof fetch
     const cfg = { id: 'b2', dir: 'batch2/', ext: '.png' }
     // Act

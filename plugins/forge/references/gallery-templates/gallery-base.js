@@ -186,7 +186,7 @@ function resolveApiListPath(dir) {
 }
 
 /**
- * Discover files via manifest.json → /api/list/ fallback.
+ * Discover files via img-manifest.json → /api/list/ fallback.
  * Returns array of filename strings.
  *
  * @param {string} dir - Directory path (relative to HTML)
@@ -195,7 +195,7 @@ function resolveApiListPath(dir) {
  */
 async function discoverFiles(dir, ext) {
   try {
-    const r = await fetch(`${dir}manifest.json`)
+    const r = await fetch(`${dir}img-manifest.json`)
     if (r.ok) {
       const listing = await r.json()
       return listing
@@ -221,10 +221,10 @@ async function discoverFiles(dir, ext) {
 }
 
 /**
- * Discover subdirectories of a parent directory via manifest.json → /api/list/ fallback.
+ * Discover subdirectories of a parent directory via img-manifest.json → /api/list/ fallback.
  * Returns sorted array of subdirectory names (no trailing slash).
  *
- * Symmetric with {@link discoverFiles}: manifest.json is tried first for static /
+ * Symmetric with {@link discoverFiles}: img-manifest.json is tried first for static /
  * file:// hosting (Cloudflare Pages), then /api/list/ for the forge dev server.
  * Manifest entries must include `is_dir:true` to be treated as directories.
  *
@@ -244,7 +244,7 @@ async function discoverFiles(dir, ext) {
  * README for worked examples and the ordering-with-metadata pattern.
  *
  * **Static-hosting requirement:** on static hosts, the parent directory must
- * contain a manifest.json listing its subdirs as `is_dir:true` entries. The
+ * contain an img-manifest.json listing its subdirs as `is_dir:true` entries. The
  * forge `gen-image-manifests.py` build step generates these automatically.
  *
  * @param {string} dir - Parent directory path (relative to HTML)
@@ -252,7 +252,7 @@ async function discoverFiles(dir, ext) {
  */
 async function discoverDirs(dir) {
   try {
-    const r = await fetch(`${dir}manifest.json`)
+    const r = await fetch(`${dir}img-manifest.json`)
     if (r.ok) {
       const listing = await r.json()
       return listing
@@ -294,9 +294,9 @@ async function discoverBatch(cfg, itemBuilder) {
       return { stem, file: stem + ext, label: meta.label, tags: meta.tags || [], batch: c.id, dir: c.dir }
     })
 
-  /* Try manifest.json */
+  /* Try img-manifest.json */
   try {
-    const r = await fetch(`${cfg.dir}manifest.json`)
+    const r = await fetch(`${cfg.dir}img-manifest.json`)
     if (r.ok) {
       const listing = await r.json()
       return listing

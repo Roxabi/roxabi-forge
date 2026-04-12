@@ -138,7 +138,7 @@
 /* ══════════════════════════════════════════════════════════════════
    CUSTOMISE: BATCHES config
    Each batch: image dir (relative to HTML) + optional static catalogue.
-   Discovery falls back to manifest.json → /api/list/ → catalogue keys.
+   Discovery falls back to img-manifest.json → /api/list/ → catalogue keys.
 
    Example:
    const BATCHES = [
@@ -361,7 +361,7 @@ const S = initTheme(STORE_KEY);
   allItems = results.flat();
 
   if (!allItems.length) {
-    document.getElementById('gallery').innerHTML = '<div class="empty">No images found. Check BATCHES dirs and manifest.json.</div>';
+    document.getElementById('gallery').innerHTML = '<div class="empty">No images found. Check BATCHES dirs and img-manifest.json.</div>';
     document.getElementById('stats').textContent = '0 / 0';
     return;
   }

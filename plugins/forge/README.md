@@ -89,7 +89,7 @@ Uses the items-as-objects pattern: each mode's `buildItems()` returns `{file, di
 </tr>
 </table>
 
-All templates share `gallery-base.css` (tokens, toolbar, controls, `.pixelated` utility, downloads dropdown `.dl-*`, toast `.toast-*`) + `gallery-base.js` (theme, dual-API filter builder, segmented controls, file discovery, batch bar, starring, `initDownloads` dropdown, `buildPivotSegsFromDims` dynamic pivot, `showToast` with a11y). Dynamic filters (OFF = inactive = show all), search, sort, size controls, lightbox, manifest.json discovery.
+All templates share `gallery-base.css` (tokens, toolbar, controls, `.pixelated` utility, downloads dropdown `.dl-*`, toast `.toast-*`) + `gallery-base.js` (theme, dual-API filter builder, segmented controls, file discovery, batch bar, starring, `initDownloads` dropdown, `buildPivotSegsFromDims` dynamic pivot, `showToast` with a11y). Dynamic filters (OFF = inactive = show all), search, sort, size controls, lightbox, img-manifest.json discovery.
 
 See `references/gallery-templates/README.md` for customisation guide, including the "Items-as-objects vs filename-strings" pattern, downloads dropdown + CSP requirements, dynamic pivot seg construction, pixel-art rendering, and the incremental single-mode → multi-mode upgrade path.
 

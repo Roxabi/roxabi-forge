@@ -261,7 +261,7 @@ const QUALITY_META = {
 /* ══════════════════════════════════════════════════════════════════
    CUSTOMISE: BATCHES
    Array of batch configs — one entry per audio directory.
-   Discovery loads manifest.json from each batch dir.
+   Discovery loads img-manifest.json from each batch dir.
    Each manifest entry must have: { file, engine, label, ... }
 
    If you have a single manifest at the root, use one batch with dir:''.
@@ -270,13 +270,13 @@ const QUALITY_META = {
 
    Example:
    const BATCHES = [
-     { id:'b1', label:'FR Instruct', dir:'samples/b1/', manifest:'manifest.json' },
-     { id:'b2', label:'EN Instruct', dir:'samples/b2/', manifest:'manifest.json' },
+     { id:'b1', label:'FR Instruct', dir:'samples/b1/', manifest:'img-manifest.json' },
+     { id:'b2', label:'EN Instruct', dir:'samples/b2/', manifest:'img-manifest.json' },
    ];
 
    When using a single root manifest:
    const BATCHES = [
-     { id:'main', label:'All Samples', dir:'', manifest:'manifest.json' },
+     { id:'main', label:'All Samples', dir:'', manifest:'img-manifest.json' },
    ];
    ══════════════════════════════════════════════════════════════════ */
 const BATCHES = [
@@ -389,10 +389,10 @@ function qualityBadge(d) {
 
 // Audio-specific discovery — manifest entries are full objects (not filename-only)
 async function discoverAudioBatch(cfg) {
-  const manifest = cfg.manifest || 'manifest.json';
+  const manifest = cfg.manifest || 'img-manifest.json';
   const base = cfg.dir || '';
   try {
-    /* Try manifest.json */
+    /* Try img-manifest.json */
     const r = await fetch(base + manifest + '?_=' + Date.now());
     if (r.ok) {
       const data = await r.json();
@@ -640,7 +640,7 @@ initTheme(STORE_KEY);
   DATA = results.flat();
 
   if (!DATA.length) {
-    contentEl.innerHTML = '<div class="empty">No audio found. Check BATCHES dirs and manifest.json.</div>';
+    contentEl.innerHTML = '<div class="empty">No audio found. Check BATCHES dirs and img-manifest.json.</div>';
     statsEl.textContent = '0 / 0';
     return;
   }

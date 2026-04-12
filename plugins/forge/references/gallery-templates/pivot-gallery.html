@@ -199,7 +199,7 @@ async function loadData() {
 
 // Pivot-specific discovery — extends base discoverFiles with data.ref_scores fallback
 async function discoverPivotFiles() {
-  // Try standard discovery (manifest.json + /api/list/)
+  // Try standard discovery (img-manifest.json + /api/list/)
   const files = await discoverFiles(DIR, EXT);
   if (files.length) return files;
   // Fallback: keys from data JSON (pivot-specific)
