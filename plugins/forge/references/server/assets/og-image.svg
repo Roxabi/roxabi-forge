@@ -16,6 +16,9 @@
   <text x="600" y="380" text-anchor="middle" fill="#dde4f0" font-family="system-ui, sans-serif" font-size="56" font-weight="700">Roxabi Forge</text>
   <!-- Subtitle -->
   <text x="600" y="430" text-anchor="middle" fill="#7d8799" font-family="system-ui, sans-serif" font-size="24" font-weight="400">Diagrams · Galleries · Guides · Epics</text>
+  <!-- CTA -->
+  <rect x="450" y="480" width="300" height="48" rx="24" fill="#6366f1" opacity=".9"/>
+  <text x="600" y="511" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="18" font-weight="600">Explore 380+ visual artifacts</text>
   <!-- URL -->
-  <text x="600" y="560" text-anchor="middle" fill="#6366f1" font-family="monospace" font-size="20" opacity=".7">forge.roxabi.dev</text>
+  <text x="600" y="580" text-anchor="middle" fill="#6366f1" font-family="monospace" font-size="18" opacity=".6">forge.roxabi.dev</text>
 </svg>
