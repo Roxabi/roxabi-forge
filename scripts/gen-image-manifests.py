@@ -60,8 +60,8 @@ for dirpath, dirnames, filenames in os.walk(FORGE_DIR, followlinks=True):
 # children (subdirs) that are themselves in `dirs_with_images` or are ancestors
 # of a dir that is.
 #
-# FORGE_DIR itself is excluded: the root manifest.json is the diagrams registry
-# (produced by gen-manifest.py) with a different schema — img-manifest.json avoids collision.
+# FORGE_DIR root excluded: gen-manifest.py writes a diagram-registry manifest.json
+# there — img-manifest.json avoids collision.
 parents_with_image_subtree: dict[Path, set[str]] = {}
 for img_dir in dirs_with_images:
     cur = img_dir
