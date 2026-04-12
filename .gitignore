@@ -2,6 +2,14 @@ __pycache__/
 *.pyc
 .venv/
 .env
+.env.local
 node_modules/
-.claude/stack.yml
 .cache/
+
+# Dev-core (DO NOT commit)
+.claude/stack.yml
+.claude/dev-core.yml
+.claude/scheduled_tasks.lock
+
+# Keep example
+!.claude/stack.yml.example
