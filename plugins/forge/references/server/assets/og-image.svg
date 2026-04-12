@@ -17,5 +17,5 @@
   <!-- Subtitle -->
   <text x="600" y="430" text-anchor="middle" fill="#7d8799" font-family="system-ui, sans-serif" font-size="24" font-weight="400">Diagrams · Galleries · Guides · Epics</text>
   <!-- URL -->
-  <text x="600" y="560" text-anchor="middle" fill="#6366f1" font-family="monospace" font-size="20" opacity=".7">diagrams.roxabi.dev</text>
+  <text x="600" y="560" text-anchor="middle" fill="#6366f1" font-family="monospace" font-size="20" opacity=".7">forge.roxabi.dev</text>
 </svg>

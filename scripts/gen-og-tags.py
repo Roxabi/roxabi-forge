@@ -17,7 +17,7 @@ if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
     print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 
-BASE_URL = 'https://diagrams.roxabi.dev'
+BASE_URL = 'https://forge.roxabi.dev'
 OG_IMAGE_URL = f'{BASE_URL}/og-image.png'
 
 META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
