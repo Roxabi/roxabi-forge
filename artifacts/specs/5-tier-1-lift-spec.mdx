@@ -151,7 +151,7 @@ Slices are independent — any single one could ship alone. Bundled per frame co
 - [ ] `graph-templates/README.md` contains a "legacy" note declaring color-tone classes (`.amber`, `.cyan`, `.purple`, `.green`, `.red`, `.dim`) remain supported and instructing new work to prefer semantic classes.
 - [ ] `output-ux.md` has a `## Fact-sheet` section and a Deliver checklist row referencing it.
 - [ ] All 6 aesthetic CSS files include `color-scheme: light dark;` on `:root`.
-- [ ] All 6 aesthetic CSS files include a `@media (prefers-color-scheme: light)` block scoped with `:root:not([data-theme="dark"])`.
+- [ ] All 6 aesthetic CSS files include an OS-preference `@media` block scoped with a `[data-theme]`-guarded selector. Dark-default aesthetics (lyra, roxabi, editorial, terminal, caveman) use `@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { ... } }`. Light-default aesthetics (blueprint) invert to `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ... } }`.
 - [ ] Manual `[data-theme="dark"]` attribute overrides OS light preference in all 6 aesthetics, verified via a single standalone HTML file per aesthetic that imports only `base/reset.css` + the aesthetic file (minimal harness, no existing artifact required).
 - [ ] No existing fgraph template HTML file is modified (backwards-compat proof).
 - [ ] `sync-plugins.sh --local` runs clean after the change.
