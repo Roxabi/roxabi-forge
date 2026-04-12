@@ -14,18 +14,21 @@
 /* ── Root Tokens (Dark Default) ── */
 :root {
   /* Surface system — deep blacks */
-  --bg:         #0c0c0c;     /* near-black */
-  --surface:    #121212;     /* card bg */
-  --border:     rgba(255,255,255,0.08);  /* low-opacity white */
+  --bg:           #0c0c0c;     /* near-black */
+  --surface:      #121212;     /* card bg */
+  --surface2:     #1a1a1a;
+  --border:       rgba(255,255,255,0.08);  /* low-opacity white */
+  --border-bright: rgba(255,255,255,0.15);
 
   /* Text hierarchy — green/cyan tones */
-  --text:       #4af626;     /* terminal green — primary */
-  --text-muted: #a8e6a3;     /* muted green — body */
-  --text-dim:   #5a7a57;     /* dim green — metadata */
+  --text:         #4af626;     /* terminal green — primary */
+  --text-muted:   #a8e6a3;     /* muted green — body */
+  --text-dim:     #5a7a57;     /* dim green — metadata */
 
   /* Accent — cyan secondary */
-  --accent:     #00d4ff;     /* cyan */
-  --accent-dim: rgba(0,212,255,0.1);
+  --accent:       #00d4ff;     /* cyan */
+  --accent-dim:   rgba(0,212,255,0.1);
+  --accent-glow:  rgba(0,212,255,0.2);
 
   /* Shape — flat terminal, no rounding, no shadows */
   --radius:     0;
@@ -36,18 +39,21 @@
 /* ── Light Mode Override (optional, keeps terminal feel) ── */
 [data-theme="light"] {
   /* Surface system — inverted */
-  --bg:         #ffffff;
-  --surface:    #f5f5f5;
-  --border:     rgba(0,0,0,0.15);
+  --bg:           #ffffff;
+  --surface:      #f5f5f5;
+  --surface2:     #ebebeb;
+  --border:       rgba(0,0,0,0.15);
+  --border-bright: rgba(0,0,0,0.25);
 
   /* Text hierarchy — darker greens */
-  --text:       #1a6b1a;     /* dark green */
-  --text-muted: #2d8a2d;     /* body green */
-  --text-dim:   #5a7a57;     /* metadata */
+  --text:         #1a6b1a;     /* dark green */
+  --text-muted:   #2d8a2d;     /* body green */
+  --text-dim:     #5a7a57;     /* metadata */
 
   /* Accent — darker cyan */
-  --accent:     #0891b2;     /* cyan-600 */
-  --accent-dim: rgba(8,145,178,0.1);
+  --accent:       #0891b2;     /* cyan-600 */
+  --accent-dim:   rgba(8,145,178,0.1);
+  --accent-glow:  rgba(8,145,178,0.15);
 }
 
 /* ── Semantic Color Tokens — Dark ── */

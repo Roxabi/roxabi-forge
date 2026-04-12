@@ -27,9 +27,11 @@ ${CLAUDE_PLUGIN_ROOT}/references/base/tab-loader.js    — substitute {NAME}, th
 ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md     — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md    — only if a tab will contain a Mermaid diagram
+${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md — if content has diagrams: semantic shape selection guide
+${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — if content has diagrams: fgraph decision matrix + templates
 ```
 
-**Directive: inline, never link** — `base/` and `aesthetics/` files are generation source, not runtime dependencies. Read → inline into output `<style>` block.
+**Directive: inline, never link** — `base/` and `aesthetics/` files are generation source, not runtime dependencies. Read → inline into output `<style>` block. Exception: `fgraph-base.css` is linked (not inlined) via `<link rel="stylesheet" href="../../_shared/fgraph-base.css">` when any tab uses fgraph diagrams — see `shell-processing.md § fgraph integration`.
 
 ---
 
@@ -63,12 +65,17 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 
 | Content | Rendering |
 |---|---|
+| Layered architecture (3–4 tiers) | fgraph `layered.html` — horizontal layers with dashed frames |
+| Linear pipeline (2–4 stages) | fgraph `linear-flow.html` — source → middle → sink |
+| Hub-and-spoke ≤ 6 peers with rich cards | fgraph `radial-hub.html` — center pill + satellites |
+| Peer ring (no center hub) | fgraph `radial-ring.html` — N nodes in a circle |
+| Multi-host / distributed deployment | fgraph `machine-clusters.html` — side-by-side frames |
 | Flow / topology / > 8 nodes | Mermaid `flowchart` (dagre auto-layout) |
-| Hub-and-spoke ≤ 6 peers with rich cards | fgraph (`graph-templates/`) |
-| 7 radial nodes | fgraph with narrow nodes, or split into sub-diagrams |
-| Stacked text-heavy pipelines | CSS Grid cards |
+| Stacked **text-heavy** pipelines (paragraphs per stage) | CSS Grid cards |
 | Data comparison (≥4 rows or ≥3 cols) | HTML tables |
 | Single-page audit / long-form | TOC sidebar layout |
+
+**Key distinction:** if the content is structural (nodes + edges + labels + badges), use fgraph even inside a guide. CSS Grid cards are for text-heavy content where each stage has paragraphs, not for topology diagrams with slot badges. Read `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` to pick the right shape per node.
 
 **Ask:** Is the content scannable (headings + lists + tables) or narrative (paragraphs + inline diagrams)? Scannable → TOC sidebar or multi-tab with stat-grid heroes. Narrative → flat long-form with inline diagrams. A guide that is both scannable and narrative is a sign of unclear Frame Q2 — one takeaway can be skimmed *or* read, not both.
 
@@ -92,7 +99,7 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`. Ro
 | Rendering | Wrapper / component |
 |---|---|
 | Mermaid (any type) | `.diagram-shell` with `.zoom-controls` (never bare `<pre class="mermaid">`) |
-| fgraph radial | `.fgraph-wrap` + `.fgraph-frame` + `.fgraph-edges` + `.fgraph-node.{tone}` (see `graph-templates/`) |
+| fgraph (any template) | `.fgraph-wrap.{tone}` + `.fgraph-edges` SVG + `.fgraph-node.{shape}.{tone}` (see `graph-templates/` + `shape-vocabulary.md`). Link `fgraph-base.css` in shell `<head>`. Use semantic shapes: `.cylinder` for data stores, `.hexagon` for agents, `.pill` for brokers, `.folded` for files, `.diamond` for decisions, `.circle` for events. |
 | HTML table | `.table-wrap > table` with `<thead>` (enables sticky header + horizontal scroll) |
 | CSS Grid cards | `.cards` container + `.card`/`.card.accent` per row |
 | TOC sidebar | `.wrap--toc > .toc + .main--toc` layout (see Phase 3 TOC Sidebar section) |
@@ -163,7 +170,7 @@ Let:
 
 ## Phase 2 — Structure
 
-1. **Choose `diagram:category`** based on content type (from `references/diagram-meta.md`):
+1. **Choose `diagram:category`** based on content type (from `${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md`):
    - User guide / tutorial → `guide`
    - Architecture / system design → `architecture`
    - Comparison / competitive analysis → `analysis`
@@ -181,7 +188,13 @@ Let:
    | Recap / status | summary, progress, decisions, next |
    | Roadmap | overview, phases, deps, risks |
 
-3. **Note Mermaid tabs** — if any tab needs a diagram, follow `references/mermaid-guide.md` checklist.
+3. **Inventory diagrams.** For each diagram or architectural visual in the source content:
+   - Name it (e.g. "3-layer stack", "model runtime chain")
+   - Count nodes and classify topology (layered / linear / radial / nested / grid)
+   - Pick rendering: fgraph template | CSS Grid cards | Mermaid | table
+   - If fgraph: note which shapes per node using `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` (cylinder, hexagon, pill, folded, diamond, circle, default rect)
+   - If Mermaid: follow `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` checklist
+   Report the diagram inventory before proceeding to Phase 3. Do not write custom CSS for diagrams that have fgraph equivalents.
 
 4. **Determine layout mode:**
    - **Standard multi-tab** — nav with tabs, panels switch on click
@@ -326,7 +339,7 @@ Severity levels: `finding--high` (red), `finding--medium` (amber), `finding--low
 </div>
 ```
 
-See `references/mermaid-guide.md` for the full checklist on dynamic tab rendering.
+See `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` for the full checklist on dynamic tab rendering.
 
 ### Tab fragments — content patterns by tab type:
 
@@ -334,7 +347,7 @@ See `references/mermaid-guide.md` for the full checklist on dynamic tab renderin
 |----------|---------|
 | Overview / intro | Header + `<p>` + `.stat-grid` + `.cards` grid (2–4 cards) |
 | Step-by-step | Section titles + `<ol>` + `<pre><code>` |
-| Architecture | Section title + Mermaid diagram (in shell) + description |
+| Architecture | Section title + fgraph diagram (`.fgraph-wrap` with semantic shapes) or Mermaid (in `.diagram-shell`) + description |
 | Comparison | Section title + `.table-wrap > table` with `<thead>` |
 | Status / KPIs | Section title + `.stat-grid` + progress indicators |
 | Decisions / log | `<h3>` entries with date + rationale `<p>` |
@@ -358,6 +371,7 @@ See `references/mermaid-guide.md` for the full checklist on dynamic tab renderin
 | Plain `<h2>` for section titles | Use `.section-title` class |
 | No header on multi-tab | Add styled header with eyebrow + badges |
 | Plain nav title only | Replace with full header component |
+| Custom CSS for diagrams with fgraph equivalents | Use fgraph templates + `shape-vocabulary.md` — link `fgraph-base.css`, do not reinvent |
 
 ---
 

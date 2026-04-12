@@ -34,7 +34,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md          — Mermaid patterns 
 **Exception — graph-templates/fgraph-base.css has two distribution modes:**
 - **Mode A (default — single-file HTML):** inline into output `<style>` block, same as `base/`. Required for anything that must work with `file://`.
 - **Mode B (multi-tab docs):** copy to `~/.roxabi/forge/_shared/fgraph-base.css` once, then reference via `<link rel="stylesheet" href="../../_shared/fgraph-base.css">` in the shell `<head>`. Use when ≥ 2 tabs in the same doc use fgraph classes. Matches the `gallery-base.{css,js}` precedent.
-- Decision rule: `forge-chart` single-file output → Mode A. Multi-tab roadmap / spec shell → Mode B. See `references/graph-templates/README.md` "Inlined vs shared" for the full rulebook.
+- Decision rule: `forge-chart` single-file output → Mode A. Multi-tab roadmap / spec shell → Mode B. See `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` "Inlined vs shared" for the full rulebook.
 
 ---
 
@@ -198,11 +198,11 @@ Let:
 - Linear flow / topology / > 8 nodes → Mermaid (dagre auto-layout wins)
 - Radial / hub-and-spoke with rich cards (pills, warn, multi-line) → fgraph
 - Stacked text-heavy pipelines → CSS Grid cards
-- See `references/graph-templates/README.md` for the full decision matrix.
+- See `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the full decision matrix.
 
 Max 12 nodes per Mermaid diagram (split if more). fgraph-radial caps at ~6 satellites before labels collide.
 
-Choose `diagram:category` + `diagram:color` from `references/diagram-meta.md`.
+Choose `diagram:category` + `diagram:color` from `${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md`.
 
 ---
 

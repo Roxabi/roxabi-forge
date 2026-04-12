@@ -15,18 +15,21 @@
 /* ── Root Tokens (Light Default) ── */
 :root {
   /* Surface system — light layers */
-  --bg:         #f8fafc;     /* slate-50 — base background */
-  --surface:    #ffffff;     /* white — canvas / cards */
-  --border:     #cbd5e1;     /* slate-300 — borders */
+  --bg:           #f8fafc;     /* slate-50 — base background */
+  --surface:      #ffffff;     /* white — canvas / cards */
+  --surface2:     #f1f5f9;     /* slate-100 */
+  --border:       #cbd5e1;     /* slate-300 — borders */
+  --border-bright: #94a3b8;   /* slate-400 */
 
   /* Text hierarchy — high contrast */
-  --text:       #0f172a;     /* slate-900 — headings, primary */
-  --text-muted: #334155;     /* slate-700 — body text */
-  --text-dim:   #64748b;     /* slate-500 — metadata, labels */
+  --text:         #0f172a;     /* slate-900 — headings, primary */
+  --text-muted:   #334155;     /* slate-700 — body text */
+  --text-dim:     #64748b;     /* slate-500 — metadata, labels */
 
   /* Accent — minimal, errors/warnings only */
-  --accent:     #dc2626;     /* red-600 — warning/error accent */
-  --accent-dim: #fef2f2;     /* red-50 — dim surface */
+  --accent:       #dc2626;     /* red-600 — warning/error accent */
+  --accent-dim:   #fef2f2;     /* red-50 — dim surface */
+  --accent-glow:  rgba(220,38,38,0.15);
 
   /* Shape — flat, no rounding, no shadows */
   --radius:     0;
@@ -37,18 +40,21 @@
 /* ── Dark Mode Override ── */
 [data-theme="dark"] {
   /* Surface system — inverted */
-  --bg:         #0f172a;     /* slate-900 */
-  --surface:    #1e293b;     /* slate-800 */
-  --border:     #334155;     /* slate-700 */
+  --bg:           #0f172a;     /* slate-900 */
+  --surface:      #1e293b;     /* slate-800 */
+  --surface2:     #283548;     /* between slate-800/700 */
+  --border:       #334155;     /* slate-700 */
+  --border-bright: #475569;   /* slate-600 */
 
   /* Text hierarchy */
-  --text:       #f8fafc;     /* slate-50 */
-  --text-muted: #cbd5e1;     /* slate-300 */
-  --text-dim:   #64748b;     /* slate-500 */
+  --text:         #f8fafc;     /* slate-50 */
+  --text-muted:   #cbd5e1;     /* slate-300 */
+  --text-dim:     #64748b;     /* slate-500 */
 
   /* Accent */
-  --accent:     #f87171;     /* red-400 */
-  --accent-dim: rgba(248,113,113,0.12);
+  --accent:       #f87171;     /* red-400 */
+  --accent-dim:   rgba(248,113,113,0.12);
+  --accent-glow:  rgba(248,113,113,0.2);
 }
 
 /* ── Semantic Color Tokens — Light ── */

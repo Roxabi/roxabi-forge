@@ -28,6 +28,27 @@ See also: `split-file.md` for the file layout pattern (version isolation, tab fr
    - `{EXTRA_SCRIPTS}` → optional (e.g., mermaid-init.js)
 7. Output: split-file HTML (requires HTTP serve)
 
+## fgraph Integration
+
+If any tab fragment uses fgraph diagrams (`.fgraph-wrap`, `.fgraph-node`, `.fgraph-edges`):
+
+1. **Link `fgraph-base.css`** in the shell `<head>`, after the guide CSS link:
+   ```html
+   <link rel="stylesheet" href="css/{NAME}.css">
+   <link rel="stylesheet" href="../../_shared/fgraph-base.css">
+   ```
+   fgraph-base.css is linked (Mode B), not inlined — it is a shared runtime dependency at `~/.roxabi/forge/_shared/fgraph-base.css`. This follows the same pattern as `gallery-base.css`.
+
+2. **Add fgraph color tokens** to the guide CSS (in the guide-specific section) if the aesthetic file does not define them. fgraph-base.css consumes these tokens:
+   - `--amber`, `--amber-dim`, `--cyan`, `--cyan-dim`, `--green`, `--green-dim`, `--purple`, `--purple-dim`, `--red`, `--red-dim`
+   - `--border-bright`, `--surface2`, `--bg-panel`, `--bg-card`, `--accent-glow`
+
+   Aesthetic files that already define these tokens (check by reading the aesthetic CSS): no additional tokens needed. Aesthetic files that only define the base 8 tokens (`--bg`, `--surface`, `--border`, `--text`, `--text-muted`, `--text-dim`, `--accent`, `--accent-dim`): add the missing fgraph tokens in the guide CSS.
+
+3. **Add Google Fonts** used by fgraph: `Space Mono:wght@400;700` (used in `.fgraph-sub`, `.fgraph-pill`, `.fgraph-lbl`, `.fgraph-legend`). Append to the existing Google Fonts `<link>` in `<head>`.
+
+---
+
 ## Skill-Specific Overrides
 
 | Placeholder | forge-guide | forge-epic |

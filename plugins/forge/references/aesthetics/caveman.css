@@ -27,6 +27,7 @@
 
   /* Border system */
   --border:       #1a1a1a;
+  --border-bright: #333333;
   --border-hover: #333333;
 
   /* Text hierarchy — minimal gray scale */
@@ -67,6 +68,7 @@
 
   /* Border system */
   --border:       #e5e5e5;
+  --border-bright: #cccccc;
   --border-hover: #cccccc;
 
   /* Text hierarchy */

@@ -234,7 +234,7 @@ CSS for epic-hero (add to `{EXTRA_STYLES}`):
 .status.todo { background: var(--info-dim); color: var(--info); }
 ```
 
-**Deps tab** — Mermaid dependency diagram. Follow `references/mermaid-guide.md` checklist exactly (dynamic tab pitfalls).
+**Deps tab** — Mermaid dependency diagram. Follow `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` checklist exactly (dynamic tab pitfalls).
 
 **Acceptance criteria tab** — table: | Criterion | Type | Status |
 
