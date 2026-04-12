@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""gen-og-tags.py — inject/normalize Open Graph + Twitter Card meta tags into HTML artifacts.
+
+Reads diagram:title (or <title>) and description meta from each file, then
+writes a canonical OG block right after <meta name="viewport" ...>.
+Idempotent — strips any existing OG/Twitter meta before injecting.
+
+Run during build:
+    python3 gen-og-tags.py
+"""
+import glob as globmod
+import os, re
+from html import escape, unescape
+from pathlib import Path
+
+if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
+    print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
+DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
+
+BASE_URL = 'https://diagrams.roxabi.dev'
+
+META_RE = re.compile(r'<meta\s+name="diagram:([\w-]+)"\s+content="([^"]*)"', re.IGNORECASE)
+TITLE_RE = re.compile(r'<title>([^<]+)</title>', re.IGNORECASE)
+DESC_RE = re.compile(r'<meta\s+name="description"\s+content="([^"]*)"', re.IGNORECASE)
+
+# Matches existing OG / Twitter meta lines (to strip before re-injecting)
+OG_LINE_RE = re.compile(
+    r'^[ \t]*<meta\s+(?:property="og:|name="twitter:)[^>]*>\s*\n?',
+    re.IGNORECASE | re.MULTILINE,
+)
+# Anchor: inject right after the viewport meta
+VIEWPORT_RE = re.compile(
+    r'(<meta\s+name="viewport"[^>]*>)\s*\n?',
+    re.IGNORECASE,
+)
+
+
+def build_og_block(title, description, url):
+    t = escape(title, quote=True)
+    d = escape(description, quote=True)
+    u = escape(url, quote=True)
+    return (
+        f'<meta property="og:title" content="{t}">\n'
+        f'<meta property="og:description" content="{d}">\n'
+        f'<meta property="og:type" content="article">\n'
+        f'<meta property="og:url" content="{u}">\n'
+        f'<meta name="twitter:card" content="summary">\n'
+        f'<meta name="twitter:title" content="{t}">\n'
+        f'<meta name="twitter:description" content="{d}">\n'
+    )
+
+
+def process(filepath, rel):
+    text = filepath.read_text(encoding='utf-8', errors='ignore')
+
+    # Only touch the <head> section
+    head_end = text.lower().find('</head>')
+    if head_end == -1:
+        return False
+    head = text[:head_end]
+
+    # Extract title: prefer diagram:title, fall back to <title>
+    # unescape() prevents double-encoding (content attrs are already HTML-escaped)
+    metas = {k: unescape(v) for k, v in META_RE.findall(head)}
+    title = metas.get('title', '')
+    if not title:
+        m = TITLE_RE.search(head)
+        if not m:
+            return False
+        title = unescape(m.group(1).strip())
+
+    # Extract description: prefer existing <meta name="description">
+    dm = DESC_RE.search(head)
+    description = unescape(dm.group(1).strip()) if dm else title
+
+    url = f'{BASE_URL}/{rel}'
+
+    # Strip existing OG/Twitter lines from full text
+    cleaned = OG_LINE_RE.sub('', text)
+
+    # Inject after viewport meta
+    vm = VIEWPORT_RE.search(cleaned)
+    if not vm:
+        return False
+
+    og_block = build_og_block(title, description, url)
+    insert_at = vm.end()
+    new_text = cleaned[:insert_at] + og_block + cleaned[insert_at:]
+
+    if new_text != text:
+        filepath.write_text(new_text, encoding='utf-8')
+        return True
+    return False
+
+
+injected, skipped = 0, []
+for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
+    fp = Path(match)
+    rel = str(fp.relative_to(DIR))
+    if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
+        continue
+    if process(fp, rel):
+        injected += 1
+    else:
+        skipped.append(rel)
+
+print(f'og-tags — {injected} files updated.')
+if skipped:
+    print(f'Skipped (no viewport or title): {", ".join(skipped)}')

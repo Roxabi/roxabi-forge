@@ -23,6 +23,9 @@ fi
 echo "▸ Generating image gallery manifests…"
 python3 "$SCRIPT_DIR/gen-image-manifests.py"
 
+echo "▸ Injecting Open Graph meta tags…"
+python3 "$SCRIPT_DIR/gen-og-tags.py"
+
 echo "▸ Syncing to _dist/…"
 mkdir -p "$DIST"
 # -L dereferences symlinks as real files so deployed _dist/ ships actual
