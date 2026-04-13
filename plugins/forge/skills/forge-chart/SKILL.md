@@ -1,6 +1,7 @@
 ---
 name: forge-chart
 description: 'Create a quick self-contained single-file HTML visual — Mermaid flowchart, dependency tree, sequence diagram, or CSS layout. No server needed, works with file://. Triggers: "draw" | "diagram" | "visualize" | "sketch" | "map" | "show the flow" | "quick visual".'
+summary: 'single-file Mermaid / CSS visual'
 version: 0.3.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 ---

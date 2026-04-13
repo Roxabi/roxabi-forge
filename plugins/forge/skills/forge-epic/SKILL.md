@@ -1,6 +1,7 @@
 ---
 name: forge-epic
 description: 'Create an issue/epic-linked visual analysis — overview, scope breakdown, dependency graph, acceptance criteria. Filename always includes the issue number. Triggers: "visualize #N" | "preview #N" | "illustrate issue" | "map issue" | "epic preview" | "show epic".'
+summary: 'issue-linked visual analysis'
 version: 0.2.0
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ToolSearch, Agent
 ---

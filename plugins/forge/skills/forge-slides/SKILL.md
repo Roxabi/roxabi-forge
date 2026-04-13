@@ -1,6 +1,7 @@
 ---
 name: forge-slides
 description: 'Generate a magazine-quality scroll-snap presentation deck from an issue, a markdown file, or a free prompt. Single-file, offline-playable, keyboard + touch navigated, 10 slide types, 6 aesthetic presets. Triggers: "create deck" | "make a deck" | "slides from #N" | "slide deck" | "forge slides" | "presentation deck" | "pitch deck".'
+summary: 'scroll-snap presentation deck'
 version: 0.1.0
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent
 ---

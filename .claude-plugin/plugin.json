@@ -1,6 +1,8 @@
 {
   "name": "forge",
-  "version": "0.5.0",
-  "description": "Forge HTML for ~/.roxabi/forge/ — forge-guide (multi-tab doc), forge-epic (issue-linked analysis), forge-chart (single-file Mermaid), forge-gallery (image/audio), forge-slides (scroll-snap presentation deck). Brand-aware, manifest-indexed, Cloudflare Pages ready.",
-  "author": { "name": "Roxabi" }
+  "version": "0.6.0",
+  "description": "Forge HTML visuals for ~/.roxabi/forge/ — forge-chart (single-file Mermaid / CSS visual), forge-epic (issue-linked visual analysis), forge-gallery (image / audio gallery), forge-guide (split-file multi-tab doc), forge-init (initialize ~/.roxabi/forge/ environment), forge-md (render .md as-is to themed HTML), forge-slides (scroll-snap presentation deck). Brand-aware, manifest-indexed, Cloudflare Pages ready.",
+  "author": {
+    "name": "Roxabi"
+  }
 }

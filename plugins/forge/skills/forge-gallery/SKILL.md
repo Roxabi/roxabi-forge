@@ -1,6 +1,7 @@
 ---
 name: forge-gallery
 description: 'Create or update an image or audio gallery from HTML templates — pivot grouping, dynamic filtering, sorting, search, size controls, lightbox, multi-mode datasets, downloads dropdown. Triggers: "showcase" | "compare visually" | "gallery" | "side by side" | "create a gallery" | "show iterations" | "multi-mode gallery" | "sprite gallery".'
+summary: 'image / audio gallery'
 version: 0.4.0
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ToolSearch, Agent
 ---

@@ -3,6 +3,12 @@ pre-commit:
     lint:
       run: bunx biome check --write {staged_files}
       glob: "*.{js,jsx}"  # must track biome.json files.includes
+    manifest:
+      run: scripts/gen-plugin-manifest.py --check
+      glob:
+        - "plugins/forge/skills/*/SKILL.md"
+        - ".claude-plugin/plugin.json"
+        - ".claude-plugin/marketplace.json"
     trufflehog:
       run: scripts/trufflehog-check.sh
       skip:

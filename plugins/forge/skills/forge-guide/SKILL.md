@@ -1,6 +1,7 @@
 ---
 name: forge-guide
 description: 'Create a split-file multi-tab HTML document — user guide, architecture overview, project recap, comparison analysis, roadmap, or any rich multi-section doc. Triggers: "write a guide" | "create a guide" | "forge guide" | "multi-tab doc" | "visual doc" | "create a doc" | "make a recap" | "illustrate architecture" | "explain visually" | "document with forge".'
+summary: 'split-file multi-tab doc'
 version: 0.3.0
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ToolSearch, Agent
 ---
