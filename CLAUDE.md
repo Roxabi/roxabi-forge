@@ -27,13 +27,13 @@ roxabi-forge/
 │   └── plugin.json              # plugin metadata (version, author)
 ├── plugins/
 │   └── forge/
-│       ├── skills/              # 6 skills: forge-init, forge-guide, forge-epic, forge-chart, forge-gallery, forge-slides
+│       ├── skills/              # 7 skills: forge-init, forge-chart, forge-epic, forge-gallery, forge-guide, forge-md, forge-slides
 │       ├── references/          # HTML/CSS/JS templates, design docs, aesthetics
 │       │   ├── slide-templates/ # scroll-snap deck engine (generation source, always inlined)
 │       ├── runtime/             # Makefile + .env.example for ~/.roxabi/forge/
 │       ├── supervisor/          # supervisord config + wrapper script
 │       └── Makefile             # deploy + register targets
-├── scripts/                     # Build scripts (build.sh, gen-manifest.py, etc.)
+├── scripts/                     # Build scripts (build.sh, gen-manifest.py, gen-plugin-manifest.py, render-md{,-tabs}.py, etc.)
 ├── sync-plugins.sh              # Sync to local/remote plugin caches
 └── CLAUDE.md                    # this file
 ```
@@ -66,6 +66,28 @@ Source of truth: `plugins/forge/` in this repo.
 # Sync local + remote (Machine 1)
 ./sync-plugins.sh
 ```
+
+## Plugin manifests (generated)
+
+`.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` are partially generated from SKILL.md frontmatter. Do not hand-edit the skill enumeration in either `description` field.
+
+**Source of truth**
+
+| Field | Where |
+|---|---|
+| plugin version | `.claude-plugin/plugin.json` → `version` (bump manually) |
+| skill list | each `plugins/forge/skills/*/SKILL.md` frontmatter `name` + `summary` |
+| marketplace plugin version | mirrored from `plugin.json.version` |
+
+**Workflow**
+
+```bash
+# Add/rename/remove a skill, or bump plugin.json.version
+scripts/gen-plugin-manifest.py        # regenerate both manifests
+scripts/gen-plugin-manifest.py --check # what pre-commit runs
+```
+
+The `manifest` pre-commit hook (`lefthook.yml`) runs `--check` when SKILL.md or `.claude-plugin/*.json` change; commit fails on drift. Every SKILL.md must declare a `summary:` field.
 
 ## Distribution rule (inline vs linked)
 
