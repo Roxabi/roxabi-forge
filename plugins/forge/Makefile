@@ -40,8 +40,10 @@ deploy:
 	@cp -v $(REPO_ROOT)/scripts/update-meta.py $(FORGE_DIR)/scripts/update-meta.py
 	@cp -v $(REPO_ROOT)/scripts/gen-og-tags.py $(FORGE_DIR)/scripts/gen-og-tags.py
 	@cp -v $(REPO_ROOT)/scripts/render-md.py $(FORGE_DIR)/scripts/render-md.py
+	@cp -v $(REPO_ROOT)/scripts/render-md-tabs.py $(FORGE_DIR)/scripts/render-md-tabs.py
 	@chmod +x $(FORGE_DIR)/scripts/build.sh
 	@chmod +x $(FORGE_DIR)/scripts/render-md.py
+	@chmod +x $(FORGE_DIR)/scripts/render-md-tabs.py
 	@echo "Done."
 	@echo ""
 	@echo "Note: if $(FORGE_DIR)/.env doesn't exist yet, copy .env.example and fill in credentials:"
