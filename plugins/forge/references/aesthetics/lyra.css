@@ -17,6 +17,7 @@
   --text-dim:   #6b7280;
   --accent:     #e85d04;
   --accent-dim: #7c2d0e;
+  --accent-glow: rgba(232,93,4,0.22);
   --error:      #f87171;
 }
 
@@ -30,6 +31,7 @@
   --text-dim:   #78716c;
   --accent:     #c2410c;
   --accent-dim: #fef2e8;
+  --accent-glow: rgba(194,65,12,0.16);
   --error:      #dc2626;
 }
 
@@ -44,6 +46,7 @@
     --text-dim:   #78716c;
     --accent:     #c2410c;
     --accent-dim: #fef2e8;
+    --accent-glow: rgba(194,65,12,0.16);
   }
 }
 

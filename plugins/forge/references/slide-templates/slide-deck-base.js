@@ -188,30 +188,13 @@ class SlideEngine {
       this.fadeHints()
     })
 
-    // Touch swipe (vertical) — gated by _scrolling flag to avoid fighting
-    // native scroll-snap inertia on iOS/Android. The flag is set at
-    // touchstart and cleared by the IntersectionObserver callback once the
-    // snap completes; without this guard, a fast swipe calls goTo() while
-    // native scroll is still delivering the same slide, producing a double-
-    // skip or snap-back.
-    let tY = 0
-    this.deck.addEventListener(
-      'touchstart',
-      (e) => {
-        tY = e.touches[0].clientY
-        this._scrolling = true
-      },
-      { passive: true },
-    )
-    this.deck.addEventListener(
-      'touchend',
-      (e) => {
-        if (this._scrolling) return
-        const dy = tY - e.changedTouches[0].clientY
-        if (Math.abs(dy) > 50) dy > 0 ? this.next() : this.prev()
-      },
-      { passive: true },
-    )
+    // Touch swipe — native scroll-snap handles user-initiated vertical
+    // swipes on iOS/Android; the IntersectionObserver below keeps the
+    // chrome (progress bar, counter, dots) in sync after the snap
+    // settles. No explicit touchend nav is needed — calling goTo()
+    // during in-flight native scroll causes double-skip on fast swipes.
+    // The `_scrolling` guard still gates re-entry during programmatic
+    // scrolls triggered by keyboard / dot-click (see `goTo()`).
   }
 
   observe() {
@@ -236,6 +219,9 @@ class SlideEngine {
 
   goTo(i) {
     const clamped = Math.max(0, Math.min(i, this.total - 1))
+    // Set the re-entry guard on programmatic nav only — cleared by the
+    // IntersectionObserver callback once the target slide settles.
+    this._scrolling = true
     this.slides[clamped].scrollIntoView({ behavior: 'smooth' })
   }
   next() {
