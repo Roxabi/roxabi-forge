@@ -311,3 +311,9 @@ pre code {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-weight: 400;
 }
+
+.deck .slide--closing .cta {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  border-color: var(--accent);
+  color: var(--accent);
+}

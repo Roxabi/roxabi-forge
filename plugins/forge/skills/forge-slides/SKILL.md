@@ -120,8 +120,7 @@ Precedence: explicit path > `#N` > free prompt.
 2. **Run brand book loader** (`${CLAUDE_PLUGIN_ROOT}/references/brand-book-loader.md`). Report Track A or B before continuing.
 
 3. **Derive `{name}`** (kebab-case ≤30 chars) from issue slug / markdown filename / prompt slug.
-   Check existing: `ls ~/.roxabi/forge/{PROJ}/slides/{name}*.html 2>/dev/null`
-   ∃ → offer to overwrite or create versioned copy.
+   Re-invocation for the same `{PROJ}/{name}` **overwrites silently** — matches `forge-guide`/`forge-epic` deterministic-path behavior. Do not prompt.
 
 4. **Apply Aesthetic Detection** (`forge-ops.md § Aesthetic Detection`). `--aesthetic <name>` override takes precedence. Allowed values: `editorial`, `roxabi`, `blueprint`, `caveman`, `lyra`, `terminal`.
 
@@ -214,6 +213,12 @@ Rules:
 - fgraph slides: inline the fgraph template HTML + inline fgraph-base.css content into the <style> block
 - Inject diagram-meta block in <head> (see diagram-meta.md)
 - data-theme="{dark|light}" on <html>
+
+**Escape rules (load-bearing — prevents XSS from untrusted source content):**
+- All text content derived from issue body / markdown / prompt → HTML-escape (`&` `<` `>` `"` `'`) before inserting into element text nodes.
+- `href` values (CTA links, image source URLs): allow only schemes `https://`, `http://`, `file://`, `mailto:`, `#anchor`, or relative paths. Reject `javascript:`, `data:`, `vbscript:`. Strip the attribute if invalid rather than emit `href="#"`.
+- `src` / `background-image: url(...)` values: same allowlist; disallow `data:` SVG payloads (they can embed scripts).
+- Mermaid source inside `data-mermaid` is rendered by `initSlideMermaid()` at `securityLevel: 'strict'` — no additional escape needed inside the div, but the enclosing attributes must be escaped.
 ```
 
 ### HTML structure

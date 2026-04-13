@@ -17,6 +17,7 @@
   --text-dim:   #6b7280;
   --accent:     #e85d04;
   --accent-dim: #7c2d0e;
+  --error:      #f87171;
 }
 
 /* ── Brand Tokens — Light (manual override) ── */
@@ -29,6 +30,7 @@
   --text-dim:   #78716c;
   --accent:     #c2410c;
   --accent-dim: #fef2e8;
+  --error:      #dc2626;
 }
 
 /* ── Brand Tokens — Light (OS preference, unless manually dark) ── */

@@ -106,3 +106,9 @@
   background: transparent;
   color: var(--accent);
 }
+
+.deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.08;
+  font-weight: 200;
+}

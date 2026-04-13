@@ -626,14 +626,16 @@ Slide type scale is 2–3× larger than scrollable pages. Clamp ranges ensure re
 
 | CSS var | Clamp range | `vw` fluid value | Used by |
 |---|---|---|---|
-| `--fs-display` | 48–120px | `10vw` | title, closing (`slide__display`) |
-| `--fs-heading` | 28–48px | `5vw` | all types (`slide__heading`) |
-| `--fs-body` | 16–24px | `2.2vw` | content bullets, panel body (`slide__body`) |
-| `--fs-caption` | 10–14px | `1.2vw` | labels, table headers, citations (`slide__label`) |
+| `--fs-display` | 48–120px | `8vw` | title, closing (`slide__display`) |
+| `--fs-heading` | 28–48px | `4vw` | all types (`slide__heading`) |
+| `--fs-body` | 16–24px | `2vw` | content bullets, panel body (`slide__body`) |
+| `--fs-caption` | 10–14px | `1vw` | labels, table headers, citations (`slide__label`) |
+
+Values match `slide-deck-base.css` CSS custom properties (`--fs-display/heading/body/caption`) — authoritative source.
 
 ```css
 .slide__display {
-  font-size: clamp(48px, 10vw, 120px);
+  font-size: clamp(48px, 8vw, 120px);
   font-weight: 800;
   letter-spacing: -3px;
   line-height: 0.95;

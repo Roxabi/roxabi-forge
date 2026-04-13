@@ -40,6 +40,7 @@
   /* Accent — single orange-red */
   --accent:       #ff3300;
   --accent-dim:   rgba(255, 51, 0, 0.15);
+  --error:        #ff4444;
   --accent-glow:  rgba(255, 51, 0, 0.4);
 
   /* Diff visualization (for comparison galleries) */
@@ -83,6 +84,7 @@
   /* Accent — darker red-orange for contrast */
   --accent:       #dc2626;
   --accent-dim:   rgba(220, 38, 38, 0.1);
+  --error:        #dc2626;
   --accent-glow:  rgba(220, 38, 38, 0.15);
 
   /* Diff visualization */

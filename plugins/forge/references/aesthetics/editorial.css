@@ -255,3 +255,8 @@ pre .c-bright { color: var(--text); }
 .deck .slide--closing .cta {
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
+
+.deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.06;
+}

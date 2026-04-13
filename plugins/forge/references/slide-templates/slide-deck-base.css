@@ -4,7 +4,8 @@
    Inline AFTER: reset.css, typography.css, aesthetics/<name>.css.
 
    Relies on forge token contract: --bg, --surface, --border,
-   --text, --text-muted, --text-dim, --accent, --accent-dim.
+   --text, --text-muted, --text-dim, --accent, --accent-dim,
+   --accent-glow, --error (all 6 aesthetics must ship these).
 
    Ships 3 V1 slide types (title, content, closing).
    V2 appends: section, diagram, table, code, quote, image, comparison.
@@ -87,6 +88,13 @@ body.deck-body { overflow: hidden; }  /* opt-in so non-deck pages unaffected */
     transition: none !important;
     animation: none !important;
   }
+  /* Nav chrome lives outside .slide — kill its animations too */
+  .deck-progress,
+  .deck-dot,
+  .deck-hints {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -129,6 +137,11 @@ body.deck-body { overflow: hidden; }  /* opt-in so non-deck pages unaffected */
 }
 
 .deck-dot:hover  { opacity: 0.6; }
+.deck-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  opacity: 1;
+}
 .deck-dot.active { opacity: 1; transform: scale(1.5); background: var(--accent); }
 
 /* ── Slide counter (bottom right) ── */

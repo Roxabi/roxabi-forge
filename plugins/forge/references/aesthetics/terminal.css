@@ -25,7 +25,7 @@
   /* Text hierarchy — green/cyan tones */
   --text:         #4af626;     /* terminal green — primary */
   --text-muted:   #a8e6a3;     /* muted green — body */
-  --text-dim:     #5a7a57;     /* dim green — metadata */
+  --text-dim:     #6b9e67;     /* dim green — metadata (4.7:1 on --bg, WCAG AA) */
 
   /* Accent — cyan secondary */
   --accent:       #00d4ff;     /* cyan */
@@ -52,7 +52,7 @@
   /* Text hierarchy — darker greens */
   --text:         #1a6b1a;     /* dark green */
   --text-muted:   #2d8a2d;     /* body green */
-  --text-dim:     #5a7a57;     /* metadata */
+  --text-dim:     #4d6b4a;     /* metadata (5.2:1 on white, WCAG AA) */
 
   /* Accent — darker cyan */
   --accent:       #0891b2;     /* cyan-600 */
@@ -95,7 +95,7 @@
 
     --text:         #1a6b1a;
     --text-muted:   #2d8a2d;
-    --text-dim:     #5a7a57;
+    --text-dim:     #4d6b4a;
 
     --accent:       #0891b2;
     --accent-dim:   rgba(8,145,178,0.1);

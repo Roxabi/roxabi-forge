@@ -28,6 +28,7 @@ const isDark = (document.documentElement.getAttribute('data-theme') || 'dark') !
 
 mermaid.initialize({
   startOnLoad: false,
+  securityLevel: 'strict',
   theme: 'base',
   look: 'classic',
   themeVariables: {
@@ -63,7 +64,12 @@ async function initSlideMermaid() {
       node.innerHTML = svg
       node.setAttribute('data-rendered', 'true')
     } catch (err) {
-      node.innerHTML = `<pre style="color:var(--error,#f87171);">Mermaid render error: ${err.message}</pre>`
+      // textContent (not innerHTML) — err.message may echo user-authored
+      // label text and must not be treated as HTML. CVE-2026-32308 pattern.
+      const pre = document.createElement('pre')
+      pre.style.color = 'var(--error, #f87171)'
+      pre.textContent = `Mermaid render error: ${err.message}`
+      node.replaceChildren(pre)
     }
   }
 }
@@ -113,6 +119,17 @@ class SlideEngine {
     this.slides = [...this.deck.querySelectorAll('.slide')]
     this.total = this.slides.length
     this.current = 0
+
+    // A11y: ensure each slide section has an accessible name so screen-reader
+    // landmark nav works. Honor any deck-author-set aria-label.
+    this.slides.forEach((s, i) => {
+      if (!s.hasAttribute('aria-label')) {
+        s.setAttribute('aria-label', `Slide ${i + 1} of ${this.total}`)
+      }
+      if (!s.hasAttribute('aria-roledescription')) {
+        s.setAttribute('aria-roledescription', 'slide')
+      }
+    })
 
     this.buildChrome()
     this.bindEvents()
@@ -171,19 +188,30 @@ class SlideEngine {
       this.fadeHints()
     })
 
-    // Touch swipe (vertical)
+    // Touch swipe (vertical) — gated by _scrolling flag to avoid fighting
+    // native scroll-snap inertia on iOS/Android. The flag is set at
+    // touchstart and cleared by the IntersectionObserver callback once the
+    // snap completes; without this guard, a fast swipe calls goTo() while
+    // native scroll is still delivering the same slide, producing a double-
+    // skip or snap-back.
     let tY = 0
     this.deck.addEventListener(
       'touchstart',
       (e) => {
         tY = e.touches[0].clientY
+        this._scrolling = true
       },
       { passive: true },
     )
-    this.deck.addEventListener('touchend', (e) => {
-      const dy = tY - e.changedTouches[0].clientY
-      if (Math.abs(dy) > 50) dy > 0 ? this.next() : this.prev()
-    })
+    this.deck.addEventListener(
+      'touchend',
+      (e) => {
+        if (this._scrolling) return
+        const dy = tY - e.changedTouches[0].clientY
+        if (Math.abs(dy) > 50) dy > 0 ? this.next() : this.prev()
+      },
+      { passive: true },
+    )
   }
 
   observe() {
@@ -194,6 +222,8 @@ class SlideEngine {
             entry.target.classList.add('visible')
             this.current = this.slides.indexOf(entry.target)
             this.update()
+            // Clear touch-swipe guard once native scroll-snap has settled.
+            this._scrolling = false
           }
         })
       },

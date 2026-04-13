@@ -156,7 +156,7 @@ Total: 15 micro-tasks + 3 RED-GATE sentinels = 18 tasks.
 - **Agent:** doc-writer
 - **Spec trace:** SC "plugins/forge/references/slide-patterns.md exists..."
 - **Phase:** GREEN · **Difficulty:** 3 · **Time:** 15–20 min · `[P]` with T2
-- **Skeleton:** frontmatter + sections: (1) Overview + when-to-use, (2) 10 slide types with HTML shape + CSS hook + example, (3) Runtime init sequence (`autoFit()` → Mermaid (scoped, `mermaid-slide-${i}` IDs) → `SlideEngine`), (4) 6 aesthetic presets table (display/heading/body/caption deltas), (5) Resize handler note (landscape↔portrait, desktop-only known-limitation), (6) Out-of-scope v0.1 (`svg-pan-zoom`, presenter mode).
+- **Skeleton:** frontmatter + sections: (1) Overview + when-to-use, (2) 10 slide types with HTML shape + CSS hook + example, (3) Runtime init sequence (`initSlideMermaid` → `autoFit` → `SlideEngine` — SVGs must render before autoFit patches them), (4) 6 aesthetic presets table (display/heading/body/caption deltas), (5) Resize handler note (landscape↔portrait, desktop-only known-limitation), (6) Out-of-scope v0.1 (`svg-pan-zoom`, presenter mode).
 - **Source to adapt:** VE's `~/.claude/plugins/cache/visual-explainer-marketplace/visual-explainer/0.6.3/references/slide-patterns.md` — cut to forge style, drop VE-specific CSS patterns that duplicate our aesthetics.
 - **Verify:** `wc -l plugins/forge/references/slide-patterns.md` → expect 400–700 lines. `grep -c '^### ' plugins/forge/references/slide-patterns.md` → ≥ 10 (one per slide type).
 
@@ -183,9 +183,9 @@ Total: 15 micro-tasks + 3 RED-GATE sentinels = 18 tasks.
 - **Phase:** GREEN · **Difficulty:** 4 · **Time:** 30 min · blocked by T2
 - **Skeleton:**
   - `function autoFit()` — scan `.slide--diagram [data-mermaid-fit]`, `.slide--content .kpi`, `.slide--quote blockquote`; compute fit scale; apply `transform: scale()` inside `.slide-inner` containers.
-  - `async function initMermaid()` — scoped `document.querySelectorAll('.slide--diagram [data-mermaid]')`, `import()` mermaid ESM, `mermaid.initialize({ startOnLoad: false })`, ∀ node: `const id = 'mermaid-slide-' + i; const { svg } = await mermaid.render(id, node.textContent); node.innerHTML = svg;`.
+  - `async function initSlideMermaid()` — scoped `document.querySelectorAll('.slide--diagram [data-mermaid]')`, `import()` mermaid ESM, `mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' })`, ∀ node: `const id = 'mermaid-slide-' + i; const { svg } = await mermaid.render(id, node.textContent); node.innerHTML = svg;` — errors caught + reported via `textContent` on a `<pre>` (not innerHTML).
   - `class SlideEngine` — constructor: keyboard listeners (`ArrowUp/Down/PageUp/Down/Space/Home/End`), touch listeners (`touchstart`/`touchend` → direction → `next`/`prev`), `IntersectionObserver` (thresholds 0.5) for active-index + progress + counter + dot-active updates; `prev()` / `next()` / `jumpTo(i)` methods.
-  - Bootstrap: `document.addEventListener('DOMContentLoaded', async () => { autoFit(); await initMermaid(); new SlideEngine(document.querySelector('.deck')); });`.
+  - Bootstrap: `document.addEventListener('DOMContentLoaded', async () => { await initSlideMermaid(); autoFit(); new SlideEngine(document.querySelector('.deck')); });` — SVGs must exist before `autoFit()` patches their dims.
 - **Verify:** `node --check plugins/forge/references/slide-templates/slide-deck-base.js` → exit 0. `grep -c 'mermaid-slide-' plugins/forge/references/slide-templates/slide-deck-base.js` → ≥ 1.
 
 #### T4 · Write deck-template.html reference shell
