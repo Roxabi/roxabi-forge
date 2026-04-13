@@ -77,11 +77,19 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | State machine | Mermaid `stateDiagram-v2` | Native cycle support |
 | **Hub-and-spoke, ≤ 6 peers, rich cards** | **fgraph radial** | Pills, warn lines, multi-line |
 | 7 radial nodes | fgraph with narrow nodes, or split into sub-diagrams | fgraph caps at ~6 before labels collide |
-| Architecture layers | CSS Grid cards | Stacked, text-heavy |
+| Architecture layers (node topology, arrows needed, ≤8 nodes) | foreignObject+CSS Flexbox SVG | No pixel math; LLM only computes arrow coords; inline SVG, no JS |
+| Architecture layers (text-heavy, stacked, no arrows) | CSS Grid cards | Fallback when no node-to-node connections needed |
 | **Comparison / matrix (≥4 rows or ≥3 cols)** | **HTML `<table>`** | Tabular data is not a graph |
 | Simple timeline | `.steps` timeline component | Shared CSS, no auto-layout needed |
 
-**Decision rule:** > 8 nodes or linear → Mermaid. ≤ 6 radial with rich cards → fgraph. Tabular → HTML table. Stacked text → Grid.
+**Decision rule:** > 8 nodes or linear → Mermaid. ≤ 6 radial with rich cards → fgraph. Tabular → HTML table. Architecture with node topology + arrows, ≤8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
+
+**foreignObject rules (MANDATORY when using this type):**
+- Every `<foreignObject>` root element MUST have `xmlns="http://www.w3.org/1999/xhtml"` — omitting it causes silent render failure in Chrome/Edge
+- Node labels: max 24 chars — foreignObject clips overflow silently
+- Draw order: SVG `<line>`/`<path>` edges BEFORE `<g>` node groups — nodes paint over edges via DOM order (no masking rect needed)
+- Use `--diag-*` semantic color tokens (see `references/tokens.md`) for node type styling
+- Not suitable for print/PDF export — Chromium drops foreignObject content in print pipeline
 
 **Node shapes (fgraph):** When using fgraph, pick the right shape modifier for each node. Read [`${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md`](${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md) for the full semantic mapping. Quick reference: `.cylinder` = database, `.hexagon` = agent/worker, `.diamond` = decision/gate, `.circle` = event/trigger, `.folded` = file/config, `.pill` = bus/broker, default rect = service/process.
 
@@ -282,7 +290,8 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 **Decision rule for architecture diagrams:**
 - Linear flow / topology / > 8 nodes → Mermaid (dagre auto-layout wins)
 - Radial / hub-and-spoke with rich cards (pills, warn, multi-line) → fgraph
-- Stacked text-heavy pipelines → CSS Grid cards
+- Architecture with node topology + arrows, ≤8 nodes → foreignObject+CSS Flexbox SVG
+- Stacked text-heavy, no arrows → CSS Grid cards (fallback)
 - See `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the full decision matrix.
 
 Max 12 nodes per Mermaid diagram (split if more). fgraph-radial caps at ~6 satellites before labels collide.
@@ -464,5 +473,15 @@ Open:    file://{path}/{slug}.html     (no server needed)
 
 Serve + Deploy: see forge-ops.md
 ```
+
+### Visual Quality Gates (run before writing file)
+
+- [ ] Text: no labels overlap, no text overflows its container
+- [ ] Arrows (if SVG): paths do not pass through unrelated node boxes
+- [ ] foreignObject (if used): every root element has `xmlns="http://www.w3.org/1999/xhtml"`
+- [ ] ViewBox: content fills 80–95% of declared dimensions — no large empty regions, no clipping
+- [ ] Legend: only shows node types actually present in the diagram
+- [ ] Mermaid (if used): wrapped in `.diagram-shell` with zoom controls — never bare `<pre>`
+- [ ] Color contrast: body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`
 
 $ARGUMENTS

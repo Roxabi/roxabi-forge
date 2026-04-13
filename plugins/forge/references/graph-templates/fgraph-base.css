@@ -74,6 +74,88 @@
      See graph-templates/README.md for full formula and examples.
    ══════════════════════════════════════════════════════════════════ */
 
+/* ============================================================
+ * ARROW ENDPOINT FORMULA
+ * ============================================================
+ *
+ * fgraph nodes are positioned via --x / --y CSS custom props
+ * in a 0–100 integer percentage space mapped to the SVG viewBox.
+ *
+ * Default viewBox: 1000 × 600 (confirm from template if different)
+ * Conversion:  px_x = (--x / 100) * 1000
+ *              px_y = (--y / 100) * 600
+ *
+ * NODE HALF-SIZES (read from CSS; defaults below)
+ * ─────────────────────────────────────────────
+ * | Modifier  | halfW | halfH | Notes              |
+ * |-----------|-------|-------|--------------------|
+ * | (default) |  ~45  |  ~24  | standard card      |
+ * | .narrow   |  ~35  |  ~20  | compact label      |
+ * | .wide     |  ~65  |  ~24  | long label         |
+ * | .hub      |  ~50  |  ~28  | center hub node    |
+ *
+ * ANGLE-BASED FORMULA (works for any spoke direction)
+ * ─────────────────────────────────────────────────────
+ * Given node A at (xA, yA) and node B at (xB, yB) in px:
+ *
+ *   dx    = xB - xA
+ *   dy    = yB - yA
+ *   angle = Math.atan2(dy, dx)        // radians
+ *
+ *   // Arrow exits node A at its border:
+ *   x1 = xA + Math.cos(angle) * halfSize_A
+ *   y1 = yA + Math.sin(angle) * halfSize_A
+ *
+ *   // Arrow enters node B at its border:
+ *   x2 = xB - Math.cos(angle) * halfSize_B
+ *   y2 = yB - Math.sin(angle) * halfSize_B
+ *
+ * BOUNDING-BOX VARIANT (precise for wide/tall cards)
+ * ─────────────────────────────────────────────────────
+ * Use t = min(halfW / |dx|, halfH / |dy|) to find the
+ * exact edge crossing point:
+ *
+ *   t_exit  = min(halfW_A / |dx|, halfH_A / |dy|)
+ *   t_enter = min(halfW_B / |dx|, halfH_B / |dy|)
+ *
+ *   x1 = xA + dx * t_exit    y1 = yA + dy * t_exit
+ *   x2 = xB - dx * t_enter   y2 = yB - dy * t_enter
+ *
+ *   Guard: if dx == 0, skip halfW term; if dy == 0, skip halfH term.
+ *
+ * PRE-COMPUTED VALUES (radial-hub default layout)
+ * ─────────────────────────────────────────────────
+ * Hub at (50, 50) → px (500, 300). Spokes at:
+ *
+ * | Position   | %       | px          | Edge toward hub        |
+ * |------------|---------|-------------|------------------------|
+ * | top        | (50,15) | (500,  90)  | bottom edge y = 90+24  |
+ * | bottom     | (50,85) | (500, 510)  | top edge    y = 510-24 |
+ * | left       | (12,50) | (120, 300)  | right edge  x = 120+45 |
+ * | right      | (88,50) | (880, 300)  | left edge   x = 880-45 |
+ * | top-left   | (18,22) | (180, 132)  | diagonal (cos/sin)     |
+ * | top-right  | (82,22) | (820, 132)  | diagonal (cos/sin)     |
+ *
+ * WORKED EXAMPLE — hub (500,300) to top spoke (500,90)
+ *   dx=0, dy=-210, angle=-π/2
+ *   x1 = 500 + cos(-π/2)*28 ≈ 500,  y1 = 300 + sin(-π/2)*28 = 272
+ *   x2 = 500 - cos(-π/2)*24 ≈ 500,  y2 =  90 - sin(-π/2)*24 = 114
+ *   → line from (500, 272) to (500, 114) ✓
+ *
+ * WORKED EXAMPLE — hub (500,300) to left spoke (120,300)
+ *   dx=-380, dy=0, angle=π
+ *   x1 = 500 + cos(π)*28 = 472,  y1 = 300
+ *   x2 = 120 - cos(π)*45 = 165,  y2 = 300
+ *   → line from (472, 300) to (165, 300) ✓
+ *
+ * WORKED EXAMPLE — hub (500,300) to top-left (180,132)
+ *   dx=-320, dy=-168, angle≈-2.66rad
+ *   cos≈-0.885, sin≈-0.465
+ *   x1=500+(-0.885*28)=475, y1=300+(-0.465*28)=287
+ *   x2=180-(-0.885*45)=220, y2=132-(-0.465*24)=143
+ *   → line from (475,287) to (220,143) ✓
+ * ============================================================ */
+
 /* ── container ── */
 .fgraph-wrap {
   position: relative;

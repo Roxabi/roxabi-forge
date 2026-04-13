@@ -106,3 +106,35 @@ Ultra-stark dark theme inspired by [juliusbrussee.github.io/caveman](https://jul
 <div class="caveman-grid"></div>
 <div class="caveman-spotlight"></div>
 ```
+
+---
+
+## Diagram Semantic Tokens (`--diag-*`)
+
+> **Scope:** Apply on a `.diag-*` wrapper class or within SVG `<style>` blocks only — not globally. These tokens do not conflict with forge aesthetic tokens (`--text`, `--surface`, `--accent`, `--bg`, `--border`, `--green`, `--blue`, etc.).
+>
+> **Note:** Fill values are designed for dark backgrounds (dark-professional aesthetic).
+
+### Stroke / Label Colors
+
+| Token | Hex | Semantic meaning |
+|---|---|---|
+| `--diag-process` | `#22d3ee` | Processes, services, daemons |
+| `--diag-module` | `#34d399` | Sub-components, libraries, modules |
+| `--diag-data` | `#a78bfa` | Databases, storage, caches |
+| `--diag-infra` | `#fbbf24` | Infrastructure, cloud, containers |
+| `--diag-security` | `#fb7185` | Auth, encryption, security boundaries |
+| `--diag-channel` | `#fb923c` | Message buses, queues, IPC, channels |
+| `--diag-external` | `#94a3b8` | External systems, third-party APIs |
+
+### Fill Colors (node box backgrounds)
+
+| Token | Value | Usage |
+|---|---|---|
+| `--diag-process-fill` | `rgba(8, 51, 68, 0.4)` | Node box background |
+| `--diag-module-fill` | `rgba(6, 78, 59, 0.4)` | Node box background |
+| `--diag-data-fill` | `rgba(76, 29, 149, 0.4)` | Node box background |
+| `--diag-infra-fill` | `rgba(120, 53, 15, 0.3)` | Node box background |
+| `--diag-security-fill` | `rgba(136, 19, 55, 0.4)` | Node box background |
+| `--diag-channel-fill` | `rgba(251, 146, 60, 0.3)` | Node box background |
+| `--diag-external-fill` | `rgba(30, 41, 59, 0.5)` | Node box background |

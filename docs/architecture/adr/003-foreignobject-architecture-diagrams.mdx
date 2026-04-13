@@ -1,0 +1,42 @@
+---
+title: "ADR-003: Adopt foreignObject+CSS Flexbox for Architecture Layer Diagrams"
+status: "Accepted"
+date: "2026-04-13"
+---
+
+## Context
+
+`forge-chart` currently uses CSS Grid cards (no arrows, text-heavy stacked layout) as the fallback for architecture layer diagrams. This approach cannot render arrows between layers and requires the LLM to produce a pure-HTML layout with no SVG connectivity.
+
+The gmdiagram project (ZeroZ-lab/gmdiagram) demonstrated that SVG `<foreignObject>` + CSS Flexbox eliminates LLM pixel-coordinate computation: CSS handles module width, centering, and spacing; the LLM only computes arrow endpoint coordinates (start/end of `<line>` or `<path>` elements). This produces true inline SVG output — portable, zero-JS, embeddable anywhere.
+
+Two independent reviews (architect + frontend) confirmed the approach is sound for architecture layer diagrams specifically, with known limitations.
+
+## Decision
+
+Add `foreignObject+CSS Flexbox` as a new visual type in `forge-chart`'s Structure dispatch table, scoped to architecture layer diagrams with node topology and arrows (≤8 nodes). CSS Grid cards is demoted to a fallback for text-heavy stacked content with no arrows.
+
+## Consequences
+
+**Positive:**
+- No pixel-math by LLM — CSS handles all node sizing and centering
+- Arrows between layers become possible (previously impossible with CSS Grid cards)
+- Portable zero-JS inline SVG — works with `file://`, no CDN dependency
+- Label centering and wrapping are browser-handled (no coordinate errors)
+
+**Negative / mitigations:**
+- `xmlns="http://www.w3.org/1999/xhtml"` required on every `<foreignObject>` root — silent fail without it → added as MANDATORY rule in SKILL.md
+- Chromium drops `foreignObject` in print/PDF pipeline → documented as limitation; use Mermaid or CSS Grid cards for print outputs
+- Text overflow clips silently if label exceeds declared width → max 24 chars per label guideline added
+- zoom controls (svg-pan-zoom) still require JS when interactive output is needed — not a fully zero-JS output in that mode
+
+## Alternatives Considered
+
+- **Keep CSS Grid cards only** — rejected: no arrow support, weaker visual output for topology diagrams
+- **Replace Mermaid with foreignObject** — rejected: Mermaid is irreplaceable for sequence diagrams, state machines, UML class, and graphs >8 nodes where dagre auto-layout is the core value
+
+## References
+
+- ZeroZ-lab/gmdiagram — design-system.md, SPEC.md
+- `plugins/forge/references/tokens.md` — `--diag-*` semantic color tokens
+- `plugins/forge/references/graph-templates/fgraph-base.css` — arrow endpoint formula
