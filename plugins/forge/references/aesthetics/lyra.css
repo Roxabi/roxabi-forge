@@ -17,6 +17,8 @@
   --text-dim:   #6b7280;
   --accent:     #e85d04;
   --accent-dim: #7c2d0e;
+  --accent-glow: rgba(232,93,4,0.22);
+  --error:      #f87171;
 }
 
 /* ── Brand Tokens — Light (manual override) ── */
@@ -29,6 +31,8 @@
   --text-dim:   #78716c;
   --accent:     #c2410c;
   --accent-dim: #fef2e8;
+  --accent-glow: rgba(194,65,12,0.16);
+  --error:      #dc2626;
 }
 
 /* ── Brand Tokens — Light (OS preference, unless manually dark) ── */
@@ -42,5 +46,57 @@
     --text-dim:   #78716c;
     --accent:     #c2410c;
     --accent-dim: #fef2e8;
+    --accent-glow: rgba(194,65,12,0.16);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Slide mode — lyra aesthetic (used by forge-slides)
+   Forge-orange warmth, flame-gradient accents, friendly.
+   ══════════════════════════════════════════════════════════════════ */
+
+.deck .slide--title {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-glow) 0%, transparent 55%),
+    linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+}
+.deck .slide--title .slide__display {
+  background: linear-gradient(135deg, var(--accent) 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+.deck .slide--title .slide__subtitle {
+  color: var(--text-muted);
+}
+.deck .slide--content .slide__label { color: var(--accent); }
+.deck .slide--content .slide__heading {
+  color: var(--text);
+  letter-spacing: -0.75px;
+}
+.deck .slide--content li::before { color: var(--accent); }
+.deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.1;
+}
+.deck .slide--closing {
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(to top, var(--bg), var(--surface));
+}
+.deck .slide--closing .slide__heading {
+  color: var(--accent);
+  font-weight: 700;
+}
+.deck .slide--closing .cta {
+  background: linear-gradient(135deg, var(--accent) 0%, #f97316 100%);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+}
+.deck .slide--quote .slide__quote-mark { color: var(--accent); }
+.deck .slide--comparison .slide__col.accent {
+  background: var(--accent-dim);
+  border-color: var(--accent);
 }

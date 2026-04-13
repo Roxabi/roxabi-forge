@@ -27,8 +27,9 @@ roxabi-forge/
 │   └── plugin.json              # plugin metadata (version, author)
 ├── plugins/
 │   └── forge/
-│       ├── skills/              # 5 skills: forge-init, forge-guide, forge-epic, forge-chart, forge-gallery
+│       ├── skills/              # 6 skills: forge-init, forge-guide, forge-epic, forge-chart, forge-gallery, forge-slides
 │       ├── references/          # HTML/CSS/JS templates, design docs, aesthetics
+│       │   ├── slide-templates/ # scroll-snap deck engine (generation source, always inlined)
 │       ├── runtime/             # Makefile + .env.example for ~/.roxabi/forge/
 │       ├── supervisor/          # supervisord config + wrapper script
 │       └── Makefile             # deploy + register targets
@@ -65,6 +66,19 @@ Source of truth: `plugins/forge/` in this repo.
 # Sync local + remote (Machine 1)
 ./sync-plugins.sh
 ```
+
+## Distribution rule (inline vs linked)
+
+Each `references/` sub-tree has a distribution profile. Skills inline or link its contents per the rule below — do not deviate without updating this table.
+
+| Sub-tree | Distribution | Rationale |
+|---|---|---|
+| `base/`, `aesthetics/` | **inline** into output `<style>` | generation source, not runtime |
+| `graph-templates/` (fgraph) | **inline** for single-file OR **link** `_shared/fgraph-base.css` for multi-tab docs with ≥ 2 fgraph diagrams | matches gallery-base precedent |
+| `gallery-templates/` | **link** `_shared/gallery-base.{css,js}` | runtime-shared across gallery outputs |
+| `slide-templates/` | **always inline** into single-file `<style>`/`<script type="module">` | `forge-slides` produces `file://`-safe offline decks; no `_shared/slide-templates/` mirror |
+
+When generating a new skill, pick the profile above for each `references/` sub-tree it consumes. Adding a new sub-tree? Add a row here.
 
 ## Style
 

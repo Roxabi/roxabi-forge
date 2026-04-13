@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{DECK_TITLE}</title>
+
+<!--
+  deck-template.html — reference shell for forge-slides decks.
+  Placeholders consumed by the forge-slides skill at generation time:
+    {DECK_TITLE}, {DECK_LABEL}, {DECK_SUBTITLE},
+    {AESTHETIC_CSS}   — inline aesthetics/<name>.css
+    {SLIDE_DECK_BASE_CSS} — inline slide-templates/slide-deck-base.css
+    {SLIDE_DECK_BASE_JS}  — inline slide-templates/slide-deck-base.js
+    {SLIDES_HTML}     — rendered <section class="slide slide--{type}">…</section> sequence
+
+  Inline order in <style>: RESET → TYPOGRAPHY → AESTHETIC → SLIDE_DECK_BASE.
+
+  One example per slide type (10 total) appears below in the body. Skills
+  may remix, clone, or drop types based on the deck outline produced by
+  the Frame phase.
+-->
+
+<meta name="diagram-meta" content='{"categories":["{CATEGORIES}"],"aestheticLabel":"{AESTHETIC_LABEL}","generatedAt":"{GENERATED_AT}","latest":true}'>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* {RESET_CSS} */
+/* {TYPOGRAPHY_CSS} */
+/* {AESTHETIC_CSS} */
+/* {SLIDE_DECK_BASE_CSS} */
+</style>
+</head>
+<body class="deck-body">
+
+<div class="deck" role="region" aria-label="Presentation deck">
+
+  <!-- 1. title -->
+  <section class="slide slide--title" id="slide-1">
+    <p class="slide__label reveal" style="--i:0">{DECK_LABEL}</p>
+    <h1 class="slide__display reveal" style="--i:1">{DECK_TITLE}</h1>
+    <p class="slide__subtitle reveal" style="--i:2">{DECK_SUBTITLE}</p>
+  </section>
+
+  <!-- 2. section (divider) -->
+  <section class="slide slide--section" id="slide-2">
+    <span class="slide__number">01</span>
+    <div class="slide__content">
+      <h2 class="slide__heading reveal" style="--i:0">{SECTION_TITLE}</h2>
+      <p class="slide__subtitle reveal" style="--i:1">{SECTION_SUBTITLE}</p>
+    </div>
+  </section>
+
+  <!-- 3. content (bullets) -->
+  <section class="slide slide--content" id="slide-3">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">{CONTENT_LABEL}</p>
+      <h2 class="slide__heading reveal" style="--i:1">{CONTENT_HEADING}</h2>
+      <ul class="reveal" style="--i:2">
+        <li>{BULLET_1}</li>
+        <li>{BULLET_2}</li>
+        <li>{BULLET_3}</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4. diagram (Mermaid) -->
+  <section class="slide slide--diagram" id="slide-4">
+    <h2 class="slide__heading reveal" style="--i:0">{DIAGRAM_HEADING}</h2>
+    <div class="slide__diagram-wrap reveal" style="--i:1">
+      <div class="mermaid" data-mermaid>{MERMAID_SRC}</div>
+    </div>
+    <p class="slide__caption reveal" style="--i:2">{DIAGRAM_CAPTION}</p>
+  </section>
+
+  <!-- 5. table -->
+  <section class="slide slide--table" id="slide-5">
+    <h2 class="slide__heading reveal" style="--i:0">{TABLE_HEADING}</h2>
+    <div class="table-scroll reveal" style="--i:1">
+      <table>
+        <thead>
+          <tr><th>{COL_1}</th><th>{COL_2}</th><th>{COL_3}</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>{ROW_1_A}</td><td>{ROW_1_B}</td><td>{ROW_1_C}</td></tr>
+          <tr><td>{ROW_2_A}</td><td>{ROW_2_B}</td><td>{ROW_2_C}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 6. code -->
+  <section class="slide slide--code" id="slide-6">
+    <h2 class="slide__heading reveal" style="--i:0">{CODE_HEADING}</h2>
+    <div class="slide__code-block reveal" style="--i:1">
+      <span class="slide__code-filename">{FILENAME}</span>
+      <pre><code>{CODE_SRC}</code></pre>
+    </div>
+  </section>
+
+  <!-- 7. quote -->
+  <section class="slide slide--quote" id="slide-7">
+    <div class="slide__quote-mark reveal" style="--i:0">&ldquo;</div>
+    <blockquote class="reveal" style="--i:1">{QUOTE_BODY}</blockquote>
+    <cite class="reveal" style="--i:2">&mdash; {QUOTE_ATTRIBUTION}</cite>
+  </section>
+
+  <!-- 8. image (full-bleed) -->
+  <section class="slide slide--image" id="slide-8">
+    <div class="slide__bg slide__bg--gradient" style="background-image:url('{IMAGE_SRC}');"></div>
+    <div class="slide__scrim"></div>
+    <div class="slide__content">
+      <p class="slide__label reveal" style="--i:0">{IMAGE_LABEL}</p>
+      <h2 class="slide__heading reveal" style="--i:1">{IMAGE_HEADING}</h2>
+      <p class="slide__subtitle reveal" style="--i:2">{IMAGE_SUBTITLE}</p>
+    </div>
+  </section>
+
+  <!-- 9. comparison -->
+  <section class="slide slide--comparison" id="slide-9">
+    <h2 class="slide__heading reveal" style="--i:0">{COMPARE_HEADING}</h2>
+    <div class="slide__columns reveal" style="--i:1">
+      <div class="slide__col">
+        <h3>{LEFT_TITLE}</h3>
+        <ul>
+          <li>{LEFT_A}</li>
+          <li>{LEFT_B}</li>
+        </ul>
+      </div>
+      <div class="slide__col accent">
+        <h3>{RIGHT_TITLE}</h3>
+        <ul>
+          <li>{RIGHT_A}</li>
+          <li>{RIGHT_B}</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. closing -->
+  <section class="slide slide--closing" id="slide-10">
+    <p class="slide__label reveal" style="--i:0">{CLOSING_LABEL}</p>
+    <h2 class="slide__heading reveal" style="--i:1">{CLOSING_HEADING}</h2>
+    <p class="slide__body reveal" style="--i:2">{CLOSING_BODY}</p>
+    <a href="{CTA_HREF}" class="cta reveal" style="--i:3">{CTA_LABEL}</a>
+  </section>
+
+</div><!-- /.deck -->
+
+<script type="module">
+/* {SLIDE_DECK_BASE_JS} */
+</script>
+
+</body>
+</html>

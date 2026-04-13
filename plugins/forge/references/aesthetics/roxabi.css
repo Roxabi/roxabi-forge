@@ -53,3 +53,62 @@
     --accent-glow:  rgba(217,119,6,0.15);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Slide mode — roxabi aesthetic (used by forge-slides)
+   House brand: warm black bg, forge-gold accent, geometric feel.
+   ══════════════════════════════════════════════════════════════════ */
+
+.deck .slide--title {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-glow) 0%, transparent 50%),
+    linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+}
+.deck .slide--title .slide__display {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: -3px;
+  text-shadow: 0 2px 30px var(--accent-glow);
+}
+.deck .slide--title .slide__subtitle {
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+.deck .slide--content .slide__heading {
+  color: var(--text);
+  letter-spacing: -0.75px;
+}
+.deck .slide--content .slide__label {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.deck .slide--content li::before {
+  color: var(--accent);
+}
+.deck .slide--closing {
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(to top, var(--bg), var(--surface));
+}
+.deck .slide--closing .slide__heading {
+  color: var(--accent);
+  font-weight: 700;
+  text-shadow: 0 2px 20px var(--accent-glow);
+}
+.deck .slide--closing .cta {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.deck .slide--closing .cta:hover {
+  background: transparent;
+  color: var(--accent);
+}
+
+.deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.08;
+  font-weight: 200;
+}
