@@ -1,6 +1,9 @@
 ---
 name: forge-init
-description: 'Initialize the forge environment — create ~/.roxabi/forge/, copy serve.py + index.html + shared assets, verify structure. Triggers: "init forge" | "setup forge" | "forge init" | "forge setup" | "initialize forge".'
+description: >-
+  Initialize the forge environment — create ~/.roxabi/forge/, copy serve.py +
+  index.html + shared assets, verify structure. Triggers: "init forge" |
+  "setup forge" | "forge init" | "forge setup" | "initialize forge".
 summary: 'initialize ~/.roxabi/forge/ environment'
 version: 0.1.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch
