@@ -693,6 +693,21 @@ All 6 forge aesthetics are tuned for slide mode. Each aesthetic file (`aesthetic
 
 **Aesthetic detection:** same as `forge-guide` and `forge-epic` — brand book override (`brand/forge.yml`) → project-level mapping (`tokens.md § Which Theme to Use`) → fallback to `editorial`.
 
+### V2 slide-type coverage policy
+
+Base CSS (`slide-deck-base.css`) styles every slide type by default, so any aesthetic renders all 10 types without aesthetic-specific overrides. Aesthetics *opt in* to richer per-type treatments — they don't carry the full matrix.
+
+| Aesthetic | V1 (`title`, `content`, `closing`) | +`section` | +`quote` | +`comparison` | +`table` | +`code` | +`diagram` |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `editorial` | ✓ | ✓ | — | — | — | — | — |
+| `roxabi` | ✓ | ✓ | — | — | — | — | — |
+| `blueprint` | ✓ | ✓ | ✓ | — | — | — | — |
+| `caveman` | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| `lyra` | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| `terminal` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**Reference aesthetic for V2 types:** `terminal` is the complete reference — when authoring a new V2 slide treatment for any aesthetic, read `terminal.css` first for structural cues, then adapt tokens. The partial coverage of the other aesthetics is intentional: each picked up V2 overrides as decks actually exercised the types (lyra/caveman leaned into `comparison`, blueprint into `quote`). Backfill lazily — when a deck's V2 slide renders acceptably on base CSS, leave it; when it needs aesthetic-specific polish, add the rule.
+
 ---
 
 ## In-Slide Diagrams

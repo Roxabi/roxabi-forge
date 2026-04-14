@@ -208,5 +208,5 @@ Dependencies: S1 → S2 → S3. Each slice ships a visibly working artifact — 
 - [ ] Aesthetic override flag `--aesthetic <name>` bypasses detection (tested against at least 2 non-default aesthetics).
 - [ ] Output path follows `~/.roxabi/forge/<project>/slides/{name}.html` convention; diagram-meta tag injected with `categories`, `aestheticLabel`, `latest: true`.
 - [ ] Re-invocation for the same `<project>/<name>` overwrites the existing deck silently (matches `forge-guide`/`forge-epic`).
-- [ ] `make -C plugins/forge deploy` copies the new references into `~/.roxabi/forge/_shared/` as needed.
+- [ ] `make -C plugins/forge deploy` remains unchanged — `slide-templates/` follow the inline distribution rule (see CLAUDE.md § Distribution rule), no `_shared/` mirror required.
 - [ ] `./sync-plugins.sh --local` picks up the new skill.
