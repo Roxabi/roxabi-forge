@@ -23,6 +23,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/                        — lyra.css
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md                    — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/gallery-templates/README.md        — template guide + customisation steps
 ${CLAUDE_PLUGIN_ROOT}/references/gallery-templates/pivot-gallery.html — full working template
+${CLAUDE_PLUGIN_ROOT}/skills/forge-gallery/fixtures/README.md       — fixture format + regression inputs (no runner yet; hashes populate in future)
 ```
 
 ---

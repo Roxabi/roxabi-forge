@@ -1,0 +1,11 @@
+{
+  "skill": "forge-chart",
+  "variant": "fgraph-radial-hub",
+  "input": {
+    "prompt": "Draw a radial-hub fgraph: center = Lyra hub, satellites = Telegram adapter, Discord adapter, voiceCLI, roxabi-vault, imageCLI. Label each edge with the protocol (http, websocket, mqtt, ipc).",
+    "slug": "lyra-hub-radial",
+    "project": "lyra/visuals"
+  },
+  "expected_output_hash": null,
+  "notes": "fgraph radial-hub template with 5 satellites and labeled bidirectional edges. Exercises the inline fgraph-base.css Mode A distribution (single-file output)."
+}

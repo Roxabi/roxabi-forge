@@ -1,0 +1,11 @@
+{
+  "skill": "forge-chart",
+  "variant": "plain-css-layout",
+  "input": {
+    "prompt": "Sketch a 3-column CSS grid showing deploy phases: Dev (local) | Staging (roxabituwer) | Prod (roxabituwer + systemd). Each column has a stack of pills listing services.",
+    "slug": "deploy-phases-grid",
+    "project": "_shared/diagrams"
+  },
+  "expected_output_hash": null,
+  "notes": "Plain-CSS (no Mermaid, no fgraph) layout — CSS grid with pill cards. Regression anchor for the visual-explainer architecture.html pattern cited in CLAUDE.md."
+}

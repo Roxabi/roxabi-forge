@@ -32,6 +32,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js      — substitute {NAME}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md           — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture/topology)
 ${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md          — Mermaid patterns for dynamic tabs
+${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/fixtures/README.md — fixture format + regression inputs (no runner yet; hashes populate in future)
 ```
 
 **Directive: inline, never link** — `base/` and `aesthetics/` files are generation source, not runtime dependencies. Read → inline into output `<style>` block.
