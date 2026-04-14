@@ -80,6 +80,9 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | Data flow (linear) | Mermaid `flowchart LR` | Left-to-right reads naturally |
 | API sequence | Mermaid `sequenceDiagram` | Time-ordered interactions |
 | State machine | Mermaid `stateDiagram-v2` | Native cycle support |
+| Timeline / schedule | Mermaid `gantt` | Dates + tasks + sections, auto-layout (see `references/graph-templates/gantt.html`) |
+| Proportion / share | Mermaid `pie` | One-line slices, auto-labelled (see `references/graph-templates/pie.html`) |
+| Entity-relationship schema | Mermaid `erDiagram` | Entity boxes + crow's-foot cardinality (see `references/graph-templates/er.html`) |
 | **Hub-and-spoke, ≤ 6 peers, rich cards** | **fgraph radial** | Pills, warn lines, multi-line |
 | 7 radial nodes | fgraph with narrow nodes, or split into sub-diagrams | fgraph caps at ~6 before labels collide |
 | Architecture layers (node topology, arrows needed, ≤8 nodes) | foreignObject+CSS Flexbox SVG | No pixel math; LLM only computes arrow coords; inline SVG, no JS |
@@ -295,6 +298,9 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 | Data flow between services (linear) | Mermaid `flowchart LR` |
 | API / message sequence | Mermaid `sequenceDiagram` |
 | State machine | Mermaid `stateDiagram-v2` |
+| Timeline / schedule / roadmap | Mermaid `gantt` — `graph-templates/gantt.html` |
+| Proportion / share / composition | Mermaid `pie` — `graph-templates/pie.html` |
+| Entity-relationship schema | Mermaid `erDiagram` — `graph-templates/er.html` |
 | **Hub-and-spoke / message bus / gateway (≤ 6 peers, rich cards)** | **fgraph — `graph-templates/radial-hub.html` + `fgraph-base.css`** |
 | Architecture layers (stacked, text-heavy) | CSS Grid cards (no Mermaid) |
 | Simple timeline | CSS flex with connectors |
