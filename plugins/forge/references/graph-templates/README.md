@@ -215,6 +215,76 @@ Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-two-machine-deploym
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html`
 (lyra dev → staging → prod promotion flow via `make deploy` + pytest gate).
 
+### Gantt
+
+> Timeline / schedule rendered via Mermaid `gantt`. Declare dates + durations
+> per task, group tasks into sections (team, phase, track). Auto-layout — you
+> only declare data, Mermaid places the bars. States: `done`, `active`, `crit`
+> (critical-path), plain, `milestone` (diamond at zero-duration).
+>
+> Use for roadmaps, release schedules, multi-workstream project plans.
+
+```
+┌──────────────────────── Q2 Roadmap ────────────────────────┐
+│ Section: Infra                                             │
+│   migrate-db   ███░░░░░    done                            │
+│   tls-rotate         ████░░░░    active                    │
+│   observability            ██████    crit                  │
+│ Section: Product                                           │
+│   auth-rewrite      ██████░░░░                             │
+│   ship-1.0                         ◆ milestone             │
+└────────────────────────────────────────────────────────────┘
+```
+
+Template: [`gantt.html`](./gantt.html). Mermaid-rendered, self-contained.
+
+### Pie
+
+> Proportion / share rendered via Mermaid `pie`. Declare slices as
+> `"label" : number`, one per line. Mermaid assigns colors from `pie1`…`pie12`
+> themable via `themeVariables`. `showData` prints the numeric value with the
+> slice label.
+>
+> Use for cost / traffic / storage breakdowns, composition snapshots, or
+> before/after pie pairs. Aim for 3–7 slices — beyond that, group small
+> values into "Other" or switch to a stacked bar.
+
+```
+            ╭─────────────╮
+       ╭────┤   Backend   ├─────╮   42%
+     ╭─┤    ╰─────────────╯     ╰─╮
+    ╭┤  ╭──────────╮               │ Frontend  28%
+    ││  │ Database │               │
+    │╰──┤          ├──╮     Infra  18%
+    ╰─  ╰──────────╯  ╰──── Other  12%
+```
+
+Template: [`pie.html`](./pie.html). Mermaid-rendered, self-contained.
+
+### ER
+
+> Entity-relationship schema rendered via Mermaid `erDiagram`. Declare entities
+> with attribute lists (type, name, key markers `PK`/`FK`/`UK`, comment) and
+> relationships with crow's-foot cardinality (`||--o{` for 1:many, `}o--o{`
+> for many:many, `||--||` for 1:1, dotted `..` for non-identifying).
+>
+> Use for DB schemas, domain models, aggregate references. Keep entities ≤ 12
+> per diagram; split into auth / billing / inventory sub-diagrams above that
+> threshold.
+
+```
+┌─────────┐         ┌─────────┐         ┌─────────┐
+│  USER   │──┐  1:N │  ORDER  │  1:1    │ PAYMENT │
+│  id PK  │  ├─────▶│  id PK  │────────▶│  id PK  │
+│  email  │  │      │ user_id │         │order_id │
+└─────────┘  │      │ total   │         │ status  │
+             │      └─────────┘         └─────────┘
+             │  M:N
+             └────────▶ TAG
+```
+
+Template: [`er.html`](./er.html). Mermaid-rendered, self-contained.
+
 ---
 
 ## Templates
@@ -228,9 +298,19 @@ Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html
 | `layered.html` | 3–4 horizontal layers (ingress → hub → workers → storage) | ~5K | 4 stacked layers with dashed frames, vertical fan-out/fan-in arrows, tall aspect (3/4), optional 3-layer variant |
 | `machine-clusters.html` | Multi-host deployment / distributed services across machines | ~5K | 3 machine frames side-by-side, cross-machine edge routing, wide aspect (16/9), per-machine labels |
 | `deployment-tiers.html` | CI/CD pipeline / dev → staging → prod promotion | ~5K | 3 colored tier stripes, promotion arrows upward, data sync arrows, tall aspect (4/5), tier-specific tones |
+| `gantt.html` | Timeline / schedule / roadmap — dated tasks grouped by section | ~4K | Mermaid `gantt`, auto-layout, `done`/`active`/`crit`/`milestone` states, themed via `sectionBkgColor`/`todayLineColor`, `.diagram-shell` + pan/zoom |
+| `pie.html` | Proportion / share / composition snapshot — 3–7 slices | ~4K | Mermaid `pie showData`, 6 themed `pie1..pie6` slice colors, `.diagram-shell` + pan/zoom |
+| `er.html` | Entity-relationship schema — DB tables or domain model — ≤ 12 entities | ~4K | Mermaid `erDiagram`, crow's-foot cardinality, `PK`/`FK` markers, themed attribute alt-row colors, `.diagram-shell` + pan/zoom |
 
-All templates share **`fgraph-base.css`** — the CSS primitives for graphs.
-Distribution model depends on the consumer (see "Inlined vs shared" below).
+The seven **fgraph** templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+`radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`) share
+**`fgraph-base.css`** — the CSS primitives for graphs. Distribution model
+depends on the consumer (see "Inlined vs shared" below).
+
+The three **Mermaid** templates (`gantt`, `pie`, `er`) are self-rendering
+via the mermaid CDN — they only share the `.diagram-shell` + zoom-control
+pattern (inherited from `base/components.css` / `explainer-base.css`) and
+do not depend on `fgraph-base.css`.
 
 ### Primitives (`fgraph-base.css`)
 
@@ -427,12 +507,21 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | 3–4 horizontal layers stacked vertically | `layered.html` | service architecture |
 | 2–3 machine frames side-by-side | `machine-clusters.html` | distributed deployment |
 | Dev / staging / prod tiers stacked | `deployment-tiers.html` | CI/CD pipeline |
+| Timeline / schedule / roadmap with dated tasks | `gantt.html` | release plan, multi-workstream project |
+| Proportion / share / composition — 3–7 slices | `pie.html` | cost or traffic breakdown |
+| Entity-relationship schema — tables + FK/cardinality | `er.html` | DB schema, domain model |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
-All three templates share the same `fgraph-base.css` primitives.
-Differences live only in layout coordinates, not in CSS — so mixing
-features (e.g. a linear-flow with a dashed machine frame borrowed from
-radial-hub) is just copy-paste.
+The seven fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+`radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`) share the
+same `fgraph-base.css` primitives — differences live only in layout
+coordinates, not in CSS, so mixing features (e.g. a linear-flow with a
+dashed machine frame borrowed from radial-hub) is just copy-paste.
+
+The three Mermaid templates (`gantt`, `pie`, `er`) are self-rendering via
+the mermaid CDN and do not consume `fgraph-base.css` — customise by editing
+the `<script type="text/plain" data-mermaid>` block's Mermaid source and
+tuning `themeVariables` in `mermaid.initialize({...})`.
 
 ---
 

@@ -80,6 +80,9 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | Data flow (linear) | Mermaid `flowchart LR` | Left-to-right reads naturally |
 | API sequence | Mermaid `sequenceDiagram` | Time-ordered interactions |
 | State machine | Mermaid `stateDiagram-v2` | Native cycle support |
+| Timeline / schedule | Mermaid `gantt` | Dates + tasks + sections, auto-layout (see `references/graph-templates/gantt.html`) |
+| Proportion / share | Mermaid `pie` | One-line slices, auto-labelled (see `references/graph-templates/pie.html`) |
+| Entity-relationship schema | Mermaid `erDiagram` | Entity boxes + crow's-foot cardinality (see `references/graph-templates/er.html`) |
 | **Hub-and-spoke, ≤ 6 peers, rich cards** | **fgraph radial** | Pills, warn lines, multi-line |
 | 7 radial nodes | fgraph with narrow nodes, or split into sub-diagrams | fgraph caps at ~6 before labels collide |
 | Architecture layers (node topology, arrows needed, ≤8 nodes) | foreignObject+CSS Flexbox SVG | No pixel math; LLM only computes arrow coords; inline SVG, no JS |
