@@ -33,7 +33,32 @@
   </style>
 </head>
 <body>
-  <!-- CONTENT: Self-contained diagram body — hero section + sections + diagrams + cards -->
+  <!-- CONTENT: Self-contained diagram body — hero section + sections + diagrams + cards
+       Info-card grid pattern (3-col summary row — drop in above diagrams):
+
+         <div class="info-card-grid">
+           <div class="info-card">
+             <span class="info-card__dot" style="background: var(--arch-frontend)"></span>
+             <h3 class="info-card__title">Frontend</h3>
+             <ul class="info-card__list">
+               <li>React SPA</li>
+               <li>TanStack Router</li>
+             </ul>
+           </div>
+           <div class="info-card">
+             <span class="info-card__dot" style="background: var(--arch-backend)"></span>
+             <h3 class="info-card__title">Backend</h3>
+             <ul class="info-card__list"><li>...</li></ul>
+           </div>
+           <div class="info-card">
+             <span class="info-card__dot" style="background: var(--arch-database)"></span>
+             <h3 class="info-card__title">Database</h3>
+             <ul class="info-card__list"><li>...</li></ul>
+           </div>
+         </div>
+
+       The `.info-card-grid` primitive is defined in base/components.css; the
+       `--arch-*` tier palette comes from references/tokens.md. -->
   {CONTENT}
 
   <!-- Theme Toggle -->

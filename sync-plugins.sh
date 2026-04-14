@@ -102,7 +102,10 @@ sync_cache_safe() {
 # Step 2-3: Local sync
 if [[ "$DO_LOCAL" == true ]]; then
     step "Pulling $CURRENT_BRANCH into local marketplace..."
-    git -C "$MARKETPLACE_REPO" fetch origin
+    # Explicit branch fetch — marketplace's default refspec tracks main only, so
+    # feature branches need +refs/heads/<branch>:refs/remotes/origin/<branch>.
+    git -C "$MARKETPLACE_REPO" fetch origin \
+        "+refs/heads/$CURRENT_BRANCH:refs/remotes/origin/$CURRENT_BRANCH"
     if git -C "$MARKETPLACE_REPO" rev-parse --verify "$CURRENT_BRANCH" &>/dev/null; then
         git -C "$MARKETPLACE_REPO" checkout "$CURRENT_BRANCH"
         git -C "$MARKETPLACE_REPO" merge --ff-only "origin/$CURRENT_BRANCH"
@@ -116,33 +119,50 @@ if [[ "$DO_LOCAL" == true ]]; then
 fi
 
 # Step 4-5: Remote sync (Machine 1)
+# Dynamic values (branch name, paths) are passed as environment variables to a
+# heredoc'd remote script — never interpolated into the command string — so
+# single quotes or shell metacharacters in branch names cannot inject commands.
 if [[ "$DO_REMOTE" == true ]]; then
     step "Pulling $CURRENT_BRANCH on Machine 1 marketplace..."
-    ssh "$REMOTE_HOST" "cd '$MARKETPLACE_REPO' && git fetch origin && git checkout '$CURRENT_BRANCH' && git merge --ff-only 'origin/$CURRENT_BRANCH'"
+    ssh "$REMOTE_HOST" \
+        BRANCH="$CURRENT_BRANCH" \
+        REPO="$MARKETPLACE_REPO" \
+        'bash -s' <<'REMOTE_PULL'
+        set -euo pipefail
+        cd "$REPO"
+        git fetch origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+        if git rev-parse --verify "$BRANCH" &>/dev/null; then
+            git checkout "$BRANCH"
+            git merge --ff-only "origin/$BRANCH"
+        else
+            git checkout -b "$BRANCH" "origin/$BRANCH"
+        fi
+REMOTE_PULL
 
     step "Syncing all plugins → Machine 1 cache..."
-    ssh "$REMOTE_HOST" "
+    ssh "$REMOTE_HOST" \
+        REPO="$MARKETPLACE_REPO" \
+        CACHE="$CACHE_BASE" \
+        'bash -s' <<'REMOTE_SYNC'
         set -euo pipefail
-        repo='$MARKETPLACE_REPO'
-        cache='$CACHE_BASE'
         count=0
-        for plugin_dir in \"\$repo/plugins\"/*/; do
-            plugin=\$(basename \"\$plugin_dir\")
-            [ -d \"\$cache/\$plugin\" ] || continue
-            for hash_dir in \"\$cache/\$plugin\"/*/; do
-                name=\$(basename \"\$hash_dir\")
-                [[ \"\$name\" == '.claude-plugin' ]] && continue
-                [[ ! \"\$name\" =~ ^[0-9]+\.[0-9]+\.[0-9]+\$ && ! \"\$name\" =~ ^[0-9a-f]{12}\$ ]] && continue
+        for plugin_dir in "$REPO/plugins"/*/; do
+            plugin=$(basename "$plugin_dir")
+            [ -d "$CACHE/$plugin" ] || continue
+            for hash_dir in "$CACHE/$plugin"/*/; do
+                name=$(basename "$hash_dir")
+                [[ "$name" == '.claude-plugin' ]] && continue
+                [[ ! "$name" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && ! "$name" =~ ^[0-9a-f]{12}$ ]] && continue
                 rsync -a \
                     --exclude='node_modules' \
                     --exclude='.orphaned_at' \
-                    \"\$plugin_dir\" \"\$hash_dir\"
-                echo \"  synced \$plugin → \$name\"
+                    "$plugin_dir" "$hash_dir"
+                echo "  synced $plugin → $name"
                 (( count++ )) || true
             done
         done
-        echo \"\$count cache dir(s) updated\"
-    "
+        echo "$count cache dir(s) updated"
+REMOTE_SYNC
     echo -e "${GREEN}✓ Machine 1 cache updated${NC}"
 fi
 

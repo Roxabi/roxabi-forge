@@ -138,3 +138,39 @@ Ultra-stark dark theme inspired by [juliusbrussee.github.io/caveman](https://jul
 | `--diag-security-fill` | `rgba(136, 19, 55, 0.4)` | Node box background |
 | `--diag-channel-fill` | `rgba(251, 146, 60, 0.3)` | Node box background |
 | `--diag-external-fill` | `rgba(30, 41, 59, 0.5)` | Node box background |
+
+---
+
+## Architecture Palette (`--arch-*`)
+
+> **Scope:** Semantic tokens for architecture diagrams — one color per logical tier.
+> Use these when the diagram is tier-oriented (frontend vs backend vs database etc.)
+> rather than flow-oriented (where `--diag-*` applies).
+>
+> Complements `--diag-*`: `--diag-*` classifies node roles (process / module / data /
+> infra / security / channel / external); `--arch-*` classifies architectural tiers.
+> Pick one system per diagram and stay consistent.
+>
+> Source: architecture-diagram-generator skill.
+
+| Token | Hex | Use |
+|---|---|---|
+| `--arch-frontend` | `#06b6d4` | UI tier — browser, SPA, mobile client |
+| `--arch-backend` | `#10b981` | API tier — services, controllers, handlers |
+| `--arch-database` | `#8b5cf6` | Persistence tier — SQL, NoSQL, search, cache |
+| `--arch-cloud` | `#f59e0b` | Infrastructure tier — platform, IaaS, PaaS |
+| `--arch-security` | `#f43f5e` | Security tier — IAM, WAF, KMS, secrets |
+| `--arch-external` | `#64748b` | Third-party / out-of-boundary services |
+
+### Usage example
+
+```css
+.arch-frontend { color: var(--arch-frontend); border-color: var(--arch-frontend); }
+.arch-backend  { color: var(--arch-backend);  border-color: var(--arch-backend);  }
+```
+
+```html
+<div class="fgraph-node arch-backend">
+  <div class="fgraph-title">API Gateway</div>
+</div>
+```

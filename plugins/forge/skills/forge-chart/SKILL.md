@@ -100,6 +100,13 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 
 **Arrow modifiers (fgraph):** `.dashed` = optional/async, `.thick` = critical path, `.animated` = live stream. Compose with tones: `<path class="fg-edge amber thick">`.
 
+**Shared primitives reference:** reach for these instead of re-inventing —
+
+- **Info-card summary row** (`.info-card-grid` → `.info-card` → `.info-card__dot` / `__title` / `__list`): 3-col landing row for "Frontend / Backend / Database" or "What / Why / How" overviews. Defined in `base/components.css`, example in `shells/single.html`.
+- **Architecture tier palette** (`--arch-frontend`, `--arch-backend`, `--arch-database`, `--arch-cloud`, `--arch-security`, `--arch-external`): semantic color tokens for tier-oriented diagrams. Defined in `references/tokens.md`. Complementary to `--diag-*` (flow-oriented).
+- **Boundary / cluster groups** (`.fgraph-group.{region,cluster,security-group}` + `.fgraph-group__label`): dashed frames that wrap 2+ related fgraph nodes as a VPC / bounded context / security zone. Defined in `graph-templates/fgraph-base.css`.
+- **Pixel-exact layout constants** (`--layer-h`, `--layer-h-simple`, `--layer-gap` sourced from `references/shape-vocabulary.md` § Pixel-exact layout): `LAYER_H_BADGE=116px`, `LAYER_H_SIMPLE=101px`, `LAYER_GAP=50px`. Use when the diagram stacks ≥3 layer rows.
+
 **Check:** How many nodes? Any cycles? If the content sketches twice — once radial, once linear — which reads faster on a 1200px screen? Content that takes two sketches to understand is a signal to split the diagram, not to cram both into one.
 
 ### Style — Which components?
@@ -312,6 +319,46 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/references/phase-3-generate.md` b
 
 ---
 
+## Domain Patterns
+
+Canonical AI/infra diagram topologies. When a prompt matches one of these, reach for the listed shape + arrow semantics instead of reinventing. Sourced from fireworks-tech-graph.
+
+| Pattern | Core shape | Key nodes | Dominant flow |
+|---|---|---|---|
+| **RAG (Retrieval-Augmented Generation)** | linear-flow with branch | query → retriever (vector store) → augmented prompt → LLM → answer | control + data reads; vector store is `.cylinder` |
+| **Agentic Search** | radial-hub around planner | planner (hex) ↔ {search, scrape, summarize, synthesize} tools | control spokes outward, data returns inward |
+| **Mem0 / Memory-tiered** | layered | working memory (hot) → episodic (warm) → semantic (cold) → archive | write-through (down) + recall (up) |
+| **Multi-Agent** | dual-cluster or radial-ring | N agents around shared blackboard / message bus (`.pill`) | async pub/sub on bus edges |
+| **Tool Call** | linear-flow | LLM → tool router → {tool₁, tool₂, ...} → result → LLM | control down, data back up |
+| **5-layer Agent Architecture** | layered (4 layers tall) | perception → memory → planning → action → feedback | feedback arrow closes the loop bottom→top |
+
+### Arrow semantics
+
+Composes with tone classes on `.fg-edge`. Pick the one that names the flow:
+
+| Flow | Class | Visual | When |
+|---|---|---|---|
+| **Data** | `.fg-edge.data` (purple default) | solid | payloads, query results, tokens |
+| **Control** | `.fg-edge.control` (accent default) | solid | "invoke X", "route to Y", dispatch |
+| **Memory** | `.fg-edge.write` (green, dashed) | dashed | writes to a store; pair with `.fg-edge.read` for reads |
+| **Feedback** | `.fg-edge.feedback` (amber default) | solid | loss signal, reward, RLHF, user correction, eval |
+| **Async** | `.fg-edge.async` (muted, dashed) | dashed | pub/sub, queue, event emission |
+
+Use `.thick` to promote the critical path (one per diagram — usually the end-to-end user path).
+
+### Memory tiers (Mem0-style) colorway
+
+When drawing tiered memory, bind tiers to the palette consistently across diagrams in the same doc:
+
+| Tier | Token | Semantic |
+|---|---|---|
+| Working / hot | `var(--arch-frontend)` (cyan) | in-context, ephemeral |
+| Episodic / warm | `var(--arch-backend)` (green) | session-scoped |
+| Semantic / cold | `var(--arch-database)` (violet) | long-term, queryable |
+| Archive | `var(--arch-external)` (slate) | compacted, rarely read |
+
+---
+
 ## Anti-Patterns (FORBIDDEN)
 
 | Anti-Pattern | Fix |
@@ -338,12 +385,21 @@ Serve + Deploy: see forge-ops.md
 
 ### Visual Quality Gates (run before writing file)
 
-- [ ] Text: no labels overlap, no text overflows its container
-- [ ] Arrows (if SVG): paths do not pass through unrelated node boxes
-- [ ] foreignObject (if used): every root element has `xmlns="http://www.w3.org/1999/xhtml"`
-- [ ] ViewBox: content fills 80–95% of declared dimensions — no large empty regions, no clipping
-- [ ] Legend: only shows node types actually present in the diagram
-- [ ] Mermaid (if used): wrapped in `.diagram-shell` with zoom controls — never bare `<pre>`
-- [ ] Color contrast: body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`
+14-item pre-flight checklist. Every item is binary — tick it or fix it. Sourced from the gmdiagram QC pattern + architecture-diagram-generator conventions.
+
+- [ ] **Text fit:** no labels overlap, no text overflows its container, no truncation ellipses on node titles
+- [ ] **Arrow routing:** SVG paths do not pass through unrelated node boxes; endpoints land on node edges (not centers)
+- [ ] **foreignObject xmlns:** every `<foreignObject>` root has `xmlns="http://www.w3.org/1999/xhtml"` — silent failure in Chrome/Edge otherwise
+- [ ] **Layer gaps:** vertical spacing between layered rows matches `--layer-gap` (50px default from `shape-vocabulary.md`); no row heights drift from `--layer-h`
+- [ ] **CSS class names:** semantic classes only (`.fgraph-node.cylinder`, `.arch-frontend`) — no inline `style="color:#..."` on nodes/edges (tokens only)
+- [ ] **ViewBox fit:** content fills 80–95% of declared dimensions — no large empty regions, no clipping
+- [ ] **Text escaping:** `&`, `<`, `>`, `"`, `'` escaped in labels/titles rendered inside SVG `<text>` or `<foreignObject>`
+- [ ] **Legend accuracy:** legend lists only node types + edge tones actually present in the diagram — no leftover entries
+- [ ] **Title accuracy:** `<title>` + `diagram:title` meta + hero `<h1>` all state the Frame Signal 2 takeaway consistently
+- [ ] **Marker refs:** every `url(#id)` arrow marker has a matching `<marker id="id">` in `<defs>`
+- [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
+- [ ] **Mermaid wrapper (if used):** wrapped in `.diagram-shell` with zoom controls — never bare `<pre class="mermaid">`
+- [ ] **Color contrast:** body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`; AA minimum, AAA preferred
+- [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
 
 $ARGUMENTS
