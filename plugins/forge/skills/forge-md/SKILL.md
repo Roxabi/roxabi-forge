@@ -1,6 +1,12 @@
 ---
 name: forge-md
-description: 'Render existing markdown files to themed self-contained HTML — single-file preview or multi-tab combined doc. Use when the user has finished markdown and just wants it rendered as-is (no tab planning, no rewriting). Triggers: "render md" | "render markdown" | "md to html" | "tabbed docs" | "combine markdown" | "preview md" | "forge md" | "render this folder" | "make a tabbed doc from these md files".'
+description: >-
+  Render existing markdown files to themed self-contained HTML — single-file
+  preview or multi-tab combined doc. Use when the user has finished markdown
+  and just wants it rendered as-is (no tab planning, no rewriting). Triggers:
+  "render md" | "render markdown" | "md to html" | "tabbed docs" | "combine
+  markdown" | "preview md" | "forge md" | "render this folder" | "make a
+  tabbed doc from these md files".
 summary: 'render .md as-is to themed HTML'
 version: 0.1.0
 allowed-tools: Read, Bash, Glob

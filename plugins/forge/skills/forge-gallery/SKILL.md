@@ -1,6 +1,11 @@
 ---
 name: forge-gallery
-description: 'Create or update an image or audio gallery from HTML templates — pivot grouping, dynamic filtering, sorting, search, size controls, lightbox, multi-mode datasets, downloads dropdown. Triggers: "showcase" | "compare visually" | "gallery" | "side by side" | "create a gallery" | "show iterations" | "multi-mode gallery" | "sprite gallery".'
+description: >-
+  Create or update an image or audio gallery from HTML templates — pivot
+  grouping, dynamic filtering, sorting, search, size controls, lightbox,
+  multi-mode datasets, downloads dropdown. Triggers: "showcase" | "compare
+  visually" | "gallery" | "side by side" | "create a gallery" | "show
+  iterations" | "multi-mode gallery" | "sprite gallery".
 summary: 'image / audio gallery'
 version: 0.4.0
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, ToolSearch, Agent
@@ -18,6 +23,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/                        — lyra.css
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md                    — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/gallery-templates/README.md        — template guide + customisation steps
 ${CLAUDE_PLUGIN_ROOT}/references/gallery-templates/pivot-gallery.html — full working template
+${CLAUDE_PLUGIN_ROOT}/skills/forge-gallery/fixtures/README.md       — fixture format + regression inputs (no runner yet; hashes populate in future)
 ```
 
 ---
