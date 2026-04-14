@@ -1,0 +1,48 @@
+---
+title: Missing diagram types — P1 bundle (Gantt, pie, ER via Mermaid)
+issue: 13
+status: approved
+tier: F-lite
+date: 2026-04-14
+---
+
+## Problem
+
+From `artifacts/analyses/2026-04-14-gmdiagram-delta-analysis.md` § D3. gmdiagram covers 17 diagram/chart types; `forge-chart` covers ~6 (fgraph + Mermaid flowchart/sequence/state/class). Forge is topology-centric and has no dedicated support for timeline, proportion, or entity-relationship diagrams.
+
+Without these, authors who need a Gantt schedule (specs/roadmaps), a pie proportion (reports), or an ER diagram (doc-worthy schema shapes) either hand-roll SVG, drop into raw Mermaid with no guidance, or leave the artifact out. All three shapes have first-class Mermaid support — auto-layout solves the hard part.
+
+This issue bundles the three P1 types from the delta analysis's `#13` proposal into a single Mermaid-backed PR. The five P2/P3 types requiring inline SVG (UML class, radar, funnel, bubble, scatter) are explicitly deferred to a follow-up issue, matching the "split as a follow-up" recommendation in the issue body.
+
+## Who
+
+- **Primary:** forge skill authors using `forge-chart` — gain three new visual types with zero new dependencies, picked via the Visual Type Selection table.
+- **Secondary:** downstream artifact consumers (specs, guides, READMEs) — can embed roadmap timelines, proportion breakdowns, and schema ER diagrams in-place without external tooling.
+
+## Constraints
+
+- No new runtime dependencies — all three types render via Mermaid, already supported by forge-chart.
+- No breaking changes to existing chart types — additive only (new templates, new Visual Type Selection rows, optional schema stubs).
+- Must not overlap with #10 (fixtures/frontmatter/compression) or #12 (Tier-1 audit lift). Can leverage #10 fixtures for regression if they land first.
+- Must not drift into P2/P3 inline-SVG work — that is a separate issue.
+- Touches two sub-trees: `plugins/forge/skills/forge-chart/` (SKILL.md reference) + `plugins/forge/references/graph-templates/` (three templates + README entry). Single domain (forge plugin).
+
+## Out of Scope
+
+- **P2/P3 inline-SVG types:** UML class, radar, funnel, bubble, scatter — tracked as a follow-up issue to be opened after this ships.
+- **PNG/PDF export** via `export.sh` — tracked as future "Issue C" (D4 in analysis).
+- **Schema-driven two-step pipeline** (JSON IR → render) — deferred in closed #7.
+- **New `data-chart-templates/` sub-tree** — defer; adding 3 Mermaid examples to existing `graph-templates/` README is sufficient for P1.
+- **Auto-layout for fgraph-style types** — Mermaid handles layout for all three; no custom layout work.
+
+## Complexity
+
+**Tier: F-lite** — clear scope, single domain (forge plugin), three well-understood Mermaid types with auto-layout. No unknowns. Short spec + plan is worth writing because three templates + skill-reference update + README updates span ~5 files.
+
+Signals observed:
+
+- Issue body already lists exact scope, rendering choice, and priority table.
+- All three types are Mermaid-native — no custom SVG design work.
+- Single domain: `plugins/forge/` only.
+- Analysis file + issue body together provide full context — `/analyze` not required.
+- P1/P2/P3 split already proposed in issue body; user selected P1-only.
