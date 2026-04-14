@@ -298,6 +298,9 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 | Data flow between services (linear) | Mermaid `flowchart LR` |
 | API / message sequence | Mermaid `sequenceDiagram` |
 | State machine | Mermaid `stateDiagram-v2` |
+| Timeline / schedule / roadmap | Mermaid `gantt` — `graph-templates/gantt.html` |
+| Proportion / share / composition | Mermaid `pie` — `graph-templates/pie.html` |
+| Entity-relationship schema | Mermaid `erDiagram` — `graph-templates/er.html` |
 | **Hub-and-spoke / message bus / gateway (≤ 6 peers, rich cards)** | **fgraph — `graph-templates/radial-hub.html` + `fgraph-base.css`** |
 | Architecture layers (stacked, text-heavy) | CSS Grid cards (no Mermaid) |
 | Simple timeline | CSS flex with connectors |
