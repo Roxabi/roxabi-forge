@@ -1,5 +1,7 @@
 # Phase 3 — Generate (forge-chart)
 
+> **Self-check:** if you are reading this file, the `Read ${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/references/phase-3-generate.md` directive from `SKILL.md:Phase 3` resolved. If you are building a `forge-chart` output and have not seen this header, abort and report the unresolved path — Phase 3 body is mandatory for correct generation.
+
 Read `shells/single.html` → substitute placeholders with content. The shell already contains:
 - `{THEME_TOGGLE_JS}` placeholder (inline theme-toggle.js with `{NAME}` substituted)
 - Diagram meta placeholders

@@ -1,5 +1,7 @@
 # Phase 3 — Generate (forge-guide)
 
+> **Self-check:** if you are reading this file, the `Read ${CLAUDE_PLUGIN_ROOT}/skills/forge-guide/references/phase-3-generate.md` directive from `SKILL.md:Phase 3` resolved. If you are building a `forge-guide` output and have not seen this header, abort and report the unresolved path — Phase 3 body is mandatory for correct generation.
+
 **File paths:**
 ```
 {ROOT}/{SLUG}.html
