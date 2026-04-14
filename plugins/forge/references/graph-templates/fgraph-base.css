@@ -210,6 +210,53 @@
   color: var(--text-muted);
 }
 
+/* ── boundary / cluster groups (sub-regions inside a graph) ──
+   Use to wrap 2+ related nodes in a labeled dashed frame: a VPC,
+   a bounded context, a security zone, a cluster. Positioned via
+   --x / --y (top-left corner, 0..100 %) and --w / --h (size, 0..100 %).
+
+     <div class="fgraph-group region" style="--x:10;--y:40;--w:35;--h:40">
+       <span class="fgraph-group__label">us-east-1</span>
+     </div>
+
+   Tone variants:
+     .region          — generic grouping (gray)
+     .cluster         — deployable unit / pod / stack (cyan)
+     .security-group  — security boundary (red)
+
+   Source: architecture-diagram-generator examples/microservices.html. */
+.fgraph-group {
+  position: absolute;
+  left: calc(var(--x, 0) * 1%);
+  top:  calc(var(--y, 0) * 1%);
+  width:  calc(var(--w, 30) * 1%);
+  height: calc(var(--h, 30) * 1%);
+  border: 1px dashed var(--border-bright);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 0;
+}
+.fgraph-group.region         { border-color: var(--text-muted); background: rgba(148,163,184,0.04); }
+.fgraph-group.cluster        { border-color: var(--cyan);       background: rgba(34,211,238,0.05); }
+.fgraph-group.security-group { border-color: var(--red);        background: rgba(248,113,113,0.05); }
+
+.fgraph-group__label {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  padding: 0 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+}
+.fgraph-group.region         > .fgraph-group__label { color: var(--text-muted); }
+.fgraph-group.cluster        > .fgraph-group__label { color: var(--cyan); }
+.fgraph-group.security-group > .fgraph-group__label { color: var(--red); }
+
 /* ── SVG edge layer (non-scaling strokes) ── */
 .fgraph-edges {
   position: absolute;

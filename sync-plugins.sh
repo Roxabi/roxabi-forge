@@ -102,7 +102,10 @@ sync_cache_safe() {
 # Step 2-3: Local sync
 if [[ "$DO_LOCAL" == true ]]; then
     step "Pulling $CURRENT_BRANCH into local marketplace..."
-    git -C "$MARKETPLACE_REPO" fetch origin
+    # Explicit branch fetch — marketplace's default refspec tracks main only, so
+    # feature branches need +refs/heads/<branch>:refs/remotes/origin/<branch>.
+    git -C "$MARKETPLACE_REPO" fetch origin \
+        "+refs/heads/$CURRENT_BRANCH:refs/remotes/origin/$CURRENT_BRANCH"
     if git -C "$MARKETPLACE_REPO" rev-parse --verify "$CURRENT_BRANCH" &>/dev/null; then
         git -C "$MARKETPLACE_REPO" checkout "$CURRENT_BRANCH"
         git -C "$MARKETPLACE_REPO" merge --ff-only "origin/$CURRENT_BRANCH"

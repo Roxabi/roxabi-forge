@@ -23,11 +23,21 @@
    ══════════════════════════════════════════════════════════════════ */
 /* {{FGRAPH_BASE}} — inline fgraph-base.css here */
 
+/* Pixel-exact layout constants — see references/shape-vocabulary.md
+   LAYER_H_BADGE = 116px, LAYER_H_SIMPLE = 101px, LAYER_GAP = 50px.
+   Tier stripes adopt the BADGE height since each has a label + sub. */
+:root {
+  --layer-h: 116px;
+  --layer-h-simple: 101px;
+  --layer-gap: 50px;
+}
+
 /* ── Tier stripe styling ── */
 .tier-stripe {
   position: absolute;
   left: 5%;
   width: 90%;
+  min-height: calc(var(--layer-h) - 16px);
   border-radius: 8px;
   pointer-events: none;
 }

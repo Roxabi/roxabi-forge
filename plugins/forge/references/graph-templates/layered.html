@@ -23,11 +23,21 @@
    ══════════════════════════════════════════════════════════════════ */
 /* {{FGRAPH_BASE}} — inline fgraph-base.css here */
 
+/* Pixel-exact layout constants — see references/shape-vocabulary.md
+   LAYER_H_BADGE = 116px, LAYER_H_SIMPLE = 101px, LAYER_GAP = 50px.
+   Override per-row with a modifier class (e.g. .layer-frame.tall). */
+:root {
+  --layer-h: 116px;
+  --layer-h-simple: 101px;
+  --layer-gap: 50px;
+}
+
 /* ── Layer-specific frame styling ── */
 .layer-frame {
   position: absolute;
   left: 10%;
   width: 80%;
+  min-height: calc(var(--layer-h) - 16px);
   border: 1px dashed var(--border-bright);
   border-radius: 10px;
   pointer-events: none;
