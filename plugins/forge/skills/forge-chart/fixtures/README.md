@@ -21,7 +21,7 @@ Stable JSON inputs that anchor regression testing for `forge-chart`. Each file d
 | Key | Type | Purpose |
 |---|---|---|
 | `skill` | string | Always `"forge-chart"` for this directory. |
-| `variant` | string | Matches one of the chart kinds in `SKILL.md` (mermaid, fgraph, plain-CSS, …). |
+| `variant` | string | Matches one of the chart kinds in `SKILL.md` (fgraph template name, plain-CSS, foreignObject-flexbox, …). |
 | `input.prompt` | string | Verbatim user prompt. |
 | `input.slug` | string | Output file stem — passed to the skill as the target filename. |
 | `input.project` | string | Project scope under `~/.roxabi/forge/<project>/`. |

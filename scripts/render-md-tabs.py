@@ -34,7 +34,6 @@ SHELL = r"""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <style>
 :root {{
   --bg:      #111210;
@@ -197,14 +196,6 @@ tbody td {{
 tbody tr:last-child td {{ border-bottom: none; }}
 tbody tr:hover td {{ background: var(--surface); }}
 hr {{ border: none; border-top: 1px solid var(--border); margin: 2.25rem 0; }}
-.mermaid {{
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin: 1.25rem 0;
-  text-align: center;
-}}
 .task-list-item {{ list-style: none; margin-left: -1.25rem; }}
 .task-list-item input[type="checkbox"] {{ margin-right: 0.5rem; accent-color: var(--accent); }}
 ol > li > a, ul > li > a {{ color: var(--accent); }}
@@ -219,28 +210,6 @@ ol > li > a, ul > li > a {{ color: var(--accent); }}
 {docs}
 </main>
 <script>
-  mermaid.initialize({{
-    startOnLoad: true,
-    theme: 'base',
-    themeVariables: {{
-      darkMode: true,
-      background: '#1a1b18',
-      primaryColor: '#1a1b18',
-      primaryTextColor: '#f0ede6',
-      primaryBorderColor: '#f0b429',
-      lineColor: '#f0b429',
-      secondaryColor: '#2e3028',
-      tertiaryColor: '#111210',
-      mainBkg: '#1a1b18',
-      nodeBorder: '#f0b429',
-      clusterBkg: '#111210',
-      clusterBorder: '#2e3028',
-      edgeLabelBackground: '#1a1b18',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      fontSize: '14px'
-    }}
-  }});
-
   const tabs = Array.from(document.querySelectorAll('.tab'));
   const docs = Array.from(document.querySelectorAll('.doc'));
   function activate(id) {{
@@ -274,8 +243,15 @@ ol > li > a, ul > li > a {{ color: var(--accent); }}
 """
 
 
-def mermaid_fence(source, language, css_class, options, md, **kwargs):
-    return f'<div class="mermaid">{source}</div>'
+def error_fence(source, language, css_class, options, md, **kwargs):
+    """Hard-error on legacy diagram fences — see scripts/render-md.py for the
+    matching prose and rationale (CI grep-guard uses word-boundary lowercase)."""
+    sys.stderr.write(
+        "ERROR: Mermaid diagram fences are no longer supported in forge. "
+        "Use plugins/forge/references/graph-templates/<shape>.html — "
+        "see graph-templates/README.md\n"
+    )
+    sys.exit(1)
 
 
 def render_body(src_text: str) -> str:
@@ -291,7 +267,7 @@ def render_body(src_text: str) -> str:
         extension_configs={
             "pymdownx.superfences": {
                 "custom_fences": [
-                    {"name": "mermaid", "class": "mermaid", "format": mermaid_fence}
+                    {"name": "mermaid", "class": "mermaid", "format": error_fence}
                 ]
             },
             "pymdownx.tasklist": {"custom_checkbox": True},

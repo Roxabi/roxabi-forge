@@ -17,7 +17,7 @@ Generate a single-file HTML presentation deck from a GitHub issue, a markdown fi
 
 Output: `~/.roxabi/forge/<project>/slides/{name}.html`
 
-Single-file — all CSS and JS inlined. No split-file, no external links at runtime (except CDN fonts and optional Mermaid). This is the correct distribution rule for `file://` offline safety; see CLAUDE.md § Distribution Rule.
+Single-file — all CSS and JS inlined. No split-file, no external links at runtime (except CDN fonts). This is the correct distribution rule for `file://` offline safety; see CLAUDE.md § Distribution Rule.
 
 **Read before generating:**
 
@@ -36,7 +36,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md                       — silent
 ${CLAUDE_PLUGIN_ROOT}/references/design-phase-two-track.md            — track-by-track behavior
 ```
 
-**Directive: inline, never link** — `slide-templates/` files are generation source, not runtime dependencies. Read → inline into the output `<style>` and `<script>` blocks. The only allowed external requests at runtime are CDN fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) and Mermaid (`cdn.jsdelivr.net/npm/mermaid`) when diagram slides are present.
+**Directive: inline, never link** — `slide-templates/` files are generation source, not runtime dependencies. Read → inline into the output `<style>` and `<script>` blocks. The only allowed external requests at runtime are CDN fonts (`fonts.googleapis.com`, `fonts.gstatic.com`). Diagram slides inline their fgraph template + `fgraph-base.css` directly — no diagram runtime, no CDN.
 
 ---
 
@@ -162,10 +162,16 @@ Produce the deck outline silently (in-memory, no disk write). Each entry: `{inde
 ### Diagram slides
 
 If source content includes architecture description, dependency list, or flow description:
-- ≤ 6 radial peers, rich nodes → `diagram` slide with inline fgraph template HTML + inline `fgraph-base.css`
-- Linear 2–3 stage pipeline → `diagram` slide with fgraph `linear-flow`
-- Layered architecture → `diagram` slide with fgraph `layered`
-- Mermaid source provided or flow > 8 nodes → `diagram` slide with `<div class="mermaid" data-mermaid>{src}</div>`; `slide-deck-base.js` calls `initSlideMermaid` to render each with a unique `mermaid-slide-${i}` ID
+- ≤ 6 radial peers, rich nodes → `diagram` slide with inline `radial-hub.html` / `radial-ring.html` + inline `fgraph-base.css`
+- Linear 2–3 stage pipeline → `diagram` slide with `linear-flow.html`
+- Layered architecture → `diagram` slide with `layered.html` or `deployment-tiers.html`
+- Timeline / gantt → `diagram` slide with `gantt.html`
+- Proportion / share → `diagram` slide with `pie.html`
+- ER schema → `diagram` slide with `er.html`
+- API sequence → `diagram` slide with `sequence.html`
+- State machine → `diagram` slide with `state.html`
+- Issue dependency graph → `diagram` slide with `dep-graph.html`
+- > 8 nodes or a shape no template covers → **split** across two diagram slides, or use `layered.html` with hand-assigned `--x/--y`
 
 ### Meta values
 
@@ -215,8 +221,7 @@ Rules:
 - One <section class="slide slide--{type}"> per outline entry
 - Add class="reveal" to child elements that should stagger in (headings, paragraphs, list items)
 - Add --i CSS custom property for stagger index when overriding transition-delay inline
-- diagram slides: wrap Mermaid in <div class="mermaid" data-mermaid>…</div> (initSlideMermaid handles rendering)
-- fgraph slides: inline the fgraph template HTML + inline fgraph-base.css content into the <style> block
+- diagram slides: inline the fgraph template HTML body inside the slide + inline fgraph-base.css content into the <style> block (Mode A distribution rule)
 - Inject diagram-meta block in <head> (see diagram-meta.md)
 - data-theme="{dark|light}" on <html>
 
@@ -224,7 +229,7 @@ Rules:
 - All text content derived from issue body / markdown / prompt → HTML-escape (`&` `<` `>` `"` `'`) before inserting into element text nodes.
 - `href` values (CTA links, image source URLs): allow only schemes `https://`, `http://`, `file://`, `mailto:`, `#anchor`, or relative paths. Reject `javascript:`, `data:`, `vbscript:`. Strip the attribute if invalid rather than emit `href="#"`.
 - `src` / `background-image: url(...)` values: same allowlist; disallow `data:` SVG payloads (they can embed scripts).
-- Mermaid source inside `data-mermaid` is rendered by `initSlideMermaid()` at `securityLevel: 'strict'` — no additional escape needed inside the div, but the enclosing attributes must be escaped.
+- fgraph template placeholders (`{{TITLE}}`, `{{NODE_*}}`, `{{EDGE_*}}`, etc.): HTML-escape any author-supplied text before substitution. The templates ship as trusted markup; the substituted values are the untrusted portion.
 ```
 
 ### HTML structure
@@ -294,7 +299,7 @@ Deploy:  make forge deploy
 - [ ] Touch swipe: handled by `SlideEngine` pointer events
 - [ ] `prefers-reduced-motion`: `.slide` and `.slide .reveal` transitions disabled via `@media (prefers-reduced-motion: reduce)`
 - [ ] diagram-meta block present between `<!-- diagram-meta:start -->` and `<!-- diagram-meta:end -->`
-- [ ] CDN allowlist: `fonts.googleapis.com`, `fonts.gstatic.com` (always); `cdn.jsdelivr.net/npm/mermaid` (only if diagram slides present)
+- [ ] CDN allowlist: `fonts.googleapis.com`, `fonts.gstatic.com` (always). No other runtime CDNs — diagram slides inline their fgraph template + `fgraph-base.css`.
 
 ---
 
@@ -305,7 +310,7 @@ Deploy:  make forge deploy
 | PDF export | Deferred — `@page` rules conflict with scroll-snap layout |
 | Presenter mode (speaker notes + second screen) | Deferred — requires `BroadcastChannel` / `window.open` + postMessage |
 | Remote control | Deferred — contradicts offline-first design |
-| `svg-pan-zoom` in diagram slides | Deferred — adds ~30 KB runtime dep; deferred to v0.2 |
+| Pan/zoom in diagram slides | Deferred — presentation use case rarely needs it (fgraph templates cap at 6–8 nodes) |
 | WYSIWYG editor | Out of scope — forge generates, not edits |
 | Auto-resize on orientation change | Known limitation — manual `F5` refresh is the workaround |
 

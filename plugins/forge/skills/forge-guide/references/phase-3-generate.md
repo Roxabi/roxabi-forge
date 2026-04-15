@@ -119,25 +119,29 @@ Severity levels: `finding--high` (red), `finding--medium` (amber), `finding--low
 </div>
 ```
 
-### Diagram Shell (REQUIRED for Mermaid tabs)
+### fgraph diagrams (multi-tab docs — Mode B)
 
-**NEVER use bare `<pre class="mermaid">`.** Always wrap in the diagram shell:
+Multi-tab docs link `fgraph-base.css` from the shell `<head>` (per CLAUDE.md § Distribution rule, multi-tab profile) and inline only the template body per tab:
 
 ```html
-<div class="diagram-shell">
-  <div class="zoom-controls">
-    <button data-zoom="in" title="Zoom in">+</button>
-    <button data-zoom="fit" title="Fit">⤢</button>
-    <button data-zoom="out" title="Zoom out">−</button>
+<!-- in the shell <head> -->
+<link rel="stylesheet" href="../../_shared/fgraph-base.css">
+
+<!-- in tabs/{TAB_ID}.html -->
+<section class="diagram">
+  <div class="fgraph-wrap">
+    <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path class="fg-edge control" d="M 20,50 L 80,50" marker-end="url(#fg-arr-cyan)"/>
+    </svg>
+    <div class="fgraph-node pill"    style="--x:20; --y:50">{{HUB_LABEL}}</div>
+    <div class="fgraph-node hexagon" style="--x:80; --y:50">{{SATELLITE_LABEL}}</div>
   </div>
-  <div class="mermaid-container" data-mermaid-out id="diagram-{{TAB_ID}}"></div>
-  <script type="text/plain" data-mermaid>
-    {{MERMAID_SOURCE}}
-  </script>
-</div>
+</section>
 ```
 
-See `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` for the full checklist on dynamic tab rendering.
+No runtime JS. Coord space is 0..100 for both `--x/--y` node positions and SVG path coords (`viewBox="0 0 100 100" preserveAspectRatio="none"` + `vector-effect: non-scaling-stroke`).
+
+Template picker: see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the decision matrix (11 shapes: radial-hub, radial-ring, linear-flow, dual-cluster, layered, deployment-tiers, machine-clusters, gantt, pie, er, sequence, state, dep-graph).
 
 ### Tab fragments — content patterns by tab type:
 
@@ -145,7 +149,7 @@ See `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` for the full checklist o
 |----------|---------|
 | Overview / intro | Header + `<p>` + `.stat-grid` + `.cards` grid (2–4 cards) |
 | Step-by-step | Section titles + `<ol>` + `<pre><code>` |
-| Architecture | Section title + fgraph diagram (`.fgraph-wrap` with semantic shapes) or Mermaid (in `.diagram-shell`) + description |
+| Architecture | Section title + fgraph diagram (`.fgraph-wrap` with semantic shapes — see `graph-templates/README.md`) + description |
 | Comparison | Section title + `.table-wrap > table` with `<thead>` |
 | Status / KPIs | Section title + `.stat-grid` + progress indicators |
 | Decisions / log | `<h3>` entries with date + rationale `<p>` |

@@ -14,7 +14,9 @@ allowed-tools: Read, Bash, Glob
 
 # Forge MD — Render Markdown As-Is
 
-Thin wrapper around `render-md.py` (single file) and `render-md-tabs.py` (multi-file tabbed). Use when the user has already authored markdown and wants it rendered — **do not rewrite, restructure, or plan tabs**. The scripts handle sorting, tab labels, mermaid, tables, task lists, roxabi dark aesthetic.
+Thin wrapper around `render-md.py` (single file) and `render-md-tabs.py` (multi-file tabbed). Use when the user has already authored markdown and wants it rendered — **do not rewrite, restructure, or plan tabs**. The scripts handle sorting, tab labels, tables, task lists, and the roxabi dark aesthetic.
+
+**No diagram runtime:** Mermaid-style fenced diagram blocks are not supported. The render scripts emit an error to stderr and exit non-zero when they encounter a legacy diagram fence. For diagrams, author a native fgraph template under `plugins/forge/references/graph-templates/` (see `graph-templates/README.md`) and reference its output path from the markdown, or switch to `forge-guide` for a multi-tab doc with inline diagrams.
 
 ## When to use this skill vs. others
 

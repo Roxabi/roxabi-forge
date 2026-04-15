@@ -30,7 +30,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/shells/split.html   — HTML template with plac
 ${CLAUDE_PLUGIN_ROOT}/references/base/tab-loader.js    — substitute {NAME}, then inline via {TAB_LOADER_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md     — meta tag format + categories
-${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md    — dependency/breakdown diagrams
+${CLAUDE_PLUGIN_ROOT}/references/graph-templates/dep-graph.html — dependency diagram template (fed by scripts/gen-deps.py)
 ```
 
 **Directive: inline, never link** — `base/` and `aesthetics/` files are generation source, not runtime dependencies. Read → inline into output `<style>` block.
@@ -85,14 +85,14 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`, or
 |---|---|
 | Overview | `.epic-hero` (inline — see Phase 3) + `.cards` grid with `.card.accent` |
 | Breakdown | `.cards` grid or `.table-wrap > table` with `.status.done/wip/todo` badges (inline styles — see Phase 3) |
-| Deps | Mermaid flowchart in `.diagram-shell` with zoom controls |
+| Deps | `dep-graph.html` template fragment (fed by `scripts/gen-deps.py`) |
 | Criteria | `.table-wrap > table` — checklist with status column |
 
 **Rendering wrappers** — orthogonal to tab identity. Apply these to whatever rendering the Structure phase chose per tab:
 
 | Rendering | Wrapper / component |
 |---|---|
-| Mermaid dependency diagram | `.diagram-shell` with `.zoom-controls` (never bare `<pre class="mermaid">`) |
+| Dependency diagram | `dep-graph.html` template body inline — `.fgraph-wrap.dep-graph` + `.fg-dep-phase-lbl` + `.fg-dep-card` + `<svg class="fgraph-edges">` |
 | HTML table (breakdown / criteria) | `.table-wrap > table` with `<thead>` (enables sticky header + horizontal scroll) |
 | CSS Grid cards | `.cards` container + `.card.accent` per row |
 | Epic hero (Overview tab) | `.epic-hero > .epic-number + h1 + .epic-goal` (defined inline in Phase 3 `{EXTRA_STYLES}`) |
@@ -103,7 +103,7 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`, or
 
 Cross-tab: use `.card.info` / `.card.warning` / `.card.critical` for inline tonal callouts.
 
-**Check:** What visual signals does the reader need (inferred from Frame Signal 1)? Progress → status badges. Dependencies → Mermaid. Acceptance → checklist.
+**Check:** What visual signals does the reader need (inferred from Frame Signal 1)? Progress → status badges. Dependencies → `dep-graph.html`. Acceptance → checklist.
 
 ### Deliver — Generate + verify
 
@@ -111,7 +111,7 @@ Cross-tab: use `.card.info` / `.card.warning` / `.card.critical` for inline tona
 - Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - `.epic-hero` shows issue number prominently.
 - Status badges use correct colors (green `done`, amber `wip`, cyan `todo`) via the inline `.status` styles in Phase 3.
-- Mermaid dep diagram wrapped in `.diagram-shell` — never bare `<pre class="mermaid">`.
+- Dep diagram: inline the `dep-graph.html` body + inline `fgraph-base.css` into the tab's `<style>` (Mode A distribution rule).
 - **Body copy uses `var(--text)` for maximum readability on dark backgrounds.** `var(--text-muted)` is for intermediate emphasis only (subtitles, label rows); `var(--text-dim)` is for metadata only.
 - `diagram:issue` meta tag present and matches filename.
 - No ASCII art, no emoji in headers.
@@ -215,7 +215,7 @@ Rules:
 - Inline all CSS (base + aesthetic) into css/{ISSUE}-{slug}.css
 - Follow shell-processing.md substitution pipeline
 - Use semantic tokens from components.css
-- Mermaid dep diagram wrapped in .diagram-shell — never bare <pre class="mermaid">
+- Dep diagram: inline dep-graph.html body + fgraph-base.css content into the tab <style> (Mode A)
 - diagram:issue meta tag must match filename issue number
 ```
 
@@ -263,7 +263,7 @@ Determine tabs based on issue scope. Standard epic layout:
 |--------|-------|---------|
 | `overview` | Overview | What + Why + Scope — hero section with issue title, problem statement, goal |
 | `breakdown` | Breakdown | Sub-tasks / milestones as cards or table; status badges |
-| `deps` | Dependencies | Mermaid dependency/flow diagram (issues blocked by / blocking) |
+| `deps` | Dependencies | `dep-graph.html` fragment (issues blocked by / blocking; fed by `scripts/gen-deps.py`) |
 | `criteria` | Acceptance | Checklist-style acceptance criteria table |
 
 Adjust tabs to what the issue actually contains — simpler epics may need only `overview` + `deps`.
@@ -334,7 +334,7 @@ CSS for epic-hero (add to `{EXTRA_STYLES}`):
 .status.todo { background: var(--info-dim); color: var(--info); }
 ```
 
-**Deps tab** — Mermaid dependency diagram. Follow `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` checklist exactly (dynamic tab pitfalls).
+**Deps tab** — dependency diagram via the native `graph-templates/dep-graph.html` template. For issue-graph content generated from the live project, run `python3 scripts/gen-deps.py --github-sync --out <path>` to produce a `tab-dependencies.html` fragment with Python-side topological layer assignment + elbow-routed SVG paths; inline the fragment body + `fgraph-base.css` into the tab. For static single-issue previews, copy `dep-graph.html`, fill `{{PLACEHOLDERS}}` by hand.
 
 **Acceptance criteria tab** — table: | Criterion | Type | Status |
 
