@@ -1,4 +1,5 @@
 @.claude/stack.yml
+@~/.claude/shared/global-patterns.md
 
 # Roxabi Forge
 
@@ -8,15 +9,8 @@ HTML visual artifacts for Claude Code — diagrams, galleries, guides, epics.
 
 - **Project:** roxabi-forge (marketplace with 1 plugin: forge)
 - **Before work:** Use `/dev #N` as the single entry point
-- **Decisions:** summarize context → numbered options + recommendation → wait for reply
 - **Never** use `--force`/`--hard`/`--amend`
 - **Always** use appropriate skill even without slash command
-
-### Git
-
-Format: `<type>(<scope>): <desc>` + `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
-Types: feat|fix|refactor|docs|style|test|chore|ci|perf
-Never force/hard/amend. Hook fail → fix + NEW commit.
 
 ## Structure
 
