@@ -1,0 +1,57 @@
+---
+title: Purge Mermaid — build native fgraph replacements for gantt/pie/ER/sequence/state + auto-layout
+issue: 21
+status: approved
+tier: F-full
+date: 2026-04-15
+---
+
+## Problem
+
+Forge currently falls back to Mermaid for every shape fgraph can't render natively: gantt (timelines), pie (proportions), ER (schemas), sequence, state, and any flowchart > 8 nodes. The escape hatch is codified in `~/projects/CLAUDE.md` and `~/.claude/CLAUDE.md` ("> 8 nodes or complex flow → Mermaid") and was reinforced as recently as 2026-04-14 when #13 (commit 758fdd6) added gantt/pie/ER templates via Mermaid.
+
+Mermaid brings costs that break the "wonderful forge diagrams" aesthetic:
+
+- **900KB+ runtime** loaded from `cdn.jsdelivr.net/npm/mermaid@11` — no offline-safe `file://` rendering.
+- **CDN dependency** — breaks without network; conflicts with the rest of forge's offline-first, token-styled output.
+- **Limited theming** — `themeVariables` can't reach parity with `fgraph-base.css` tokens; colors, fonts, and spacing drift from forge's design system.
+- **Issue #19 open** — security hardening (SRI + pinning + defensive innerHTML) is still TODO. Hardening code we're about to delete is throwaway work.
+
+The goal is to eliminate the Mermaid dependency entirely so forge renders only native, token-styled, offline-safe artifacts — and to close the escape hatch in both CLAUDE.md files so future work doesn't re-introduce it.
+
+## Who
+
+- **Primary:** Mickael (forge author) + forge skill authors (`forge-chart`, `forge-slides`, `forge-epic`, `forge-guide`, `forge-md`) — gain six new native fgraph templates and lose the Mermaid fallback; all artifacts render offline with consistent tokens.
+- **Secondary:** downstream artifact consumers (specs, guides, READMEs, issue dep graphs via `gen-deps.py`) — outputs become smaller (no 900KB mermaid.js), faster to render, and visually consistent with forge branding.
+
+## Constraints
+
+- **No regression in capability:** every shape currently served by Mermaid (gantt, pie, ER, sequence, state, > 8-node flowcharts, issue-dependency flowcharts) must have a native fgraph replacement before the purge.
+- **Phased rollout — build before break:** Phase 1 ships 6 new templates coexisting with Mermaid; Phase 2 migrates skill references and render scripts; Phase 3 deletes Mermaid files; Phase 4 adds a grep guard to prevent re-introduction.
+- **Contract parity with existing fgraph templates:** inline SVG with `viewBox="0 0 100 100"`, `vector-effect: non-scaling-stroke`, consumes `fgraph-base.css` tokens, no new runtime deps, works under `file://`.
+- **Scope spans multiple domains:** 3 HTML templates + 2 Python render scripts + 1 deps-graph script + 5 SKILL.md files + 1 reference guide + 1 JS init + 2 CLAUDE.md files. Cross-cutting refactor requires analyze + spec + plan.
+- **Supersedes #19:** issue #19 (Mermaid hardening) must be closed as superseded during Phase 3 — no point hardening files we're removing.
+- **Must not re-open #13 scope:** #13 shipped P1 types (gantt/pie/ER) via Mermaid on 2026-04-14. This issue explicitly reverses that distribution choice while preserving the visual capability. Phase 3 is the point where #13's Mermaid artifacts are deleted.
+- **Builds on #7 research:** fgraph auto-layout for > 8-node graphs may need either a new `dep-graph.html` template or a primitive from the #7 (closed) go/no-go research.
+
+## Out of Scope
+
+- **PNG/PDF export** (#14) — orthogonal; stays in its own issue.
+- **P2/P3 inline-SVG types** (#20) — radar, funnel, bubble, scatter, UML class. Tracked separately. This issue is strictly Mermaid → fgraph swap.
+- **New data-chart-templates/ sub-tree** — keep everything under `graph-templates/` per #13's precedent.
+- **Auto-layout as a general primitive** — if needed for dep-graphs, ship as a focused template (`dep-graph.html`), not a general-purpose layout engine.
+- **Renaming / refactoring non-Mermaid parts of render-md.py / render-md-tabs.py** — only the `mermaid_fence` path is in scope.
+- **Downstream artifacts already rendered with Mermaid** under `~/.roxabi/forge/` — those are generation outputs; re-rendering happens when authors re-run skills. No backfill step.
+
+## Complexity
+
+**Tier: F-full** — multi-domain refactor spanning templates (HTML/SVG/CSS), Python render scripts, skill frontmatter/prose, dependency-graph tooling, and CLAUDE.md policy files. Six new templates require non-trivial SVG design work (gantt date axis, sequence lifelines, state transitions, auto-layout for large graphs). Phased rollout across 4 stages adds sequencing risk. Analyze step needed to map the fgraph primitive surface, audit each Mermaid call site, and decide the `dep-graph.html` vs. layout-primitive question.
+
+Signals observed:
+
+- Touches ≥ 5 domains (templates, render pipeline, 5 skills, deps tooling, global policy docs).
+- New SVG patterns: fgraph currently has no date axis, no lifeline primitive, no state-transition arrow style, no auto-layout.
+- Reverses a feature shipped yesterday (#13 / 758fdd6) — needs careful sequencing to avoid two weeks of gantt/pie/ER outage between purge and replacement.
+- Supersedes an open issue (#19) — must close it cleanly.
+- Modifies user-global CLAUDE.md (`~/.claude/CLAUDE.md`) — a rare cross-repo change; worth flagging in spec + plan.
+- 2K+ lines of code to remove; demos required per-template to verify regression-free coverage.
