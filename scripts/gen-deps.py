@@ -4,16 +4,23 @@ gen-deps.py — generate tab-dependencies.html from roadmap-deps.json.
 
 Usage:
   python3 gen-deps.py [data.json] [--out path/to/tab-dependencies.html]
+                      [--layout-overrides overrides.json]
   python3 gen-deps.py --github-sync   # pull closed dates from gh CLI, update JSON status
+
+Renders per-phase dependency graphs via the native fgraph `dep-graph.html`
+template (topological layer assignment in Python + elbow-routed SVG paths).
+No runtime diagram library.
 """
 
+import argparse
+import html
 import json
 import os
 import re
 import sys
 import subprocess
+from collections import deque
 from pathlib import Path
-from collections import defaultdict
 
 if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
     print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR', file=sys.stderr)
@@ -21,42 +28,16 @@ FORGE_DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path
 DEFAULT_DATA = FORGE_DIR / "lyra/visuals/deps/roadmap-deps.json"
 DEFAULT_OUT  = FORGE_DIR / "lyra/visuals/tabs/lyra-status/tab-dependencies.html"
 
-# ── Styles ──────────────────────────────────────────────────────────────────
-
-CROSS_PHASE_STYLE = (
-    "fill:#0f172a,color:#94a3b8,stroke:#6366f1,"
-    "stroke-width:1px,stroke-dasharray:4 3"
-)
-
-VIRTUAL_STYLE = (
-    "fill:#1e1a2e,color:#94a3b8,stroke:#6d28d9,"
-    "stroke-width:1px,stroke-dasharray:3 3"
-)
-
-def domain_style(domain, domains):
-    d = domains.get(domain, {"fill":"#6366f1","text":"#fff","stroke":"#4338ca"})
-    return f"fill:{d['fill']},color:{d['text']},stroke:{d['stroke']},stroke-width:2px"
-
-def node_style(issue, domains):
-    status = issue.get("status", "open")
-    domain = issue.get("domain", "")
-    d = domains.get(domain, {"fill":"#6366f1","text":"#fff","stroke":"#4338ca"})
-    if status == "done_recent":
-        return f"fill:#374151,color:#9ca3af,stroke:{d['stroke']},stroke-width:2px,stroke-dasharray:5 5"
-    if status == "deferred":
-        return "fill:#1a1000,color:#fbbf24,stroke:#ca8a04,stroke-width:2px,stroke-dasharray:4 3"
-    if status == "external":
-        return "fill:#ef4444,color:#fff,stroke:#b91c1c,stroke-width:2px"
-    if status == "virtual":
-        return VIRTUAL_STYLE
-    return domain_style(domain, domains)
+CORRIDOR_WIDTH = 2  # horizontal corridor spacing for elbow routing (0..100 coord space)
+TONE_CYCLE = ("amber", "cyan", "purple", "green")
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def mid(issue_id: str) -> str:
-    """Safe Mermaid node ID."""
+def nid(issue_id: str) -> str:
+    """Stable, HTML-id-safe node identifier."""
     return "N" + re.sub(r"[^a-zA-Z0-9]", "_", str(issue_id))
+
 
 def node_label(issue: dict) -> str:
     label = issue.get("label", issue["id"])
@@ -67,83 +48,297 @@ def node_label(issue: dict) -> str:
         return f"{label} (deferred)"
     return label
 
+
 def phase_short(phase_id: str) -> str:
     """ph3a → Ph3a"""
     return phase_id.replace("ph", "Ph")
 
 
-# ── Mermaid generation ───────────────────────────────────────────────────────
+def domain_tone(domain: str, domain_tone_map: dict) -> str:
+    """Pick a fgraph tone for a domain name (cached in domain_tone_map)."""
+    if domain not in domain_tone_map:
+        domain_tone_map[domain] = TONE_CYCLE[len(domain_tone_map) % len(TONE_CYCLE)]
+    return domain_tone_map[domain]
 
-def build_mermaid(phase_id, all_issues, domains):
+
+def card_tone(issue: dict, domain_tone_map: dict) -> str:
+    status = issue.get("status", "open")
+    if status == "external":
+        return "amber"  # warn tone
+    if status == "virtual":
+        return "purple"
+    return domain_tone(issue.get("domain", ""), domain_tone_map)
+
+
+def card_modifiers(issue: dict) -> str:
+    """Extra class modifiers keyed off status. Done/deferred render as ghost (dashed, dimmed)."""
+    status = issue.get("status", "open")
+    if status in ("done_recent", "deferred"):
+        return " ghost"
+    return ""
+
+
+# ── Layer assignment (Python-side topological sort) ──────────────────────────
+
+def assign_layers(phase_issues: dict, all_issues: dict) -> dict[str, int]:
+    """Assign each intra-phase issue a layer index (0..L-1) via BFS.
+
+    Roots: issues with no intra-phase blocker (blocked_by outside phase is ignored).
+    Subsequent layers: max(layer of intra-phase blockers) + 1.
+    Roots are processed alphabetically; final per-layer ordering is alphabetical
+    (see `buckets` sort in `build_fgraph`). Cycle members — nodes never reachable
+    from a root — fall through to layer 0 via the `setdefault` pass at the bottom;
+    this groups them visually on the left edge. A stderr warning surfaces when
+    the fallback fires so data drift is visible.
+
+    Complexity: child enqueue iterates `parents.items()` once per settled node
+    (O(N²) worst case). Acceptable for current phase size (< 50 issues); revisit
+    with a reverse-adjacency `children` map if phases ever scale.
     """
-    Generate a Mermaid flowchart for one phase.
-    Includes intra-phase edges, incoming cross-phase ghost nodes,
-    and outgoing cross-phase ghost nodes.
+    # Build intra-phase parent lookup (blocked_by within the phase)
+    parents = {iid: [bid for bid in iss.get("blocked_by", []) if bid in phase_issues]
+               for iid, iss in phase_issues.items()}
+
+    layer: dict[str, int] = {}
+    queue: deque[str] = deque(sorted(iid for iid, p in parents.items() if not p))
+    while queue:
+        iid = queue.popleft()
+        if iid in layer:
+            continue
+        blockers = parents[iid]
+        # Invariant: non-root nodes are only enqueued by the child-enqueue loop
+        # below, which itself guards `all(b in layer for b in child_parents)`.
+        # So `blockers` is always satisfiable here. No re-enqueue branch needed.
+        layer[iid] = max((layer[b] + 1 for b in blockers), default=0)
+        # Enqueue children whose blockers are now satisfied (alphabetical, for determinism).
+        for child_id in sorted(parents.keys()):
+            child_parents = parents[child_id]
+            if child_id not in layer and iid in child_parents:
+                if all(b in layer for b in child_parents):
+                    queue.append(child_id)
+
+    # Cycle-safety fallback: any node unreachable from a root (i.e. in a cycle)
+    # lands at layer 0 with a stderr warning so the data drift is visible.
+    unassigned = [iid for iid in phase_issues if iid not in layer]
+    if unassigned:
+        print(
+            f"⚠ assign_layers: {len(unassigned)} issue(s) in a dependency cycle "
+            f"or unreachable from roots — assigned to layer 0: {sorted(unassigned)}",
+            file=sys.stderr,
+        )
+        for iid in unassigned:
+            layer[iid] = 0
+    return layer
+
+
+# ── fgraph fragment generation ───────────────────────────────────────────────
+
+def build_fgraph(
+    phase_id: str,
+    all_issues: dict,
+    domains: dict,
+    overrides: dict | None = None,
+    domain_tone_map: dict | None = None,
+) -> str:
+    """Render the native dep-graph fgraph fragment for one phase.
+
+    Shape: <div class="fgraph-wrap dep-graph green"> … </div> with phase-internal
+    `.fg-dep-card` nodes positioned via --x/--y, elbow-routed SVG paths in
+    <svg class="fgraph-edges">. No Mermaid, no runtime JS.
     """
+    overrides = overrides or {}
+    domain_tone_map = domain_tone_map if domain_tone_map is not None else {}
+
     phase_issues = {
         iid: iss for iid, iss in all_issues.items()
         if iss.get("phase") == phase_id and iss.get("status") != "done_old"
     }
 
     if not phase_issues:
-        return 'flowchart TD\n    EMPTY["(no active issues)"]\n'
+        return (
+            '<div class="fgraph-wrap dep-graph green" role="img" aria-label="no active issues">\n'
+            '  <div class="fg-dep-card ghost" style="--x:50; --y:50;">'
+            '<div class="issue-title">(no active issues)</div></div>\n'
+            '</div>'
+        )
 
-    # Collect edges and ghost nodes
-    edges = []           # (from_nid, to_nid)
-    ghost_in  = {}       # ghost_nid -> (style, label)
-    ghost_out = {}       # ghost_nid -> (style, label)
+    # 1. Topological layer assignment inside the phase.
+    layer = assign_layers(phase_issues, all_issues)
+    max_layer = max(layer.values())
+    layer_count = max_layer + 1
+    col_step = 100 / (layer_count + 1)
 
+    # 2. Intra-layer ordering (alphabetical by id) → --y per card.
+    buckets = {}  # layer_idx -> [iid, ...]
+    for iid, lvl in sorted(layer.items()):
+        buckets.setdefault(lvl, []).append(iid)
+
+    positions = {}  # iid -> (x, y)
+    for lvl, members in buckets.items():
+        x = round(col_step * (lvl + 1), 2)
+        row_step = 100 / (len(members) + 1)
+        for i, iid in enumerate(members):
+            y = round(row_step * (i + 1), 2)
+            if iid in overrides:
+                ov = overrides[iid]
+                x = ov.get("x", x)
+                y = ov.get("y", y)
+            positions[iid] = (x, y)
+
+    # 3. Ghost cards for cross-phase deps (one per unique (dir, blocker/blocked id)).
+    ghost_in = {}   # gid -> (iid, blocker_issue)
+    ghost_out = {}  # gid -> (iid, blocked_issue)
     for iid, issue in phase_issues.items():
-        nid = mid(iid)
-
-        # Outgoing: this issue blocks something else
-        for blocked_id in issue.get("blocks", []):
-            blocked = all_issues.get(blocked_id)
-            if not blocked or blocked.get("status") == "done_old":
-                continue
-            if blocked.get("phase") == phase_id:
-                # Intra-phase
-                edges.append((nid, mid(blocked_id)))
-            else:
-                # Cross-phase outgoing ghost
-                gid = f"XO_{mid(blocked_id)}"
-                if gid not in ghost_out:
-                    ph = phase_short(blocked.get("phase", "?"))
-                    lbl = blocked.get("label", f"#{blocked_id}")
-                    ghost_out[gid] = (CROSS_PHASE_STYLE, f"&#8594; {ph} {lbl}")
-                edges.append((nid, gid))
-
-        # Incoming: this issue is blocked by something in another phase
         for blocker_id in issue.get("blocked_by", []):
             blocker = all_issues.get(blocker_id)
             if not blocker or blocker.get("status") == "done_old":
                 continue
             if blocker.get("phase") != phase_id:
-                # Cross-phase incoming ghost
-                gid = f"XI_{mid(blocker_id)}"
-                if gid not in ghost_in:
-                    ph = phase_short(blocker.get("phase", "?"))
-                    lbl = blocker.get("label", f"#{blocker_id}")
-                    ghost_in[gid] = (CROSS_PHASE_STYLE, f"&#8592; {ph} {lbl}")
-                edges.append((gid, nid))
+                ghost_in.setdefault(f"XI_{nid(blocker_id)}", (iid, blocker_id, blocker))
+        for blocked_id in issue.get("blocks", []):
+            blocked = all_issues.get(blocked_id)
+            if not blocked or blocked.get("status") == "done_old":
+                continue
+            if blocked.get("phase") != phase_id:
+                ghost_out.setdefault(f"XO_{nid(blocked_id)}", (iid, blocked_id, blocked))
 
-    lines = ["flowchart TD"]
+    # Place ghost cards in reserved columns: incoming at --x=5 (left), outgoing at --x=95 (right).
+    # Sort by gid for deterministic ordering (gid prefixes XI_/XO_ + sanitised blocker id — stable).
+    # --y uses an adaptive row_step keyed off ghost count so positions stay in the 0..100 canvas
+    # even when a phase has many cross-phase deps.
+    ghost_positions: dict[str, tuple[float, float]] = {}
+    ghost_in_sorted = sorted(ghost_in.items())
+    row_step_in = 100 / (len(ghost_in_sorted) + 1) if ghost_in_sorted else 0
+    for i, (gid, _payload) in enumerate(ghost_in_sorted):
+        ghost_positions[gid] = (5.0, round(row_step_in * (i + 1), 2))
+    ghost_out_sorted = sorted(ghost_out.items())
+    row_step_out = 100 / (len(ghost_out_sorted) + 1) if ghost_out_sorted else 0
+    for i, (gid, _payload) in enumerate(ghost_out_sorted):
+        ghost_positions[gid] = (95.0, round(row_step_out * (i + 1), 2))
 
-    # Declare nodes (phase issues first, then ghosts)
+    # 4. Edges: intra-phase (straight vertical-ish) + cross-phase (elbow-routed).
+    intra_edges = []   # (from_iid, to_iid)
+    cross_edges = []   # (from_anchor, to_anchor)  — anchor is either iid or ghost gid
     for iid, issue in phase_issues.items():
-        lines.append(f'    {mid(iid)}["{node_label(issue)}"]')
-    for gid, (_, lbl) in {**ghost_in, **ghost_out}.items():
-        lines.append(f'    {gid}["{lbl}"]')
+        for blocked_id in issue.get("blocks", []):
+            blocked = all_issues.get(blocked_id)
+            if not blocked or blocked.get("status") == "done_old":
+                continue
+            if blocked.get("phase") == phase_id:
+                intra_edges.append((iid, blocked_id))
+            else:
+                cross_edges.append((iid, f"XO_{nid(blocked_id)}"))
+        for blocker_id in issue.get("blocked_by", []):
+            blocker = all_issues.get(blocker_id)
+            if not blocker or blocker.get("status") == "done_old":
+                continue
+            if blocker.get("phase") != phase_id:
+                cross_edges.append((f"XI_{nid(blocker_id)}", iid))
 
-    for a, b in edges:
-        lines.append(f'    {a} --> {b}')
+    all_positions = {**positions, **ghost_positions}
+    paths = route_elbows(intra_edges, cross_edges, all_positions)
 
+    # 5. Emit HTML.
+    out = [
+        '<div class="fgraph-wrap dep-graph green" role="img" '
+        f'aria-label="{html.escape(phase_id)} dependencies">',
+        '  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">',
+        '    <defs>',
+        '      <marker id="fg-arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>',
+        '      <marker id="fg-arr-cyan"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>',
+        '    </defs>',
+    ]
+    out.extend(f'    {p}' for p in paths)
+    out.append('  </svg>')
+
+    # Issue cards
     for iid, issue in phase_issues.items():
-        lines.append(f'    style {mid(iid)} {node_style(issue, domains)}')
-    for gid, (style, _) in {**ghost_in, **ghost_out}.items():
-        lines.append(f'    style {gid} {style}')
+        x, y = positions[iid]
+        tone = card_tone(issue, domain_tone_map)
+        mods = card_modifiers(issue)
+        out.append(
+            f'  <div class="fg-dep-card {tone}{mods}" style="--x:{x}; --y:{y};">'
+            f'<div class="issue-num">#{html.escape(str(iid))}</div>'
+            f'<div class="issue-title">{html.escape(node_label(issue))}</div></div>'
+        )
 
-    return "\n".join(lines) + "\n    "
+    # Ghost cards (incoming + outgoing) — iterate sorted copies so DOM order is deterministic.
+    for gid, (_iid, blocker_id, blocker) in ghost_in_sorted:
+        x, y = ghost_positions[gid]
+        ph = phase_short(blocker.get("phase", "?"))
+        lbl = blocker.get("label", f"#{blocker_id}")
+        out.append(
+            f'  <div class="fg-dep-card cyan ghost" style="--x:{x}; --y:{y};" '
+            f'data-gid="{gid}">'
+            f'<div class="issue-num">← {html.escape(ph)}</div>'
+            f'<div class="issue-title">{html.escape(lbl)}</div></div>'
+        )
+    for gid, (_iid, blocked_id, blocked) in ghost_out_sorted:
+        x, y = ghost_positions[gid]
+        ph = phase_short(blocked.get("phase", "?"))
+        lbl = blocked.get("label", f"#{blocked_id}")
+        out.append(
+            f'  <div class="fg-dep-card cyan ghost" style="--x:{x}; --y:{y};" '
+            f'data-gid="{gid}">'
+            f'<div class="issue-num">→ {html.escape(ph)}</div>'
+            f'<div class="issue-title">{html.escape(lbl)}</div></div>'
+        )
+
+    out.append('</div>')
+    return "\n".join(out)
+
+
+def route_elbows(
+    intra_edges: list[tuple[str, str]],
+    cross_edges: list[tuple[str, str]],
+    positions: dict[str, tuple[float, float]],
+) -> list[str]:
+    """Return a list of <path> strings — elbow-routed cross-phase + straight intra-phase.
+
+    Intra-phase: straight `M sx,sy L tx,ty`. Cross-phase: 3-segment elbow
+    `M sx,sy H corridor_x V ty H tx`; edges sorted by source `--y`, offset per
+    edge index by `CORRIDOR_WIDTH`. `corridor_x` is clamped to [1, 99] so paths
+    never route off the 0..100 SVG canvas even with many cross-edges.
+    """
+    paths = []
+
+    # Intra-phase: straight segment from source to target.
+    for frm, to in intra_edges:
+        if frm not in positions or to not in positions:
+            continue
+        sx, sy = positions[frm]
+        tx, ty = positions[to]
+        tone = "cyan"
+        paths.append(
+            f'<path class="fg-edge {tone}" d="M {sx},{sy} L {tx},{ty}" '
+            f'marker-end="url(#fg-arr-{tone})" fill="none"/>'
+        )
+
+    # Cross-phase: sort by source --y so corridors don't overlap; assign corridor_x.
+    valid_cross = [(a, b) for a, b in cross_edges
+                   if a in positions and b in positions]
+    valid_cross.sort(key=lambda ab: positions[ab[0]][1])
+
+    for idx, (frm, to) in enumerate(valid_cross):
+        sx, sy = positions[frm]
+        tx, ty = positions[to]
+        # Corridor mid-x between source and target, offset per edge index.
+        # Clamp to [1, 99] so large cross-edge counts don't route off-canvas.
+        base_corridor = (sx + tx) / 2
+        corridor_x = round(
+            max(1.0, min(99.0, base_corridor + (idx - len(valid_cross) / 2) * CORRIDOR_WIDTH)),
+            2,
+        )
+        # All cross-phase edges have one ghost anchor (XI_/XO_) by construction in
+        # build_fgraph — tone is always "amber".
+        tone = "amber"
+        paths.append(
+            f'<path class="fg-edge {tone}" '
+            f'd="M {sx},{sy} H {corridor_x} V {ty} H {tx}" '
+            f'marker-end="url(#fg-arr-{tone})" fill="none"/>'
+        )
+
+    return paths
 
 
 def incoming_banner(phase_id, all_issues, phases_by_id):
@@ -337,9 +532,7 @@ def render_critical_paths(critical_paths, all_issues):
 
 # ── Full tab render ──────────────────────────────────────────────────────────
 
-CTRL_BUTTONS = '<button class="dep-ctrl dep-zi">+</button><button class="dep-ctrl dep-zo">-</button><button class="dep-ctrl dep-ft" style="width:auto;padding:0 10px;font-size:11px">Fit</button>'
-
-def render_tab(data):
+def render_tab(data, overrides=None):
     all_issues  = {i["id"]: i for i in data["issues"]}
     phases      = data["phases"]
     phases_by_id= {p["id"]: p for p in phases}
@@ -361,6 +554,8 @@ def render_tab(data):
         )
 
     # ── Phase blocks ──
+    # Shared domain → fgraph tone map so colours stay consistent across phases.
+    domain_tone_map = {}
     phase_blocks = ""
     for phase in phases:
         pid   = phase["id"]
@@ -370,15 +565,18 @@ def render_tab(data):
         note_span = f' <span style="font-size:11px;color:var(--green);font-weight:400;margin-left:8px">{pnote}</span>' if pnote else ""
 
         banner = incoming_banner(pid, all_issues, phases_by_id)
-        mermaid = build_mermaid(pid, all_issues, domains)
+        fgraph_fragment = build_fgraph(
+            pid, all_issues, domains,
+            overrides=overrides,
+            domain_tone_map=domain_tone_map,
+        )
 
         phase_blocks += f"""
   <!-- ── {pname} ── -->
   <div class="dep-phase" style="--phase-color:{pcolor}">
     <div class="dep-phase__incoming">{banner}</div>
     <div class="dep-phase__header">{pname}{note_span}</div>
-    <div class="dep-phase__viewer"><div class="dep-controls-overlay">{CTRL_BUTTONS}</div><div class="dep-phase__svg"><pre class="mermaid">
-{mermaid}</pre></div></div>
+    <div class="dep-phase__viewer">{fgraph_fragment}</div>
   </div>
 """
 
@@ -493,24 +691,37 @@ def github_sync(data_file: Path):
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
-    args = sys.argv[1:]
+    parser = argparse.ArgumentParser(
+        prog="gen-deps.py",
+        description="Generate tab-dependencies.html from roadmap-deps.json using the native fgraph dep-graph template.",
+    )
+    parser.add_argument("data", nargs="?", default=str(DEFAULT_DATA),
+                        help="Path to roadmap-deps.json (default: $FORGE_DIR/lyra/visuals/deps/roadmap-deps.json)")
+    parser.add_argument("--out", default=str(DEFAULT_OUT),
+                        help="Path to output tab-dependencies.html")
+    parser.add_argument("--github-sync", action="store_true",
+                        help="Pull closed dates from gh CLI and update JSON status, then render HTML as usual. "
+                             "Unlike the pre-0.7.0 hand-rolled CLI, this no longer early-returns — "
+                             "every invocation also writes the --out HTML.")
+    parser.add_argument("--layout-overrides", default=None, metavar="PATH",
+                        help="Optional JSON file mapping {issue_id: {x, y}} to pin node positions (0..100 space); escape hatch for unreadable elbow-routed output")
+    args = parser.parse_args()
 
-    if "--github-sync" in args:
-        data_file = Path(next((a for a in args if not a.startswith("--")), DEFAULT_DATA))
+    data_file = Path(args.data)
+    out_file = Path(args.out)
+
+    if args.github_sync:
         github_sync(data_file)
-        args = [a for a in args if a not in ("--github-sync",)]
-        if not args:
-            return
 
-    data_file = Path(args[0]) if args else DEFAULT_DATA
-    out_arg = next((args[i+1] for i, a in enumerate(args) if a == "--out" and i+1 < len(args)), None)
-    out_file = Path(out_arg) if out_arg else DEFAULT_OUT
+    overrides = None
+    if args.layout_overrides:
+        overrides = json.loads(Path(args.layout_overrides).read_text())
 
     data = json.loads(data_file.read_text())
-    html = render_tab(data)
+    rendered = render_tab(data, overrides=overrides)
     out_file.parent.mkdir(parents=True, exist_ok=True)
-    out_file.write_text(html)
-    print(f"Generated {out_file} ({len(html):,} bytes)")
+    out_file.write_text(rendered)
+    print(f"Generated {out_file} ({len(rendered):,} bytes)")
 
 
 if __name__ == "__main__":

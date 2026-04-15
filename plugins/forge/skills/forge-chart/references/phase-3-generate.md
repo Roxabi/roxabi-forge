@@ -9,7 +9,7 @@ Read `shells/single.html` → substitute placeholders with content. The shell al
 
 ### Hero Section
 
-Every chart SHOULD have a hero section. Use the **left border variant** by default. Exception: single quick diagrams (one Mermaid / fgraph block, no narrative) — a minimal title + diagram is acceptable without a hero.
+Every chart SHOULD have a hero section. Use the **left border variant** by default. Exception: single quick diagrams (one fgraph block, no narrative) — a minimal title + diagram is acceptable without a hero.
 
 ```html
 <section class="hero left-border">
@@ -39,79 +39,41 @@ Use section labels with **dot prefix** for each major section:
 
 Variants: `dot` (default), `triangle`, `square`.
 
-### Diagram Shell (REQUIRED for Mermaid)
+### fgraph template inlining (diagram content)
 
-**NEVER use bare `<pre class="mermaid">`.** Always wrap in the diagram shell:
+Pick the matching template from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/` and inline its body + `fgraph-base.css` into the output. For single-file output (Mode A), inline both into `<style>` and the diagram markup into `{CONTENT}`:
 
 ```html
-<div class="diagram-shell">
-  <div class="zoom-controls">
-    <button data-zoom="in" title="Zoom in">+</button>
-    <button data-zoom="fit" title="Fit">⤢</button>
-    <button data-zoom="out" title="Zoom out">−</button>
+<section class="diagram">
+  <!-- inline fgraph template body — e.g. from graph-templates/radial-hub.html -->
+  <div class="fgraph-wrap">
+    <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path class="fg-edge data" d="M 30,50 L 70,50" marker-end="url(#fg-arr-cyan)"/>
+    </svg>
+    <div class="fgraph-node pill" style="--x:20; --y:50">{{NODE_A}}</div>
+    <div class="fgraph-node hexagon" style="--x:80; --y:50">{{NODE_B}}</div>
   </div>
-  <div class="mermaid-container" data-mermaid-out id="diagram-{{ID}}"></div>
-  <script type="text/plain" data-mermaid>
-    {{MERMAID_SOURCE}}
-  </script>
-</div>
+</section>
 ```
 
-### Mermaid Initialization
+No runtime JS — fgraph is declarative CSS + SVG. All custom props (`--x`, `--y`) live in the 0..100 coordinate space. Arrow markers (`fg-arr-*`) are defined in `fgraph-base.css`; ER templates also use `fg-er-*` crow's-foot markers.
 
-Add to `{HEAD_EXTRAS}`:
+Template picker — see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md`:
 
-```html
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-      primaryColor: 'var(--surface)',
-      primaryTextColor: 'var(--text)',
-      primaryBorderColor: 'var(--accent)',
-      lineColor: 'var(--text-dim)',
-      secondaryColor: 'var(--border)',
-      background: 'var(--bg)',
-      edgeLabelBackground: 'var(--surface)',
-      nodeTextColor: 'var(--text-muted)',
-    },
-    flowchart: { useMaxWidth: false, curve: 'basis' }
-  })
-</script>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
-```
-
-Add to `{EXTRA_SCRIPTS}` (after Mermaid render):
-
-```javascript
-// Mermaid render + pan/zoom init
-(async function() {
-  const container = document.getElementById('diagram-{{ID}}')
-  const sourceEl = container?.previousElementSibling
-  if (!container || !sourceEl) return
-  const { svg } = await mermaid.render('mermaid-svg-{{ID}}', sourceEl.textContent)
-  container.innerHTML = svg
-  const svgEl = container.querySelector('svg')
-  if (svgEl) {
-    svgEl.setAttribute('height', '100%')
-    svgEl.setAttribute('width', '100%')
-    svgEl.style.maxWidth = 'none'
-    if (window.svgPanZoom) {
-      const pz = svgPanZoom(svgEl, {
-        zoomEnabled: true, panEnabled: true,
-        controlIconsEnabled: false,
-        fit: true, center: true,
-        minZoom: 0.15, maxZoom: 15
-      })
-      document.querySelector('[data-zoom="in"]')?.addEventListener('click', () => pz.zoomIn())
-      document.querySelector('[data-zoom="out"]')?.addEventListener('click', () => pz.zoomOut())
-      document.querySelector('[data-zoom="fit"]')?.addEventListener('click', () => { pz.resetZoom(); pz.resetPan(); pz.fit(); pz.center() })
-    }
-  }
-})()
-```
+| Shape | Template |
+|---|---|
+| Hub-and-spoke (≤ 6 peers) | `radial-hub.html` |
+| Peer ring | `radial-ring.html` |
+| Linear pipeline | `linear-flow.html` |
+| Two peers sharing resources | `dual-cluster.html` |
+| Layered architecture (3–4 tiers) | `layered.html` / `deployment-tiers.html` |
+| Multi-host deployment | `machine-clusters.html` |
+| Timeline / gantt | `gantt.html` |
+| Proportion / share | `pie.html` |
+| ER schema | `er.html` |
+| API sequence | `sequence.html` |
+| State machine | `state.html` |
+| Issue dependency graph | `dep-graph.html` |
 
 ### Phase Cards (when applicable)
 

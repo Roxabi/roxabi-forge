@@ -32,7 +32,6 @@ ${CLAUDE_PLUGIN_ROOT}/references/shells/split.html   — HTML template with plac
 ${CLAUDE_PLUGIN_ROOT}/references/base/tab-loader.js    — substitute {NAME}, then inline via {TAB_LOADER_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md     — meta tag format + categories
-${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md    — only if a tab will contain a Mermaid diagram
 ${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md — if content has diagrams: semantic shape selection guide
 ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — if content has diagrams: fgraph decision matrix + templates
 ```
@@ -76,7 +75,13 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 | Hub-and-spoke ≤ 6 peers with rich cards | fgraph `radial-hub.html` — center pill + satellites |
 | Peer ring (no center hub) | fgraph `radial-ring.html` — N nodes in a circle |
 | Multi-host / distributed deployment | fgraph `machine-clusters.html` — side-by-side frames |
-| Flow / topology / > 8 nodes | Mermaid `flowchart` (dagre auto-layout) |
+| Timeline / gantt | fgraph `gantt.html` — date axis + horizontal bars |
+| API sequence | fgraph `sequence.html` — participant lifelines + message arrows |
+| State machine | fgraph `state.html` — state nodes + transitions |
+| ER schema | fgraph `er.html` — entity boxes + crow's-foot markers |
+| Proportion / share | fgraph `pie.html` — pre-computed SVG arc paths |
+| Issue dependency graph | fgraph `dep-graph.html` — fed by `scripts/gen-deps.py` |
+| > 8 nodes or a shape no template covers | Split the diagram, or use `layered.html` with hand-assigned `--x/--y` |
 | Stacked **text-heavy** pipelines (paragraphs per stage) | CSS Grid cards |
 | Data comparison (≥4 rows or ≥3 cols) | HTML tables |
 | Single-page audit / long-form | TOC sidebar layout |
@@ -104,8 +109,7 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`. Ro
 
 | Rendering | Wrapper / component |
 |---|---|
-| Mermaid (any type) | `.diagram-shell` with `.zoom-controls` (never bare `<pre class="mermaid">`) |
-| fgraph (any template) | `.fgraph-wrap.{tone}` + `.fgraph-edges` SVG + `.fgraph-node.{shape}.{tone}` (see `graph-templates/` + `shape-vocabulary.md`). Link `fgraph-base.css` in shell `<head>`. Use semantic shapes: `.cylinder` for data stores, `.hexagon` for agents, `.pill` for brokers, `.folded` for files, `.diamond` for decisions, `.circle` for events. |
+| fgraph (any template) | `.fgraph-wrap.{tone}` + `.fgraph-edges` SVG + `.fgraph-node.{shape}.{tone}` (see `graph-templates/` + `shape-vocabulary.md`). Link `fgraph-base.css` in shell `<head>` (Mode B — multi-tab docs). Use semantic shapes: `.cylinder` for data stores, `.hexagon` for agents, `.pill` for brokers, `.folded` for files, `.diamond` for decisions, `.circle` for events. |
 | HTML table | `.table-wrap > table` with `<thead>` (enables sticky header + horizontal scroll) |
 | CSS Grid cards | `.cards` container + `.card`/`.card.accent` per row |
 | TOC sidebar | `.wrap--toc > .toc + .main--toc` layout (see Phase 3 TOC Sidebar section) |
@@ -123,13 +127,13 @@ Cross-doc: use `.card.info` / `.card.warning` / `.card.critical` for inline tona
 - Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - Hero section present with eyebrow + title accent + subtitle.
 - Section titles use `.section-title` or `.section-label` (never plain `<h2>`).
-- Mermaid (if used) wrapped in `.diagram-shell` — never bare `<pre class="mermaid">`.
+- fgraph templates: link `fgraph-base.css` from the shell `<head>` (Mode B — multi-tab docs) — do not inline per-tab.
 - **Body copy uses `var(--text)` for maximum readability on dark backgrounds.** `var(--text-muted)` is for intermediate emphasis only (subtitles, label rows); `var(--text-dim)` is for metadata only.
 - No ASCII art, no emoji in headers.
 - Tab buttons have `role="tab"` + `aria-selected` semantics.
-- Interactive controls (theme toggle, zoom, tab buttons) have visible `:focus-visible` styling.
+- Interactive controls (theme toggle, tab buttons) have visible `:focus-visible` styling.
 - Color pairs used for body copy meet 4.5:1 contrast (AAA when possible).
-- Mermaid container is responsive — no horizontal scroll below 375px viewport.
+- fgraph diagrams are responsive — `aspect-ratio` + `--x/--y` custom props keep layout intact below 375 px viewport.
 - Verify Frame Q2 takeaway is visually emphasized in the Overview tab — the reader should spot it within 10 seconds of landing.
 
 **Track A additionally:**
@@ -226,7 +230,7 @@ Rules:
 - Inline all CSS (base + aesthetic) into {ROOT}/css/{SLUG}.css
 - Follow shell-processing.md substitution pipeline
 - Use semantic tokens from components.css
-- Mermaid (if used) wrapped in .diagram-shell — never bare <pre class="mermaid">
+- fgraph templates: link fgraph-base.css from the shell <head> (Mode B) — do not inline per-tab
 ```
 
 The sub-agent has access to Read, Write, Edit, Bash, Glob, Grep tools — it can read all reference files and write all output files independently.
@@ -285,10 +289,10 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 3. **Inventory diagrams.** For each diagram or architectural visual in the source content:
    - Name it (e.g. "3-layer stack", "model runtime chain")
-   - Count nodes and classify topology (layered / linear / radial / nested / grid)
-   - Pick rendering: fgraph template | CSS Grid cards | Mermaid | table
-   - If fgraph: note which shapes per node using `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` (cylinder, hexagon, pill, folded, diamond, circle, default rect)
-   - If Mermaid: follow `${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md` checklist
+   - Count nodes and classify topology (layered / linear / radial / nested / grid / gantt / pie / er / sequence / state / dep-graph)
+   - Pick the matching fgraph template from `graph-templates/` (or CSS Grid cards / HTML table if the content is not a graph)
+   - Note which shapes per node using `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` (cylinder, hexagon, pill, folded, diamond, circle, default rect)
+   - If > 8 nodes or no template covers the shape: split the diagram across two fragments, or use `layered.html` with hand-assigned `--x/--y`
    Report the diagram inventory before proceeding to Phase 3. Do not write custom CSS for diagrams that have fgraph equivalents.
 
 4. **Determine layout mode:**
@@ -307,15 +311,14 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/forge-guide/references/phase-3-generate.md` b
 
 | Anti-Pattern | Fix |
 |--------------|-----|
-| Bare `<pre class="mermaid">` | Use diagram shell with `.mermaid-wrap` |
-| ASCII art in `<pre class="arch">` | Convert to Mermaid flowchart or fgraph |
+| Custom CSS for diagrams with fgraph equivalents | Use fgraph templates + `shape-vocabulary.md` — link `fgraph-base.css`, do not reinvent |
+| Inline `style="color:#..."` on fgraph nodes/edges | Use `fgraph-base.css` tone classes (`.amber`, `.cyan`, `.purple`, `.green`, `.red`) |
+| Hard-coded px coords on `.fgraph-node` | Use `--x`/`--y` custom props in 0..100 space |
+| ASCII art in `<pre class="arch">` | Convert to the matching fgraph template |
 | Emoji in headers | Remove — use text only |
-| `rgba()` in Mermaid `style` directives | Use hex colors only |
-| `theme: 'dark'` in Mermaid config | Use `theme: 'base'` + custom `themeVariables` |
 | Plain `<h2>` for section titles | Use `.section-title` class |
 | No header on multi-tab | Add styled header with eyebrow + badges |
 | Plain nav title only | Replace with full header component |
-| Custom CSS for diagrams with fgraph equivalents | Use fgraph templates + `shape-vocabulary.md` — link `fgraph-base.css`, do not reinvent |
 
 ---
 

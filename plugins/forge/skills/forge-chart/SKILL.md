@@ -1,11 +1,12 @@
 ---
 name: forge-chart
 description: >-
-  Create a quick self-contained single-file HTML visual — Mermaid flowchart,
-  dependency tree, sequence diagram, or CSS layout. No server needed, works
+  Create a quick self-contained single-file HTML visual — native fgraph
+  diagram (hub-and-spoke, gantt, pie, ER, sequence, state, dep-graph),
+  architecture layout, or CSS Grid explainer. No server needed, works
   with file://. Triggers: "draw" | "diagram" | "visualize" | "sketch" | "map"
   | "show the flow" | "quick visual".
-summary: 'single-file Mermaid / CSS visual'
+summary: 'single-file native fgraph / CSS visual'
 version: 0.3.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 ---
@@ -13,7 +14,7 @@ allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 # Chart — Single-File Quick Visual
 
 Create a self-contained HTML file. All CSS/JS inline — no fetch, no external files, works with `file://`.
-Use for: Mermaid flowcharts, dependency trees, sequence diagrams, simple CSS layouts.
+Use for: native fgraph topologies (hub-and-spoke, linear pipeline, layered), gantt timelines, pie proportions, ER schemas, sequence diagrams, state machines, issue-dependency graphs, or simple CSS explainer layouts.
 
 Output: `~/.roxabi/forge/<project>/visuals/{slug}.html` or `~/.roxabi/forge/_shared/diagrams/{slug}.html`.
 
@@ -30,8 +31,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/               — select one based 
 ${CLAUDE_PLUGIN_ROOT}/references/shells/single.html        — HTML template with placeholders
 ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js      — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md           — meta tag format + categories
-${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture/topology)
-${CLAUDE_PLUGIN_ROOT}/references/mermaid-guide.md          — Mermaid patterns for dynamic tabs
+${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture / topology / timeline / proportion / schema / sequence / state / dep-graph)
 ${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/fixtures/README.md — fixture format + regression inputs (no runner yet; hashes populate in future)
 ```
 
@@ -76,21 +76,23 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 
 | Content | Approach | Why |
 |---|---|---|
-| Task / dependency graph | Mermaid `flowchart TD` | Dagre auto-layout for trees |
-| Data flow (linear) | Mermaid `flowchart LR` | Left-to-right reads naturally |
-| API sequence | Mermaid `sequenceDiagram` | Time-ordered interactions |
-| State machine | Mermaid `stateDiagram-v2` | Native cycle support |
-| Timeline / schedule | Mermaid `gantt` | Dates + tasks + sections, auto-layout (see `references/graph-templates/gantt.html`) |
-| Proportion / share | Mermaid `pie` | One-line slices, auto-labelled (see `references/graph-templates/pie.html`) |
-| Entity-relationship schema | Mermaid `erDiagram` | Entity boxes + crow's-foot cardinality (see `references/graph-templates/er.html`) |
-| **Hub-and-spoke, ≤ 6 peers, rich cards** | **fgraph radial** | Pills, warn lines, multi-line |
-| 7 radial nodes | fgraph with narrow nodes, or split into sub-diagrams | fgraph caps at ~6 before labels collide |
+| Issue / dependency graph | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) | Python-side topological layer assignment + elbow routing; declarative |
+| Data flow (linear, 2–3 stages) | `graph-templates/linear-flow.html` | Unidirectional arrows, labels above |
+| API sequence | `graph-templates/sequence.html` | Participant lifelines + horizontal message arrows; cap 15 messages |
+| State machine | `graph-templates/state.html` | `.fgraph-node.circle/.diamond` + semantic edge classes for start/end |
+| Timeline / schedule | `graph-templates/gantt.html` | Date axis (`.fg-axis-date`) + horizontal bars; CSS-only, offline-safe |
+| Proportion / share | `graph-templates/pie.html` | Pre-computed SVG arc paths + legend; no runtime |
+| Entity-relationship schema | `graph-templates/er.html` | Entity boxes + crow's-foot markers (`.fg-er-*`) |
+| **Hub-and-spoke, ≤ 6 peers, rich cards** | **`graph-templates/radial-hub.html`** | Pills, warn lines, multi-line |
+| 7 radial nodes | `radial-ring.html` (no center) or split into sub-diagrams | fgraph caps at ~6 before labels collide |
+| Layered architecture (3–4 tiers) | `graph-templates/layered.html` or `deployment-tiers.html` | Dashed frames per layer, vertical fan-out |
+| Multi-host deployment | `graph-templates/machine-clusters.html` | Cross-machine edge routing, wide aspect |
 | Architecture layers (node topology, arrows needed, ≤8 nodes) | foreignObject+CSS Flexbox SVG | No pixel math; LLM only computes arrow coords; inline SVG, no JS |
 | Architecture layers (text-heavy, stacked, no arrows) | CSS Grid cards | Fallback when no node-to-node connections needed |
 | **Comparison / matrix (≥4 rows or ≥3 cols)** | **HTML `<table>`** | Tabular data is not a graph |
 | Simple timeline | `.steps` timeline component | Shared CSS, no auto-layout needed |
 
-**Decision rule:** > 8 nodes or linear → Mermaid. ≤ 6 radial with rich cards → fgraph. Tabular → HTML table. Architecture with node topology + arrows, ≤8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
+**Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph). If > 8 nodes or complex flow that no template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
 
 **foreignObject rules (MANDATORY when using this type):**
 - Every `<foreignObject>` root element MUST have `xmlns="http://www.w3.org/1999/xhtml"` — omitting it causes silent render failure in Chrome/Edge
@@ -121,12 +123,16 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`.
 
 | Visual type | Hero | Sections | Extra |
 |---|---|---|---|
-| Flowchart (`flowchart TD/LR`) | `.hero.left-border` | `.section-label.dot` + diagram shell | `.phases` + `.phase-card` |
-| Sequence (`sequenceDiagram`) | `.hero.left-border` | `.section-label.dot` + diagram shell | `.phases` (time-grouped arcs) + `.card.accent` legend |
-| State machine (`stateDiagram-v2`) | `.hero.left-border` | `.section-label.dot` + diagram shell | `.card.accent` legend for state meanings |
-| Radial hub (fgraph, ≤ 7 nodes) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for edge types (pills/warn/ok) |
-| Architecture layers | `.hero.elevated` | `.section-label.square` | `.stat-grid` + `.stat` |
-| Timeline | `.hero.top-border` | `.section-label.triangle` | `.steps` + `.step` + `.step-num` |
+| Dep-graph (`dep-graph.html`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for phase/status colors |
+| Linear flow (`linear-flow.html`) | `.hero.left-border` | `.section-label.dot` | `.phases` + `.phase-card` |
+| Sequence (`sequence.html`) | `.hero.left-border` | `.section-label.dot` | `.phases` (time-grouped arcs) + `.card.accent` legend |
+| State machine (`state.html`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for state meanings |
+| Radial hub (`radial-hub.html`, ≤ 6 peers) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for edge types (pills/warn/ok) |
+| Gantt (`gantt.html`) | `.hero.top-border` | `.section-label.triangle` | `.stat-grid` for milestones (optional) |
+| Pie (`pie.html`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend if > 5 slices |
+| ER schema (`er.html`) | `.hero.left-border` | `.section-label.square` | `.card.accent` legend for relationship types |
+| Architecture layers (`layered.html` / `deployment-tiers.html`) | `.hero.elevated` | `.section-label.square` | `.stat-grid` + `.stat` |
+| Timeline (steps) | `.hero.top-border` | `.section-label.triangle` | `.steps` + `.step` + `.step-num` |
 | Explainer | `.hero.left-border` | `.section-label.dot` | `.io-strip` + `.io-box` + `.io-arrow` |
 | Comparison | `.hero.left-border` | `.section-label.dot` | `.table-wrap > table` |
 
@@ -134,8 +140,7 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`.
 
 | Rendering | Wrapper / component |
 |---|---|
-| Mermaid (flowchart / sequence / state / class) | `.diagram-shell` with `.zoom-controls` (never bare `<pre class="mermaid">`) |
-| fgraph radial | `.fgraph-wrap` + `.fgraph-frame` + `.fgraph-edges` + `.fgraph-node.{shape}.{tone}` (shapes: `.cylinder`/`.hexagon`/`.diamond`/`.circle`/`.folded`/`.pill` — see `shape-vocabulary.md`) |
+| fgraph (all templates) | `.fgraph-wrap` + `.fgraph-frame` + `.fgraph-edges` + `.fgraph-node.{shape}.{tone}` (shapes: `.cylinder`/`.hexagon`/`.diamond`/`.circle`/`.folded`/`.pill` — see `shape-vocabulary.md`) |
 | HTML table | `.table-wrap > table` with `<thead>` (enables sticky header + horizontal scroll) |
 | CSS Grid cards | `.cards` container + `.card`/`.card.accent` per row |
 | Timeline | `.steps` container + `.step > .step-num` per entry |
@@ -152,8 +157,8 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 
 **Always** (both tracks):
 - Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
-- Mermaid (if used) wrapped in `.diagram-shell` with zoom controls — never bare `<pre class="mermaid">`.
-- SVG gets `height: 100%; width: 100%; max-width: none` after `mermaid.render()`.
+- fgraph templates: inline `fgraph-base.css` into the output `<style>` block per the Mode A distribution rule (`graph-templates/README.md § Distribution rule`).
+- SVG sizing: `.fgraph-edges` gets `viewBox="0 0 100 100" preserveAspectRatio="none"` + `vector-effect: non-scaling-stroke` on path children.
 - No ASCII art, no emoji in section headers.
 - Interactive controls (zoom, theme) are `<button>` with visible `:focus-visible` styling.
 - **Body copy uses `var(--text)` for maximum readability on dark backgrounds.** `var(--text-muted)` is for intermediate emphasis only (subtitles, label rows); `var(--text-dim)` is for metadata only. Never `var(--text-dim)` on `var(--surface)` for any body copy.
@@ -173,7 +178,7 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 - Section labels present (`.section-label.dot` / `.triangle` / `.square`).
 - Reveal observer wired for `.reveal` elements.
 
-**If the chart is a single quick diagram** (one Mermaid / fgraph block, no narrative):
+**If the chart is a single quick diagram** (one fgraph block, no narrative):
 - Hero and section labels are **optional** — a minimal title + diagram is acceptable.
 - Reveal observer is **not needed** (no `.reveal` elements to observe).
 
@@ -198,14 +203,14 @@ Full reference: `${CLAUDE_PLUGIN_ROOT}/references/output-ux.md` — three-layer 
    - `{BASE_STYLES}` → concatenated base CSS
    - `{AESTHETIC_STYLES}` → aesthetic CSS (editorial.css if default)
    - `{TITLE}`, `{DATE}`, `{CATEGORY}`, `{CAT_LABEL}`, `{COLOR}`, `{BADGES}` → diagram metadata
-   - `{HEAD_EXTRAS}` → mermaid CDN script + svg-pan-zoom CDN (for diagrams)
-   - `{CONTENT}` → diagram body (hero section, Mermaid container, cards, etc.)
+   - `{HEAD_EXTRAS}` → (empty by default; add Google Fonts preconnect here if the aesthetic requires it)
+   - `{CONTENT}` → diagram body (hero section, `.fgraph-wrap` / template body, cards, etc.)
    - `{EXTRA_STYLES}` → diagram-specific CSS (if any)
    - `{THEME_TOGGLE_JS}` → theme-toggle.js with `{NAME}` substituted (runs before {EXTRA_SCRIPTS})
-   - `{EXTRA_SCRIPTS}` → Mermaid init + pan/zoom init + reveal observer
+   - `{EXTRA_SCRIPTS}` → reveal observer (optional; no diagram runtime — all rendering is static CSS/SVG)
 6. Output: single self-contained HTML file (file:// safe)
 
-Mermaid note: single-file has **no dynamic-tab pitfalls** — use standard `startOnLoad: true`. No need for `mermaid.render()`, no `rgba()` restriction.
+fgraph note: single-file output has **no runtime JS** for diagrams — all layout is declarative CSS with `--x`/`--y` custom props in the 0..100 coordinate space. Pick the template that matches the shape; fill `{{PLACEHOLDERS}}`.
 
 Let:
   ARGS := $ARGUMENTS
@@ -220,7 +225,7 @@ Heavy HTML/CSS/JS generation runs in a **sub-agent** to keep the main conversati
 
 | Condition | Action |
 |---|---|
-| Single quick diagram (one Mermaid / fgraph block, no narrative) | Generate inline (no sub-agent) |
+| Single quick diagram (one fgraph block, no narrative) | Generate inline (no sub-agent) |
 | Rich explainer (multi-section with hero + phases + diagram) | **Delegate Phase 3 to sub-agent** |
 | Any output > ~300 lines total | **Delegate to sub-agent** |
 
@@ -243,7 +248,7 @@ Generate forge-chart output file.
 Decisions (from Phase 1-2):
 - Track: {A|B}
 - Aesthetic: {file}
-- Visual type: {Mermaid flowchart|fgraph radial|CSS Grid|etc.}
+- Visual type: {fgraph template name|CSS Grid|foreignObject+Flexbox SVG|etc.}
 - Output path: {path}
 - Slug: {slug}
 
@@ -260,7 +265,7 @@ Rules:
 - Inline all CSS (base + aesthetic) into output
 - Follow shell-processing.md substitution pipeline
 - Use semantic tokens from components.css
-- Mermaid (if used) wrapped in .diagram-shell — never bare <pre class="mermaid">
+- fgraph templates: inline fgraph-base.css into <style> (Mode A) — do not link
 - Single-file output must work with file://
 ```
 
@@ -294,25 +299,30 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 | Content | Approach |
 |---------|----------|
-| Task / issue dependency graph | Mermaid `flowchart TD` or `LR` |
-| Data flow between services (linear) | Mermaid `flowchart LR` |
-| API / message sequence | Mermaid `sequenceDiagram` |
-| State machine | Mermaid `stateDiagram-v2` |
-| Timeline / schedule / roadmap | Mermaid `gantt` — `graph-templates/gantt.html` |
-| Proportion / share / composition | Mermaid `pie` — `graph-templates/pie.html` |
-| Entity-relationship schema | Mermaid `erDiagram` — `graph-templates/er.html` |
-| **Hub-and-spoke / message bus / gateway (≤ 6 peers, rich cards)** | **fgraph — `graph-templates/radial-hub.html` + `fgraph-base.css`** |
-| Architecture layers (stacked, text-heavy) | CSS Grid cards (no Mermaid) |
+| Task / issue dependency graph | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) |
+| Data flow between services (linear) | `graph-templates/linear-flow.html` |
+| API / message sequence | `graph-templates/sequence.html` |
+| State machine | `graph-templates/state.html` |
+| Timeline / schedule / roadmap | `graph-templates/gantt.html` |
+| Proportion / share / composition | `graph-templates/pie.html` |
+| Entity-relationship schema | `graph-templates/er.html` |
+| **Hub-and-spoke / message bus / gateway (≤ 6 peers, rich cards)** | **`graph-templates/radial-hub.html` + `fgraph-base.css`** |
+| Architecture layers (stacked, text-heavy) | CSS Grid cards |
+| Layered architecture (3–4 tiers) | `graph-templates/layered.html` or `deployment-tiers.html` |
+| Multi-host deployment | `graph-templates/machine-clusters.html` |
 | Simple timeline | CSS flex with connectors |
 
 **Decision rule for architecture diagrams:**
-- Linear flow / topology / > 8 nodes → Mermaid (dagre auto-layout wins)
-- Radial / hub-and-spoke with rich cards (pills, warn, multi-line) → fgraph
-- Architecture with node topology + arrows, ≤8 nodes → foreignObject+CSS Flexbox SVG
+- Linear pipeline (2–3 stages) → `linear-flow.html`
+- Radial / hub-and-spoke with rich cards (pills, warn, multi-line) → `radial-hub.html` / `radial-ring.html`
+- Layered architecture (3–4 tiers) → `layered.html` or `deployment-tiers.html`
+- Multi-host deployment → `machine-clusters.html`
+- Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG
 - Stacked text-heavy, no arrows → CSS Grid cards (fallback)
+- > 8 nodes or a shape no template covers → **split the diagram** into sub-diagrams, or use `layered.html` with hand-assigned `--x/--y`
 - See `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the full decision matrix.
 
-Max 12 nodes per Mermaid diagram (split if more). fgraph-radial caps at ~6 satellites before labels collide.
+fgraph-radial caps at ~6 satellites before labels collide. For dense graphs (> 8 nodes) split into sub-diagrams rather than cramming.
 
 Choose `diagram:category` + `diagram:color` from `${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md`.
 
@@ -369,11 +379,11 @@ When drawing tiered memory, bind tiers to the palette consistently across diagra
 
 | Anti-Pattern | Fix |
 |--------------|-----|
-| Bare `<pre class="mermaid">` | Use `.diagram-shell` with zoom controls |
-| ASCII art in `<pre class="arch">` | Convert to Mermaid flowchart or fgraph |
+| Linking to a CDN diagram library | Use a native `graph-templates/*.html` — inline `fgraph-base.css` per Mode A |
+| ASCII art in `<pre class="arch">` | Convert to the matching fgraph template |
 | Emoji in headers | Remove — use text only |
-| `rgba()` in Mermaid `style` directives | Use hex colors only |
-| `theme: 'dark'` in Mermaid config | Use `theme: 'base'` + custom `themeVariables` |
+| Inline `style="color:#..."` on fgraph nodes/edges | Use `fgraph-base.css` tone classes (`.amber`, `.cyan`, `.purple`, `.green`, `.red`) |
+| Hard-coded px coords on `.fgraph-node` | Use `--x`/`--y` custom props in 0..100 space |
 | Plain `<h2>` for section titles | Use `.section-title` class |
 | No hero section (multi-section chart) | Add hero with left-border variant |
 
@@ -402,9 +412,9 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Text escaping:** `&`, `<`, `>`, `"`, `'` escaped in labels/titles rendered inside SVG `<text>` or `<foreignObject>`
 - [ ] **Legend accuracy:** legend lists only node types + edge tones actually present in the diagram — no leftover entries
 - [ ] **Title accuracy:** `<title>` + `diagram:title` meta + hero `<h1>` all state the Frame Signal 2 takeaway consistently
-- [ ] **Marker refs:** every `url(#id)` arrow marker has a matching `<marker id="id">` in `<defs>`
+- [ ] **Marker refs:** every `url(#id)` arrow marker has a matching `<marker id="id">` in `<defs>` (including `fg-arr-*` arrow markers and, for ER diagrams, `fg-er-one`/`fg-er-many`/`fg-er-zero-one`/`fg-er-one-many`/`fg-er-zero-many` crow's-foot markers)
 - [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
-- [ ] **Mermaid wrapper (if used):** wrapped in `.diagram-shell` with zoom controls — never bare `<pre class="mermaid">`
+- [ ] **fgraph inlining:** `fgraph-base.css` is inlined into the output `<style>` (Mode A) — no `<link>` to `_shared/fgraph-base.css`
 - [ ] **Color contrast:** body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`; AA minimum, AAA preferred
 - [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
 

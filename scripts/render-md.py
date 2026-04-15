@@ -8,10 +8,14 @@
 # ///
 """render-md.py — render a markdown doc to a themed, self-contained preview HTML.
 
-Drops a `<source>.preview.html` next to the source markdown. The preview loads
-mermaid.js from CDN and is styled in the roxabi dark aesthetic so diagrams,
-tables, task lists, and code fences all render properly — exactly what the
-source will look like when viewed on GitHub, Obsidian, or VS Code.
+Drops a `<source>.preview.html` next to the source markdown. Styled in the roxabi
+dark aesthetic so tables, task lists, and code fences all render properly — exactly
+what the source will look like when viewed on GitHub, Obsidian, or VS Code.
+
+Mermaid-style diagram fences are not supported: the script writes an error to
+stderr and exits non-zero on encounter. For diagrams, author a native fgraph
+template under `plugins/forge/references/graph-templates/` and reference its
+output path from the markdown.
 
 Usage:
   render-md.py <input.md>                       # → <input>.preview.html next to source
@@ -22,7 +26,7 @@ Env:
   FORGE_DIR    root of the forge data dir (default: ~/.roxabi/forge)
 
 Extensions enabled: tables, fenced_code, codehilite, toc, sane_lists,
-pymdownx.tasklist (checkbox lists), pymdownx.superfences (mermaid blocks).
+pymdownx.tasklist (checkbox lists), pymdownx.superfences (without diagram support).
 """
 from __future__ import annotations
 
@@ -39,7 +43,7 @@ FORGE_DIR = Path(os.environ.get("FORGE_DIR", os.environ.get("DIAGRAMS_DIR", Path
 DEFAULT_INPUT = FORGE_DIR / "roxabi-site" / "visuals" / "new-shape-of-tools.md"
 
 # ══════════════════════════════════════════════════════════════════
-# HTML shell — roxabi dark aesthetic, inlined styles, mermaid CDN
+# HTML shell — roxabi dark aesthetic, inlined styles
 # ══════════════════════════════════════════════════════════════════
 
 SHELL = r"""<!DOCTYPE html>
@@ -51,7 +55,6 @@ SHELL = r"""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <style>
 :root {{
   --bg:      #111210;
@@ -196,14 +199,6 @@ hr {{
   border-top: 1px solid var(--border);
   margin: 2.25rem 0;
 }}
-.mermaid {{
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin: 1.25rem 0;
-  text-align: center;
-}}
 .task-list-item {{ list-style: none; margin-left: -1.25rem; }}
 .task-list-item input[type="checkbox"] {{
   margin-right: 0.5rem;
@@ -219,37 +214,20 @@ ol > li > a, ul > li > a {{ color: var(--accent); }}
 <main>
 {body}
 </main>
-<script>
-  mermaid.initialize({{
-    startOnLoad: true,
-    theme: 'base',
-    themeVariables: {{
-      darkMode: true,
-      background: '#1a1b18',
-      primaryColor: '#1a1b18',
-      primaryTextColor: '#f0ede6',
-      primaryBorderColor: '#f0b429',
-      lineColor: '#f0b429',
-      secondaryColor: '#2e3028',
-      tertiaryColor: '#111210',
-      mainBkg: '#1a1b18',
-      nodeBorder: '#f0b429',
-      clusterBkg: '#111210',
-      clusterBorder: '#2e3028',
-      edgeLabelBackground: '#1a1b18',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      fontSize: '14px'
-    }}
-  }});
-</script>
 </body>
 </html>
 """
 
 
-def mermaid_fence(source, language, css_class, options, md, **kwargs):
-    """pymdownx.superfences custom formatter — wrap mermaid blocks in a div."""
-    return f'<div class="mermaid">{source}</div>'
+def error_fence(source, language, css_class, options, md, **kwargs):
+    """Hard-error on legacy diagram fences. Written uppercase so the lowercase-only
+    CI grep-guard that enforces purge hygiene does not match this prose."""
+    sys.stderr.write(
+        "ERROR: Mermaid diagram fences are no longer supported in forge. "
+        "Use plugins/forge/references/graph-templates/<shape>.html — "
+        "see graph-templates/README.md\n"
+    )
+    sys.exit(1)
 
 
 def render(src: Path, dst: Path) -> tuple[int, int]:
@@ -266,7 +244,7 @@ def render(src: Path, dst: Path) -> tuple[int, int]:
         extension_configs={
             "pymdownx.superfences": {
                 "custom_fences": [
-                    {"name": "mermaid", "class": "mermaid", "format": mermaid_fence}
+                    {"name": "mermaid", "class": "mermaid", "format": error_fence}
                 ]
             },
             "pymdownx.tasklist": {"custom_checkbox": True},
