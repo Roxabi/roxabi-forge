@@ -24,10 +24,15 @@ pre-commit:
       # same case-sensitive pattern without tripping on legitimate error
       # messages. #24 should inherit this choice, not flip to -i.
       #
-      # File-path safety: pipe {staged_files} through xargs -0 so paths
-      # with spaces / shell metacharacters don't split or inject. Lefthook
-      # substitutes {staged_files} as a newline-separated list when used
-      # inside a here-string redirection.
+      # File-path safety: {staged_files} is a raw space-separated
+      # substitution — lefthook tokenizes on whitespace before the shell
+      # sees the command, so spaces in filenames are not handled (no
+      # lefthook mechanism exists to preserve them). The printf + xargs
+      # pipeline below mitigates glob / shell-metacharacter paths (e.g.
+      # `foo*.md`, `foo$bar.md`) by quoting each arg via xargs -I {} so
+      # grep receives file paths as single arguments instead of going
+      # through a second shell word-split. Note: xargs -d is GNU-only —
+      # OK for our Linux dev + CI targets.
       run: |
         matches=$(printf '%s\n' {staged_files} | xargs -d '\n' -I {} grep -Hn '\bmermaid\b' {} 2>/dev/null || true)
         if [ -n "$matches" ]; then
