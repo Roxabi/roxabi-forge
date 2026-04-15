@@ -241,7 +241,7 @@ to enforce.
 |---|---|---|
 | Aesthetic | Locked by brand book (`allow_override.aesthetic: locked`) | Content-type fallback (Aesthetic Detection priority 5) |
 | Palette | Locked by brand book (`allow_override.palette: locked`) | Aesthetic CSS file defaults |
-| Typography | Locked by brand book (`allow_override.typography: locked`) | Aesthetic CSS file defaults |
+| Typography | Locked by brand book (`allow_override.typology: locked`) | Aesthetic CSS file defaults |
 | Tone | Brand voice rules pre-constrain Signal 3; brand wins | Frame Signal 3 inference — all 4 axes derived from content |
 | Topology | Content-driven; brand `structure_defaults` as tiebreakers | Content-driven; plugin defaults as tiebreakers |
 | Component slots | Brand defaults; partial override only when slot is inapplicable | Frame tone drives variant selection |
