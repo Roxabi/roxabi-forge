@@ -16,34 +16,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* {{BASE_STYLES}} — inline reset.css + layout.css + typography.css + components.css + explainer-base.css */
-/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic */
+/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic (lyra.css / roxabi.css / blueprint.css / ...) */
+
+/* ══════════════════════════════════════════════════════════════════
+   fgraph primitives — inlined from references/graph-templates/fgraph-base.css
+   ══════════════════════════════════════════════════════════════════ */
+/* {{FGRAPH_BASE}} — inline fgraph-base.css here */
+
+/* ── gantt-specific layout overrides ── */
+.fgraph-wrap.gantt { aspect-ratio: 16 / 9; max-width: 820px; }
+.fg-gantt-section-lbl {
+  position: absolute;
+  left: 2%;
+  top: calc(var(--y, 0) * 1%);
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-      primaryColor: 'var(--surface)',
-      primaryTextColor: 'var(--text)',
-      primaryBorderColor: 'var(--accent)',
-      lineColor: 'var(--text-dim)',
-      secondaryColor: 'var(--border)',
-      background: 'var(--bg)',
-      edgeLabelBackground: 'var(--surface)',
-      nodeTextColor: 'var(--text-muted)',
-      sectionBkgColor: 'var(--surface)',
-      altSectionBkgColor: 'var(--bg)',
-      gridColor: 'var(--border)',
-      todayLineColor: 'var(--accent)',
-      taskTextColor: 'var(--text)',
-      taskTextOutsideColor: 'var(--text-muted)'
-    },
-    gantt: { useMaxWidth: false, fontSize: 12, sectionFontSize: 14, barHeight: 22, barGap: 6 }
-  })
-  window.__mermaidReady = mermaid
-</script>
 </head>
 <body>
 
@@ -56,82 +48,74 @@
 <main>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     CUSTOMISE — Gantt timeline / schedule
+     CUSTOMISE — this is the authoring surface.
 
-     Use this template when the content is:
-       - A roadmap with dated milestones
-       - A release schedule with overlapping workstreams
-       - A project plan grouped by section (team / phase / track)
+     Layout: horizontal time bars grouped in N sections, sharing a
+     date axis at the bottom. Authoring coordinate space is 0..100 %.
 
-     Mermaid `gantt` auto-lays out — you only declare dates + durations.
-     Task formats:
-       Name :id1, 2026-04-14, 5d           → starts on date, 5 days
-       Name :id2, after id1, 3d            → starts after id1, 3 days
-       Name :crit, id3, 2026-04-20, 2d     → "crit" marks critical path
-       Name :done, id4, 2026-04-01, 2d     → "done" for completed work
-       Name :active, id5, 2026-04-14, 4d   → "active" for in-progress
+     Date → % mapping (pre-compute; no runtime math):
+       x% = (tick_date - start_date) / (end_date - start_date) * 100
+       w% = (bar_duration) / (end_date - start_date) * 100
 
-     `axisFormat` controls the tick label. `%m-%d` for sub-month spans,
-     `%Y-%m` for multi-quarter roadmaps. `excludes weekends` skips Sat/Sun.
+     Example — a project that runs 2026-04-15 → 2026-05-13 (28 days):
+       tick Apr 22 → (7/28)*100  = 25
+       tick Apr 29 → (14/28)*100 = 50
+       tick May 06 → (21/28)*100 = 75
+       tick May 13 → (28/28)*100 = 100
+
+     Bars occupy the UPPER portion of the wrap (≈ 16% → 72% --y space).
+     Axis lives in the LOWER portion (bottom: 14% of the wrap).
+
+     Row layout guidance (for a 3-section, 3-task-per-section layout):
+       SECTION 1 header  --y: 10
+         bar 1           --y: 16
+         bar 2           --y: 22
+         bar 3           --y: 28
+       SECTION 2 header  --y: 36
+         bar 1           --y: 42
+         bar 2           --y: 48
+         bar 3           --y: 54
+       SECTION 3 header  --y: 62
+         bar 1           --y: 68
      ══════════════════════════════════════════════════════════════════ -->
 
-<section class="diagram-section">
-  <div class="diagram-shell">
-    <div class="zoom-controls">
-      <button data-zoom="in"  title="Zoom in">+</button>
-      <button data-zoom="fit" title="Fit">⤢</button>
-      <button data-zoom="out" title="Zoom out">−</button>
-    </div>
-    <div class="mermaid-container" data-mermaid-out id="diagram-gantt"></div>
-    <script type="text/plain" data-mermaid>
-gantt
-    title       {{TITLE}}
-    dateFormat  YYYY-MM-DD
-    axisFormat  %m-%d
-    excludes    weekends
+<div class="fgraph-wrap gantt green"
+     role="img"
+     aria-label="{{DIAGRAM_ARIA_LABEL}}">
 
-    section {{SECTION_1_NAME}}
-    {{TASK_1_NAME}}     :done,    t1a, {{TASK_1_START}}, {{TASK_1_DURATION}}
-    {{TASK_2_NAME}}     :active,  t1b, after t1a,        {{TASK_2_DURATION}}
-    {{TASK_3_NAME}}     :         t1c, after t1b,        {{TASK_3_DURATION}}
+  <!-- ── SECTION LABELS ─────────────────────────────────────────── -->
+  <div class="fg-gantt-section-lbl" style="--y:10">{{SECTION_1_LABEL}}</div>
+  <div class="fg-gantt-section-lbl" style="--y:36">{{SECTION_2_LABEL}}</div>
+  <div class="fg-gantt-section-lbl" style="--y:62">{{SECTION_3_LABEL}}</div>
 
-    section {{SECTION_2_NAME}}
-    {{TASK_4_NAME}}     :crit,    t2a, {{TASK_4_START}}, {{TASK_4_DURATION}}
-    {{TASK_5_NAME}}     :         t2b, after t2a,        {{TASK_5_DURATION}}
+  <!-- ── BARS — section 1 ───────────────────────────────────────── -->
+  <div class="fg-gantt-bar amber"  style="--x:{{TASK_1_1_START}}; --w:{{TASK_1_1_DURATION}}; --y:16">{{TASK_1_1_LABEL}}</div>
+  <div class="fg-gantt-bar amber"  style="--x:{{TASK_1_2_START}}; --w:{{TASK_1_2_DURATION}}; --y:22">{{TASK_1_2_LABEL}}</div>
+  <div class="fg-gantt-bar amber"  style="--x:{{TASK_1_3_START}}; --w:{{TASK_1_3_DURATION}}; --y:28">{{TASK_1_3_LABEL}}</div>
 
-    section {{SECTION_3_NAME}}
-    {{TASK_6_NAME}}     :         t3a, after t2b,        {{TASK_6_DURATION}}
-    {{TASK_7_NAME}}     :milestone, t3b, after t3a, 0d
-    </script>
+  <!-- ── BARS — section 2 ───────────────────────────────────────── -->
+  <div class="fg-gantt-bar cyan"   style="--x:{{TASK_2_1_START}}; --w:{{TASK_2_1_DURATION}}; --y:42">{{TASK_2_1_LABEL}}</div>
+  <div class="fg-gantt-bar cyan"   style="--x:{{TASK_2_2_START}}; --w:{{TASK_2_2_DURATION}}; --y:48">{{TASK_2_2_LABEL}}</div>
+  <div class="fg-gantt-bar cyan"   style="--x:{{TASK_2_3_START}}; --w:{{TASK_2_3_DURATION}}; --y:54">{{TASK_2_3_LABEL}}</div>
+
+  <!-- ── BARS — section 3 ───────────────────────────────────────── -->
+  <div class="fg-gantt-bar purple" style="--x:{{TASK_3_1_START}}; --w:{{TASK_3_1_DURATION}}; --y:68">{{TASK_3_1_LABEL}}</div>
+  <div class="fg-gantt-bar purple" style="--x:{{TASK_3_2_START}}; --w:{{TASK_3_2_DURATION}}; --y:74">{{TASK_3_2_LABEL}}</div>
+
+  <!-- ── DATE AXIS ──────────────────────────────────────────────── -->
+  <div class="fg-axis-date">
+    <div class="fg-axis-date-baseline"></div>
+    <div class="fg-axis-date-tick" style="--x:0"  ><span class="fg-axis-date-label">{{TICK_0_LABEL}}</span></div>
+    <div class="fg-axis-date-tick" style="--x:25" ><span class="fg-axis-date-label">{{TICK_1_LABEL}}</span></div>
+    <div class="fg-axis-date-tick" style="--x:50" ><span class="fg-axis-date-label">{{TICK_2_LABEL}}</span></div>
+    <div class="fg-axis-date-tick" style="--x:75" ><span class="fg-axis-date-label">{{TICK_3_LABEL}}</span></div>
+    <div class="fg-axis-date-tick" style="--x:100"><span class="fg-axis-date-label">{{TICK_4_LABEL}}</span></div>
   </div>
-</section>
+
+  <div class="fgraph-legend">{{LEGEND}}</div>
+</div>
 
 </main>
-
-<script type="module">
-  const mermaid = window.__mermaidReady
-  const sourceEl = document.querySelector('#diagram-gantt').previousElementSibling
-  const container = document.getElementById('diagram-gantt')
-  const { svg } = await mermaid.render('mermaid-svg-gantt', sourceEl.textContent)
-  container.innerHTML = svg
-  const svgEl = container.querySelector('svg')
-  if (svgEl) {
-    svgEl.setAttribute('height', '100%')
-    svgEl.setAttribute('width', '100%')
-    svgEl.style.maxWidth = 'none'
-    if (window.svgPanZoom) {
-      const pz = svgPanZoom(svgEl, {
-        zoomEnabled: true, panEnabled: true,
-        controlIconsEnabled: false,
-        fit: true, center: true,
-        minZoom: 0.15, maxZoom: 15
-      })
-      document.querySelector('[data-zoom="in"]')?.addEventListener('click', () => pz.zoomIn())
-      document.querySelector('[data-zoom="out"]')?.addEventListener('click', () => pz.zoomOut())
-      document.querySelector('[data-zoom="fit"]')?.addEventListener('click', () => { pz.resetZoom(); pz.resetPan(); pz.fit(); pz.center() })
-    }
-  }
-</script>
 
 </body>
 </html>
