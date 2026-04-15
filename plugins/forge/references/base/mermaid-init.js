@@ -1,4 +1,14 @@
 /* ══════════════════════════════════════════════════════════════════
+   DEPRECATED — scheduled for deletion in Cycle 2 of the Mermaid purge.
+   Tracking issue: #21 (https://github.com/Roxabi/roxabi-forge/issues/21)
+
+   New artifacts should use the native fgraph templates in
+   ../graph-templates/ — gantt, pie, er, sequence, state, dep-graph.
+   Each ships as a single-file HTML with inline fgraph-base.css and
+   renders offline under file:// with no CDN dependencies.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════════
    mermaid-init.js — Mermaid diagram rendering + pan/zoom
    Part of forge base/ layer. Inline verbatim (no placeholders).
 

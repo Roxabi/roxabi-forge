@@ -14,6 +14,21 @@ pre-commit:
       skip:
         - merge
         - rebase
+    mermaid-deprecation-warn:
+      # Non-blocking. Warns when staged files contain mermaid references.
+      # Scheduled for flip to blocking `mermaid-guard` in #24.
+      run: |
+        matches=$(grep -n '\bmermaid\b' {staged_files} 2>/dev/null || true)
+        if [ -n "$matches" ]; then
+          echo ""
+          echo "  warn: mermaid references detected in staged files (#21 — scheduled for deletion in Cycle 2)"
+          echo "$matches" | sed 's/^/    /'
+          echo ""
+        fi
+        exit 0
+      glob:
+        - "plugins/forge/**/*"
+        - "scripts/*.py"
 
 commit-msg:
   commands:
