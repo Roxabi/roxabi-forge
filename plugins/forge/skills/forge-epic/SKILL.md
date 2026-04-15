@@ -111,7 +111,7 @@ Cross-tab: use `.card.info` / `.card.warning` / `.card.critical` for inline tona
 - Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - `.epic-hero` shows issue number prominently.
 - Status badges use correct colors (green `done`, amber `wip`, cyan `todo`) via the inline `.status` styles in Phase 3.
-- Dep diagram: inline the `dep-graph.html` body + inline `fgraph-base.css` into the tab's `<style>` (Mode A distribution rule).
+- Dep diagram: inline the `dep-graph.html` body + inline `fgraph-base.css` into the tab's `<style>` — Mode A applies here because the epic shell has a single fgraph tab (just `deps`). If a future epic adds a second fgraph-consuming tab, switch to Mode B and link `_shared/fgraph-base.css` from the shell `<head>` instead.
 - **Body copy uses `var(--text)` for maximum readability on dark backgrounds.** `var(--text-muted)` is for intermediate emphasis only (subtitles, label rows); `var(--text-dim)` is for metadata only.
 - `diagram:issue` meta tag present and matches filename.
 - No ASCII art, no emoji in headers.
@@ -215,7 +215,7 @@ Rules:
 - Inline all CSS (base + aesthetic) into css/{ISSUE}-{slug}.css
 - Follow shell-processing.md substitution pipeline
 - Use semantic tokens from components.css
-- Dep diagram: inline dep-graph.html body + fgraph-base.css content into the tab <style> (Mode A)
+- Dep diagram: inline dep-graph.html body + fgraph-base.css content into the tab <style> (Mode A, valid when deps is the only fgraph tab)
 - diagram:issue meta tag must match filename issue number
 ```
 
