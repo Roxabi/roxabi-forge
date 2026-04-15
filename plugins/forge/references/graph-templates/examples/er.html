@@ -52,6 +52,8 @@
     pointer-events: none;
   }
   .fgraph-edges .mk-er-stroke { stroke: var(--border-bright); fill: none; stroke-width: 1.4; }
+  .fgraph-edges .fg-edge { fill: none; stroke-width: 1.6; opacity: 0.85; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.dim { stroke: var(--text-muted); opacity: 0.5; }
 
   .fgraph-lbl {
     position: absolute;
@@ -145,15 +147,15 @@
     </defs>
 
     <!-- Issue (center, x=50) → PullRequest (right, x=82)   : one-to-many -->
-    <path class="fg-edge" d="M 58,30 L 74,30" stroke="var(--border-bright)" stroke-width="1" fill="none"
+    <path class="fg-edge dim" d="M 58,30 L 74,30"
           marker-start="url(#fg-er-one)" marker-end="url(#fg-er-many)"/>
 
     <!-- Issue (center, x=50) ↔ Label (left, x=18)         : many-to-many -->
-    <path class="fg-edge" d="M 26,30 L 42,30" stroke="var(--border-bright)" stroke-width="1" fill="none"
+    <path class="fg-edge dim" d="M 26,30 L 42,30"
           marker-start="url(#fg-er-many)" marker-end="url(#fg-er-many)"/>
 
     <!-- Issue (center) → User (bottom, x=50 y=72)         : zero-or-many-to-one -->
-    <path class="fg-edge" d="M 50,40 L 50,62" stroke="var(--border-bright)" stroke-width="1" fill="none"
+    <path class="fg-edge dim" d="M 50,40 L 50,62"
           marker-start="url(#fg-er-zero-many)" marker-end="url(#fg-er-one)"/>
   </svg>
 

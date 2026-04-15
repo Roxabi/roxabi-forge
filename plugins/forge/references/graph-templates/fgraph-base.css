@@ -613,9 +613,16 @@
    spaced tick marks + labels. The axis coordinate space is the same 0–100
    percentage as --x on nodes, so gantt bars can position directly in sync.
 
+   Container-level API (both optional; default to the 6% / 94% inset below):
+     --axis-start-pct : axis baseline left edge in % (default 6)
+     --axis-end-pct   : axis baseline right edge in % (default 94)
+   These are the stable anchor points gen-deps.py / other consumers hook
+   into when rendering axis bounds at runtime. Individual tick --x values
+   stay independent and are pre-computed per the formula below.
+
    Authoring pattern (author pre-computes % offsets; no runtime math):
 
-     <div class="fg-axis-date">
+     <div class="fg-axis-date" style="--axis-start-pct:6; --axis-end-pct:94">
        <div class="fg-axis-date-baseline"></div>
        <div class="fg-axis-date-tick" style="--x:0">   <span class="fg-axis-date-label">Apr 15</span></div>
        <div class="fg-axis-date-tick" style="--x:25">  <span class="fg-axis-date-label">Apr 22</span></div>
@@ -629,8 +636,8 @@
 */
 .fg-axis-date {
   position: absolute;
-  left: 6%;
-  right: 6%;
+  left:   calc(var(--axis-start-pct, 6)  * 1%);
+  right:  calc((100 - var(--axis-end-pct, 94)) * 1%);
   bottom: 14%;
   height: 22px;
   pointer-events: none;
@@ -670,6 +677,12 @@
      <div class="fg-gantt-bar amber" style="--x:10; --w:28; --y:22">Task name</div>
 
    --x : left edge % · --w : width % · --y : top offset %  (from wrap top).
+
+   NB: --w here is a unitless integer (multiplied by 1% in calc), unlike
+   .fgraph-node where --w is written with a % suffix (e.g. --w:22%). The
+   two primitives share a name but not a unit contract — do not carry
+   --w values across without checking. Same unitless convention applies
+   to .fg-er-entity below.
 */
 .fg-gantt-bar {
   position: absolute;
