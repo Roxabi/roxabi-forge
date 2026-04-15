@@ -1,0 +1,178 @@
+---
+title: "Purge Mermaid — analysis of fgraph replacements and build-then-purge sequencing"
+description: "Technical analysis of replacing Mermaid (gantt/pie/ER/sequence/state/auto-layout) with native fgraph templates; three shapes evaluated against forge's offline-first, token-styled contract."
+---
+
+## Source
+
+> Can we drop all the marmaids from forge plz ? I want only wonderfull forge diagreams
+> — Mickael, 2026-04-15
+
+Motivation codified in issue #21 and frame `artifacts/frames/21-purge-mermaid-frame.mdx`:
+
+- Mermaid ships a ~900 KB runtime from `cdn.jsdelivr.net/npm/mermaid@11` — no `file://` rendering.
+- Token drift: `themeVariables` can't reach parity with `fgraph-base.css` custom props.
+- Open hardening issue #19 (SRI + pinning + defensive innerHTML) is about to be thrown away.
+- #13 (commit `758fdd6`, 2026-04-14) added gantt/pie/ER via Mermaid — one day ago.
+
+## Problem
+
+Forge offers a beautiful native diagram system (`fgraph-base.css` with radial-hub, linear-flow, dual-cluster, radial-ring, layered, machine-clusters, deployment-tiers + 6 semantic shapes: pill / circle / hexagon / diamond / cylinder / folded) for hub-and-spoke, linear, and layered shapes up to ~6–8 nodes. Every shape outside that envelope falls through to Mermaid:
+
+| Shape | Current path | Problem with Mermaid |
+|---|---|---|
+| Gantt timeline | `graph-templates/gantt.html` (Mermaid `gantt`) | 900 KB CDN runtime; date axis not themeable; svg-pan-zoom adds another ~40 KB dep |
+| Pie proportion | `graph-templates/pie.html` (Mermaid `pie`) | Same runtime; slice colors declared per-template, never consumed by tokens |
+| ER schema | `graph-templates/er.html` (Mermaid `erDiagram`) | Dagre layout drifts from forge typography; attribute rows render gray-on-gray |
+| Sequence diagram | `forge-chart` Visual Type (no template) | Only covered by raw Mermaid in prose; no fgraph parallel |
+| State machine | `forge-chart` Visual Type (no template) | Same |
+| Flowchart > 8 nodes | Rule: "Mermaid auto-layout" (CLAUDE.md × 2) | Global escape hatch — prescribed for any complex graph |
+| Issue-dep graph (`gen-deps.py`) | `build_mermaid` → `flowchart TD` per phase, with cross-phase ghost nodes | N issues × M phases, genuine auto-layout need |
+| `\`\`\`mermaid` md fences | `scripts/render-md{,-tabs}.py` wrap in `<div class="mermaid">` | Any markdown → HTML conversion silently re-imports Mermaid |
+
+Current Mermaid surface totals ~2 K lines: 3 templates (`gantt/pie/er.html` ≈ 412 lines), 1 guide (`mermaid-guide.md`, 192 lines), 1 init (`base/mermaid-init.js`, 103 lines), 2 render scripts (fence handlers + config ≈ 20 lines each), 1 deps generator (`gen-deps.py::build_mermaid` + callers, ~120 lines), plus skill prose + CLAUDE.md references.
+
+Each gap is a forced choice between "drop the feature" or "re-adopt Mermaid." A complete purge requires closing every gap with a native fgraph primitive first; otherwise authors re-introduce Mermaid by convention within weeks.
+
+## Outcome
+
+Every shape currently served by Mermaid renders natively in forge with consistent token-driven theming. Authors pick a template from `graph-templates/`, fill placeholders, and ship — no CDN, no network, no runtime library. Markdown `\`\`\`mermaid` fences are no longer accepted; authors are redirected to the appropriate template. Both CLAUDE.md files stop recommending Mermaid as an escape hatch. Forge artifacts land visibly smaller (≈900 KB of runtime removed from every Mermaid-using page) and visually consistent across diagram types — a gantt, a pie, and a radial-hub now share typography, palette, and spacing.
+
+## Appetite
+
+**2 × 1-week cycles** (with Cycle 1 merging standalone):
+
+- **Cycle 1 (P1):** Build the 6 templates + demos + docs. Ships standalone — Mermaid still works. No regression risk; fgraph templates coexist alongside Mermaid ones. **Soft deprecation guard in this cycle:** add `// DEPRECATED — scheduled for deletion in Cycle 2.` banner to `base/mermaid-init.js` + non-blocking lefthook warning on new `import`/`<script src="...mermaid...">` references.
+- **Cycle 2 (P2 + P3 + P4):** Migrate skills + render scripts + `gen-deps.py`; delete Mermaid files; flip the lefthook warning to a blocking error. Ships as the breaking PR that closes #19.
+
+**Decision gate (end of Cycle 1):** `gen-deps.py` layout complexity — does the Python-side layer-assignment produce readable output with the current 15 open issues + their cross-phase ghosts? If yes, proceed. If the elbow-routed output is unreadable on any real phase, spec's fallback applies (see Fit Check).
+
+## Shapes
+
+Six mini-shapes — one per Mermaid construct — plus one architectural decision (auto-layout) that cuts across them. Each mini-shape is relatively self-contained; the interesting question is how we handle auto-layout and whether fgraph grows a schema-driven JSON intermediate (evaluated and deferred in closed #7) or sticks to hand-authored templates with `{{PLACEHOLDERS}}`.
+
+### Shape 1: Static fgraph templates with hand-authored placeholders (continuity path)
+
+Build each new template the same way existing fgraph templates work — one file per shape, `{{PLACEHOLDERS}}` filled by the author, coordinates hand-tuned in the 0..100 space. Each template inlines its own math for date axis / arcs / crow's-foot markers / lifelines.
+
+**Six templates delivered:**
+
+| Template | Shape | Layout technique |
+|---|---|---|
+| `gantt.html` | horizontal bars on date axis | author declares `{name, start, duration}`; bar x-position = `(start - chart_start) / days × 100`; date axis = SVG baseline + tick labels (inline per template) |
+| `pie.html` | inline SVG arcs | author declares `{label, value}` tuples (≤7); arc paths **pre-computed static SVG** via cumulative-angle math written into the template as the worked example — no runtime, no primitive |
+| `er.html` | entity boxes + crow's-foot | author declares entities + positions; relationships as paths with crow's-foot `<marker>` defs (inline per template) |
+| `sequence.html` | lifelines + message arrows | participants top row (X axis); messages as horizontal arrows at stacked Y positions (inline per template) |
+| `state.html` | state nodes + transitions | reuses `.fgraph-node.circle` + `.fgraph-node.diamond`; transitions hand-authored |
+| `dep-graph.html` | phase columns + issue cards | consumed by `gen-deps.py`; Python-side topological layer assignment computes `--x/--y`; template renders declaratively |
+
+**Trade-offs:**
+
+- **Pro:** Matches existing fgraph contract exactly. No new runtime deps. No layout algorithm complexity. Zero CDN calls. Every template inspectable, ≤ 180 lines each.
+- **Pro:** Authoring ergonomics preserved — copy template, fill placeholders, same pattern as radial-hub/linear-flow.
+- **Pro:** Coexists with existing fgraph work (`fgraph-base.css` already has the shapes needed for state; gantt/pie/er/sequence get new primitive CSS added to the base or per-template).
+- **Pro:** Matches forge's philosophy: "lift, don't rebuild" — authors pick a shape, don't invoke a layout engine.
+- **Con:** `gen-deps.py` has N×M nodes with real dependencies — hand layout is a per-run chore. Would need `gen-deps.py` to compute layer assignment + position in Python (a mini layout pass), not trivial. Risk: ugly output when issue counts drift.
+- **Con:** No answer for the "> 8 nodes flowchart" general case — authors hitting that either split the diagram or write their own SVG.
+- **Con:** Per-template arc / date / lifeline math is non-trivial. Gantt in particular needs a reusable date→x mapping; if not extracted as a primitive, it lives in each author's head.
+
+**Rough scope:** **L** — 6 templates × ~150 lines each + `fgraph-base.css` additions (crow's-foot markers, date axis rules, lifeline rules) + `gen-deps.py` rewrite (~200 lines) + README updates. ~1500 new lines, ~2000 deleted.
+
+### Shape 2: Templates + reusable fgraph primitives (build a small stdlib)
+
+Same 6 templates as Shape 1. Delta: the shared non-pie math moves into `fgraph-base.css` as three new primitives consumed across templates.
+
+**New primitives added to `fgraph-base.css`:**
+
+- **Date axis** (used by gantt): `<g class="fg-axis-date" data-start="..." data-end="...">` with CSS tick styling; generalizes to future event timelines.
+- **Crow's-foot markers** (used by ER): 6 new `<marker>` defs (`||`, `o|`, `o{`, `}|`, `}o`, `}..|`) added alongside existing arrow markers.
+- **Lifeline primitive** (used by sequence): `.fg-lifeline` dashed vertical rule + `.fg-lifeline-activation` modifier box.
+
+**Pie is the exception** — there is no CSS primitive to extract. Pie arcs stay as pre-computed static SVG `<path>` elements written into `pie.html` directly (same as Shape 1). Attempting to extract the arc math as a template macro or runtime snippet adds indirection without reuse.
+
+**Trade-offs:**
+
+- **Pro:** Future-proof. The next "% chart" or "timeline" need reuses the date axis. Consistent primitive API matches the shape vocabulary already in `fgraph-base.css`.
+- **Pro:** Templates are thinner (~100 lines each) because shared logic lives in base.
+- **Pro:** Better positioned for P2/P3 types (#20 — radar, funnel, bubble, scatter) to be added later.
+- **Con:** Bigger up-front investment. Primitives need design review before templates can land.
+- **Con:** Risk of over-abstracting before the second consumer exists — YAGNI risk. Primitive for date axis might not fit radar/funnel.
+- **Con:** `fgraph-base.css` grows meaningfully; must stay under a ceiling to remain inline-friendly.
+
+**Rough scope:** **L–XL** — Shape 1 + primitive extraction + 6 new `fgraph-base.css` sections. ~1800 new lines, ~2000 deleted.
+
+### Shape 3: Vendored mini auto-layout (Dagre-lite) for > 8 nodes
+
+Same 5 static templates as Shape 1 for gantt/pie/ER/sequence/state. For the "> 8 nodes flowchart" case + `gen-deps.py`, vendor a small hierarchical layout library (Dagre is ~40 KB minified; ELK is larger; we could also write a 200-line topological-layer-assignment pass in JS).
+
+Authoring API: `<div class="fgraph-auto" data-layout="layered"><node/>...</div>`, runs layout on page load, writes back `--x/--y` CSS custom props, template handles rendering the same as hand-laid templates.
+
+**Trade-offs:**
+
+- **Pro:** Closes the general-purpose escape hatch — `> 8 nodes` no longer means Mermaid.
+- **Pro:** `gen-deps.py` stays declarative; layout happens in the browser, not Python.
+- **Pro:** A single vendored library serves `dep-graph.html` + any future large graph.
+- **Con:** **Reintroduces a runtime JS dependency.** Even vendored locally, it's 40 KB of code no one on this project has audited. Conflicts with the spirit of "native, token-styled, offline-safe" — offline-safe yes, but we gain back the mental overhead Mermaid had.
+- **Con:** Closed #7 already evaluated auto-layout + JSON IR and deferred it. Re-opening that decision inside a purge issue is scope creep.
+- **Con:** Layout calls happen on every page load; for a 50-issue dep graph that's 50 ms of non-trivial JS — noticeable on slow clients.
+- **Con:** New hand-laid primitives (gantt date axis, ER crow's-foot) are still required — Dagre only helps with node-edge graphs.
+
+**Rough scope:** **XL** — Shape 1 + vendored library + CSS integration + audit + `gen-deps.py` rewrite to emit declarative node list. ~2200 new lines + 40 KB vendored JS, ~2000 deleted.
+
+## Files impacted
+
+| Area | Files | LOC (Mermaid) | Change |
+|---|---|---|---|
+| Templates (Mermaid) | `plugins/forge/references/graph-templates/{gantt,pie,er}.html` | 412 | **delete** (P3) |
+| Guide | `plugins/forge/references/mermaid-guide.md` | 192 | **delete** (P3) |
+| Init | `plugins/forge/references/base/mermaid-init.js` | 103 | **delete** (P3) |
+| Render | `scripts/render-md.py` | ~20 | **edit** — drop `mermaid_fence` + config |
+| Render | `scripts/render-md-tabs.py` | ~20 | **edit** — drop `mermaid_fence` + config |
+| Deps | `scripts/gen-deps.py` | ~120 | **rewrite** — `build_mermaid` → `build_fgraph` |
+| Skills | `plugins/forge/skills/forge-{chart,slides,epic,guide,md}/SKILL.md` | ~30 refs | **edit** — remove Mermaid rows; swap `.diagram-shell` → fgraph |
+| Graph templates | `plugins/forge/references/graph-templates/` | — | **add 6 files:** `gantt.html`, `pie.html` (native), `er.html` (native), `sequence.html`, `state.html`, `dep-graph.html` |
+| Base CSS | `plugins/forge/references/graph-templates/fgraph-base.css` | — | **edit** — add date-axis, crow's-foot markers, lifeline rules |
+| README | `plugins/forge/references/graph-templates/README.md` | — | **edit** — remove Mermaid rows, document 6 new templates |
+| CLAUDE.md (user-global) | `~/.claude/CLAUDE.md` | — | **edit** — remove "> 8 nodes → Mermaid" line |
+| CLAUDE.md (projects) | `~/projects/CLAUDE.md` | — | **edit** — remove same line in "Diagrams & Visual Explainers" |
+| Demos | `~/.roxabi/forge/_shared/diagrams/` or fixtures | — | **add 6 worked demos** — one per new template |
+| Plugin manifests | `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json` | — | **regen via `scripts/gen-plugin-manifest.py`** |
+| CI guard | `lefthook.yml` | — | Cycle 1: non-blocking warn on new `mermaid` imports. Cycle 2: flip to blocking `grep -r "mermaid" plugins/forge/` must-be-empty |
+| Tests | — | — | No automated test framework (`.claude/stack.yml` testing.unit/e2e = none). Validation is manual: each new template renders in a browser under `file://`; `gen-deps.py` output visually inspected vs. current `tab-dependencies.html` |
+
+## Fit Check
+
+**Recommended shape: Shape 2 (templates + reusable primitives), downgrading to Shape 1 if primitive design slips.**
+
+Why:
+
+1. **Appetite fits 2 cycles.** Shape 2 is measurably bigger than Shape 1 but the primitive work is front-loaded in Cycle 1 and unblocks 3 of 5 shapes (gantt, er, sequence all consume at least one primitive). Shape 1 ships the same 6 templates but each one re-implements date-axis math / crow's-foot markers / lifeline rules inline — future #20 work (P2/P3 types) would pay that cost a second time.
+2. **Token consistency is the whole point.** Shape 2's primitives live in `fgraph-base.css`, which means every diagram type picks up the same `--amber`/`--cyan`/`--text-dim` tokens + the same typography. Shape 1 risks per-template color drift (exactly the problem Mermaid has).
+3. **Matches the `fgraph-base.css` precedent.** The file already carries shape primitives (`.pill`, `.circle`, `.hexagon`, `.diamond`, `.cylinder`, `.folded`) + semantic edge classes (`.control`, `.write`, `.read`, `.data`, `.async`, `.feedback`). Adding date-axis / lifeline / crow's-foot fits the same pattern.
+4. **Shape 3 reintroduces what we're removing.** A vendored layout library is smaller than Mermaid but still a runtime JS dependency with its own audit surface. Closed #7 already said no to this class of solution. Reopening it inside a purge issue is the wrong place to relitigate.
+
+**Auto-layout question (orthogonal to Shape 1 vs 2):**
+
+Shape 3's auto-layout ambition is punted, but `gen-deps.py` still needs to produce a laid-out graph. Resolution: `gen-deps.py` computes a Python-side layer-assignment pass (topological sort by phase → vertical layers; alphabetical within layer → horizontal positions) and emits a declarative `dep-graph.html` with pre-computed `--x/--y` values.
+
+**Edge routing is the non-obvious part.** Straight diagonal SVG paths between computed node centers overlap when two same-phase issues both depend on different targets that skip a layer. `gen-deps.py` must emit **elbow-routed SVG paths** (horizontal → vertical → horizontal segments) rather than straight lines, with a routing pass that assigns each edge a horizontal corridor. ≈ 30 lines of Python; still no runtime layout engine.
+
+For the generic "> 8 nodes flowchart" case that authors hit outside `gen-deps.py`, the CLAUDE.md rule becomes: **split the diagram** or **use `layered.html` + hand-assign `--x/--y`**. Not as convenient as Mermaid, but consistent with forge's "lift, don't rebuild" philosophy. Flag in the spec that this is a minor DX regression; gains elsewhere outweigh it.
+
+**Cycle 1 decision-gate fallback** (called out in Appetite): if the elbow-routing produces unreadable output for any real phase in the current 15-issue backlog, the fallback is to ship `dep-graph.html` with a manual-override path: `gen-deps.py` accepts `--layout-overrides path.json` to hand-tune `--x/--y` for known-bad nodes. Kept small — not a layout engine, just an escape hatch for outliers.
+
+**Eliminated:**
+
+- Shape 3 — scope-creep, reintroduces a runtime dep, relitigates a closed decision.
+
+**Contingent:**
+
+- Shape 1 is the fallback if primitive design in Cycle 1 turns out harder than expected (e.g., date axis doesn't generalize cleanly). Regress to per-template inline math; still ships the purge at the cost of more code duplication in future #20 templates.
+
+**Unresolved concerns (for `/spec` to close):**
+
+- **Sequence diagram height** — resolution: `sequence.html` overrides `.fgraph-wrap`'s `aspect-ratio` via inline `style="aspect-ratio: unset; height: calc(120px + var(--msg-count) * 40px)"` where `--msg-count` is the author-declared number of messages. Cap at 15 messages per diagram; above that, split into sub-diagrams. No new primitive needed.
+- **ER attribute rendering** — lists attributes as child HTML rows inside each entity box. Four decisions needed: (1) row striping (zebra via `:nth-child`), (2) PK/FK/UK indicator (small pill to the right of the attribute name, reuse `.fgraph-pill`), (3) typography (Space Mono 9.5px to match `.fgraph-sub`), (4) **endpoint drift:** entity box height is content-driven (35–90px depending on attribute count); crow's-foot paths connect to the center of the box's left/right edge. Template must ship a lookup table in its header comment (attributes-per-entity → anchor offset in 0..100 space), same pattern as the existing arrow-endpoint formula in `fgraph-base.css:77-157`.
+- **`\`\`\`mermaid` fence removal semantics** — hard error: fence handler prints a clear message to stderr ("`mermaid` fences are no longer supported; see `graph-templates/README.md` for the fgraph replacement") and exits non-zero. Preferred over silent skip so migration is visible in CI.
+- **Demo location** — commit demos under `plugins/forge/references/graph-templates/examples/` (colocated with source). `_shared/diagrams/` is deployed but not versioned with plugin updates; examples should ship with the templates they demonstrate.
+- **`base/mermaid-init.js` delete vs. rename** — plain delete in Cycle 2 (P3). Cycle 1 adds a deprecation banner but the file stays to avoid breaking any in-flight Mermaid templates during the coexistence window.
