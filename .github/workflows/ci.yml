@@ -24,7 +24,7 @@ jobs:
         run: |
           matches=$(grep -rn '\bmermaid\b' plugins/forge/ 2>/dev/null || true)
           if [ -n "$matches" ]; then
-            echo "::error::Mermaid references detected — blocked by #21"
+            echo "::error::Mermaid references detected — blocked by #21. Use fgraph templates from plugins/forge/references/graph-templates/ instead."
             echo "$matches"
             exit 1
           fi
