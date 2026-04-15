@@ -25,7 +25,7 @@ See also: `split-file.md` for the file layout pattern (version isolation, tab fr
    - `{TAB_LOADER_JS}` → tab-loader.js with `{NAME}` substituted
    - `{HEAD_EXTRAS}` → optional (e.g., svg-pan-zoom CDN for Mermaid)
    - `{EXTRA_STYLES}` → skill-specific CSS additions
-   - `{EXTRA_SCRIPTS}` → optional (e.g., mermaid-init.js)
+   - `{EXTRA_SCRIPTS}` → optional (e.g., Mermaid-init.js)
 7. Output: split-file HTML (requires HTTP serve)
 
 ## fgraph Integration

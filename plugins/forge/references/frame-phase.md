@@ -147,7 +147,7 @@ only via NATS topics — no direct imports between them.
 
 **Signal 3 — Tone (inferred):** Project is lyra → brand book loaded → warm + technical
 pre-constrained. Content is a topology explanation, not a debug reference → spacious + reflective.
-The reader should leave feeling "I understand this now", not "wow that's complex." Dense mermaid
+The reader should leave feeling "I understand this now", not "wow that's complex." Dense Mermaid
 with a dozen nodes would produce the wrong reaction even if technically accurate.
 
 **Signal 4 — Sentence verb (inferred):** *"...lets me see how messages flow."* The verb is *see*,
@@ -160,7 +160,7 @@ information density.
 
 Topology is hub-and-spoke with three peers and one central hub — four nodes total, well under the
 six-peer fgraph threshold. Reader-action (onboarding) and sentence verb (see) both point away from
-dense mermaid and toward the radial fgraph layout. Spacious tone confirms it: fgraph's fixed-
+dense Mermaid and toward the radial fgraph layout. Spacious tone confirms it: fgraph's fixed-
 position nodes with explicit whitespace match the "reflective" axis better than dagre's auto-packed
 layout.
 

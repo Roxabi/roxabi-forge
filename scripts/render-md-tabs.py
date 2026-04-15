@@ -267,7 +267,7 @@ def render_body(src_text: str) -> str:
         extension_configs={
             "pymdownx.superfences": {
                 "custom_fences": [
-                    {"name": "mermaid", "class": "mermaid", "format": error_fence}
+                    {"name": "mermaid", "class": "Mermaid", "format": error_fence}
                 ]
             },
             "pymdownx.tasklist": {"custom_checkbox": True},

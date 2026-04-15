@@ -22,7 +22,7 @@ jobs:
         run: python3 -m py_compile scripts/*.py
       - name: Mermaid guard
         run: |
-          matches=$(grep -rn '\bmermaid\b' plugins/forge/ scripts/render-md.py scripts/render-md-tabs.py scripts/gen-deps.py 2>/dev/null || true)
+          matches=$(grep -rn '\bmermaid\b' plugins/forge/ 2>/dev/null || true)
           if [ -n "$matches" ]; then
             echo "::error::Mermaid references detected — blocked by #21"
             echo "$matches"

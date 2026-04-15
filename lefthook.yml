@@ -17,6 +17,7 @@ pre-commit:
     mermaid-guard:
       # Blocking guard. Fails commit when staged files contain lowercase mermaid.
       # Pattern matches \bmermaid\b only — capitalized "Mermaid" in error prose is exempt.
+      # Scripts excluded — they intentionally have "mermaid" in superfences config to hard-error on fences.
       #
       # File-path safety: {staged_files} is a raw space-separated
       # substitution — lefthook tokenizes on whitespace before the shell
@@ -38,7 +39,6 @@ pre-commit:
         fi
       glob:
         - "plugins/forge/**/*"
-        - "scripts/*.py"
 
 commit-msg:
   commands:

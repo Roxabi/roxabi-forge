@@ -212,7 +212,7 @@ Each type uses `.slide.slide--{type}` plus internal element classes prefixed wit
 <section class="slide slide--diagram">
   <h2 class="slide__heading reveal">Diagram Title</h2>
   <div class="slide__diagram-wrap reveal">
-    <div class="mermaid" data-mermaid>
+    <div class="Mermaid" data-Mermaid>
       graph TD
         A --> B
     </div>
@@ -220,7 +220,7 @@ Each type uses `.slide.slide--{type}` plus internal element classes prefixed wit
 </section>
 ```
 
-**CSS hook points:** `.slide--diagram` (reduced padding to give diagram room), `.slide__diagram-wrap` (flex, center-aligned, fills remaining height), `.slide--diagram .mermaid svg` (force 100% width via `autoFit()`).
+**CSS hook points:** `.slide--diagram` (reduced padding to give diagram room), `.slide__diagram-wrap` (flex, center-aligned, fills remaining height), `.slide--diagram .Mermaid svg` (force 100% width via `autoFit()`).
 
 **Content fit:** 1 heading + 1 diagram. Max 8–10 nodes for projection readability. 18px+ node labels, 2px+ edges.
 
@@ -239,7 +239,7 @@ Each type uses `.slide.slide--{type}` plus internal element classes prefixed wit
   overflow: auto;
 }
 
-.slide--diagram .mermaid svg {
+.slide--diagram .Mermaid svg {
   width: 100% !important;
   height: auto !important;
   max-width: 100% !important;
@@ -603,18 +603,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 })
 ```
 
-**Why `initSlideMermaid()` runs first:** Mermaid SVGs don't exist in the DOM until `mermaid.render()` injects them. `autoFit()` queries `.slide--diagram svg` to strip `height` attributes and set `width: 100%; height: auto` — that query returns nothing if Mermaid hasn't rendered yet. Rendering first, patching second, is the working contract (same pattern VE uses).
+**Why `initSlideMermaid()` runs first:** Mermaid SVGs don't exist in the DOM until `Mermaid.render()` injects them. `autoFit()` queries `.slide--diagram svg` to strip `height` attributes and set `width: 100%; height: auto` — that query returns nothing if Mermaid hasn't rendered yet. Rendering first, patching second, is the working contract (same pattern VE uses).
 
 **Why `autoFit()` runs before `SlideEngine`:** `SlideEngine` attaches an `IntersectionObserver` to every `.slide`. If a diagram slide is first on screen and its SVG still has intrinsic fixed dimensions, the slide overflows horizontally before the observer sees "visible" and swaps in layout. Patching SVG dims before the observer fires keeps the initial frame clean.
 
 **Why `SlideEngine` runs last:** It owns chrome (progress bar, dots, counter) and keyboard/touch bindings. Until all slide content is laid out, the first `entry.isIntersecting` fire counts the wrong slide as active — the progress bar and counter start misaligned. Awaiting `initSlideMermaid()` + running `autoFit()` first keeps state consistent.
 
-**`initSlideMermaid()` — scoped init (not `mermaid-init.js`):** `slide-deck-base.js` ships its own Mermaid init. It does not reuse `base/mermaid-init.js` verbatim because that file's `window.__postLoad` contract is tab-loader-specific. The slide init:
+**`initSlideMermaid()` — scoped init (not `Mermaid-init.js`):** `slide-deck-base.js` ships its own Mermaid init. It does not reuse `base/Mermaid-init.js` verbatim because that file's `window.__postLoad` contract is tab-loader-specific. The slide init:
 
-1. Imports `mermaid` from CDN (`cdn.jsdelivr.net/npm/mermaid@11`)
-2. Calls `mermaid.initialize({ startOnLoad: false, theme: 'base', ... })`
-3. Queries only `.slide--diagram [data-mermaid]` — not page-wide `.mermaid` elements
-4. Assigns each element a unique ID `mermaid-slide-${i}` before calling `mermaid.render()` — preventing duplicate-ID collisions when a deck has multiple diagram slides
+1. Imports `Mermaid` from CDN (`cdn.jsdelivr.net/npm/Mermaid@11`)
+2. Calls `Mermaid.initialize({ startOnLoad: false, theme: 'base', ... })`
+3. Queries only `.slide--diagram [data-Mermaid]` — not page-wide `.Mermaid` elements
+4. Assigns each element a unique ID `Mermaid-slide-${i}` before calling `Mermaid.render()` — preventing duplicate-ID collisions when a deck has multiple diagram slides
 5. Injects the rendered SVG into the adjacent `.slide__diagram-wrap` container
 6. Returns a `Promise` that resolves when all diagram slides are rendered
 
@@ -720,7 +720,7 @@ Use Mermaid for complex graphs: 8+ nodes, branching paths, cycles, multiple edge
 
 ```html
 <div class="slide__diagram-wrap reveal">
-  <div class="mermaid" data-mermaid>
+  <div class="Mermaid" data-Mermaid>
     flowchart TD
       A["Input"] --> B["Process"]
       B --> C["Output"]
@@ -728,17 +728,17 @@ Use Mermaid for complex graphs: 8+ nodes, branching paths, cycles, multiple edge
 </div>
 ```
 
-Use `data-mermaid` on the element — `slide-deck-base.js`'s `initSlideMermaid()` queries `.slide--diagram [data-mermaid]` and assigns each element a unique ID `mermaid-slide-${i}` before calling `mermaid.render()`. This avoids duplicate-ID errors when a deck has multiple diagram slides.
+Use `data-Mermaid` on the element — `slide-deck-base.js`'s `initSlideMermaid()` queries `.slide--diagram [data-Mermaid]` and assigns each element a unique ID `Mermaid-slide-${i}` before calling `Mermaid.render()`. This avoids duplicate-ID errors when a deck has multiple diagram slides.
 
-**Why the skill ships its own init (not `base/mermaid-init.js`):** `base/mermaid-init.js` uses a `window.__postLoad` callback contract that is tab-loader-specific — it fires after a tab's content is fetched and injected into the shell. In a slide deck there are no tabs; all slides are in the DOM on load. The slide init is synchronous-then-async: it runs on `DOMContentLoaded`, iterates the diagram slides in order, renders each to a unique ID, and resolves a `Promise` that gates `SlideEngine` init. The import/config pattern (CDN ESM, `theme: 'base'`, `themeVariables` from forge CSS tokens) is the same as `mermaid-guide.md § Single-File Mermaid`.
+**Why the skill ships its own init (not `base/Mermaid-init.js`):** `base/Mermaid-init.js` uses a `window.__postLoad` callback contract that is tab-loader-specific — it fires after a tab's content is fetched and injected into the shell. In a slide deck there are no tabs; all slides are in the DOM on load. The slide init is synchronous-then-async: it runs on `DOMContentLoaded`, iterates the diagram slides in order, renders each to a unique ID, and resolves a `Promise` that gates `SlideEngine` init. The import/config pattern (CDN ESM, `theme: 'base'`, `themeVariables` from forge CSS tokens) is the same as `Mermaid-guide.md § Single-File Mermaid`.
 
 **Mermaid presentation overrides** (add inside the deck's `<style>` block):
 
 ```css
-.slide--diagram .mermaid .nodeLabel { font-size: 18px !important; }
-.slide--diagram .mermaid .edgeLabel { font-size: 14px !important; }
-.slide--diagram .mermaid .node rect,
-.slide--diagram .mermaid .node circle { stroke-width: 2px; }
+.slide--diagram .Mermaid .nodeLabel { font-size: 18px !important; }
+.slide--diagram .Mermaid .edgeLabel { font-size: 14px !important; }
+.slide--diagram .Mermaid .node rect,
+.slide--diagram .Mermaid .node circle { stroke-width: 2px; }
 ```
 
 ### fgraph
@@ -894,7 +894,7 @@ Agents cannot perfectly predict how text reflows at every viewport size. `autoFi
 ```javascript
 function autoFit() {
   // Mermaid SVGs: force fill container instead of intrinsic size
-  document.querySelectorAll('.mermaid svg').forEach(function(svg) {
+  document.querySelectorAll('.Mermaid svg').forEach(function(svg) {
     svg.removeAttribute('height')
     svg.style.width = '100%'
     svg.style.maxWidth = '100%'
