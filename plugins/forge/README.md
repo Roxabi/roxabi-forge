@@ -16,7 +16,7 @@ claude plugin install forge
 | `init` | "init forge", "setup forge", "forge init" | Set up `~/.roxabi/forge/` with server, shared assets, directory structure |
 | `guide` | "guide", "user guide", "project recap", "architecture doc", "analysis", "comparison", "roadmap" | Split-file multi-tab doc: shell HTML + CSS + JS + tab fragments |
 | `epic` | "epic", "epic preview", "issue visual", "issue plan", "#N" | Issue/epic-linked analysis tied to a GitHub issue number |
-| `chart` | "chart", "flowchart", "dependency tree", "mermaid", "quick chart" | Self-contained single-file Mermaid or CSS visual |
+| `chart` | "chart", "flowchart", "dependency tree", "quick chart" | Self-contained single-file CSS visual |
 | `gallery` | "gallery", "image gallery", "brand gallery", "audio gallery" | Image or audio comparison gallery (requires `forge-init` first) |
 
 ## When to use each

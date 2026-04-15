@@ -103,8 +103,8 @@ components:
 # topology (e.g. a dep graph is still a Mermaid flowchart), but resolves
 # ties between equally valid choices.
 structure_defaults:
-  prefer_fgraph_under: 6       # hub-and-spoke with ≤ N peers → fgraph over mermaid
-  prefer_mermaid_over: 8       # > N nodes → mermaid regardless of topology
+  prefer_fgraph_under: 6       # hub-and-spoke with ≤ N peers → fgraph over Mermaid
+  prefer_mermaid_over: 8       # > N nodes → Mermaid regardless of topology
   comparison_as_table: true    # matrices use HTML tables, not grid cards
 
 # ── Canonical examples ──────────────────────────────────────────

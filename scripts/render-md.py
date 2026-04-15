@@ -244,7 +244,7 @@ def render(src: Path, dst: Path) -> tuple[int, int]:
         extension_configs={
             "pymdownx.superfences": {
                 "custom_fences": [
-                    {"name": "mermaid", "class": "mermaid", "format": error_fence}
+                    {"name": "mermaid", "class": "Mermaid", "format": error_fence}
                 ]
             },
             "pymdownx.tasklist": {"custom_checkbox": True},

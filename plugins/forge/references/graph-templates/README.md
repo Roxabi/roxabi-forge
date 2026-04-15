@@ -215,76 +215,6 @@ Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-two-machine-deploym
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html`
 (lyra dev → staging → prod promotion flow via `make deploy` + pytest gate).
 
-### Gantt · legacy (Mermaid)
-
-> Timeline / schedule rendered via Mermaid `gantt`. Declare dates + durations
-> per task, group tasks into sections (team, phase, track). Auto-layout — you
-> only declare data, Mermaid places the bars. States: `done`, `active`, `crit`
-> (critical-path), plain, `milestone` (diamond at zero-duration).
->
-> Use for roadmaps, release schedules, multi-workstream project plans.
-
-```
-┌──────────────────────── Q2 Roadmap ────────────────────────┐
-│ Section: Infra                                             │
-│   migrate-db   ███░░░░░    done                            │
-│   tls-rotate         ████░░░░    active                    │
-│   observability            ██████    crit                  │
-│ Section: Product                                           │
-│   auth-rewrite      ██████░░░░                             │
-│   ship-1.0                         ◆ milestone             │
-└────────────────────────────────────────────────────────────┘
-```
-
-Template: [`gantt-mermaid.html`](./gantt-mermaid.html). Mermaid-rendered, self-contained. Scheduled for deletion in #24 — new work should use the native [`gantt.html`](./gantt.html) below.
-
-### Pie · legacy (Mermaid)
-
-> Proportion / share rendered via Mermaid `pie`. Declare slices as
-> `"label" : number`, one per line. Mermaid assigns colors from `pie1`…`pie12`
-> themable via `themeVariables`. `showData` prints the numeric value with the
-> slice label.
->
-> Use for cost / traffic / storage breakdowns, composition snapshots, or
-> before/after pie pairs. Aim for 3–7 slices — beyond that, group small
-> values into "Other" or switch to a stacked bar.
-
-```
-            ╭─────────────╮
-       ╭────┤   Backend   ├─────╮   42%
-     ╭─┤    ╰─────────────╯     ╰─╮
-    ╭┤  ╭──────────╮               │ Frontend  28%
-    ││  │ Database │               │
-    │╰──┤          ├──╮     Infra  18%
-    ╰─  ╰──────────╯  ╰──── Other  12%
-```
-
-Template: [`pie-mermaid.html`](./pie-mermaid.html). Mermaid-rendered, self-contained. Scheduled for deletion in #24 — new work should use the native [`pie.html`](./pie.html) below.
-
-### ER · legacy (Mermaid)
-
-> Entity-relationship schema rendered via Mermaid `erDiagram`. Declare entities
-> with attribute lists (type, name, key markers `PK`/`FK`/`UK`, comment) and
-> relationships with crow's-foot cardinality (`||--o{` for 1:many, `}o--o{`
-> for many:many, `||--||` for 1:1, dotted `..` for non-identifying).
->
-> Use for DB schemas, domain models, aggregate references. Keep entities ≤ 12
-> per diagram; split into auth / billing / inventory sub-diagrams above that
-> threshold.
-
-```
-┌─────────┐         ┌─────────┐         ┌─────────┐
-│  USER   │──┐  1:N │  ORDER  │  1:1    │ PAYMENT │
-│  id PK  │  ├─────▶│  id PK  │────────▶│  id PK  │
-│  email  │  │      │ user_id │         │order_id │
-└─────────┘  │      │ total   │         │ status  │
-             │      └─────────┘         └─────────┘
-             │  M:N
-             └────────▶ TAG
-```
-
-Template: [`er-mermaid.html`](./er-mermaid.html). Mermaid-rendered, self-contained. Scheduled for deletion in #24 — new work should use the native [`er.html`](./er.html) below.
-
 ### Gantt
 
 > Timeline / schedule rendered natively with pre-computed bar positions.
@@ -293,7 +223,7 @@ Template: [`er-mermaid.html`](./er-mermaid.html). Mermaid-rendered, self-contain
 > template header. Sections group bars by project / team / phase.
 >
 > Use for roadmaps, release schedules, and multi-workstream plans that need
-> offline-safe rendering (no `mermaid@11` CDN). Cap at ~12 bars per diagram.
+> offline-safe rendering (no CDN dependency). Cap at ~12 bars per diagram.
 
 ```
 ┌─────────── Mermaid purge · 4 phases ────────────┐
@@ -347,8 +277,7 @@ Native, no CDN, file://-safe.
 > documented in the template header.
 >
 > Use for DB schemas, domain models, and aggregate references. Keep
-> entities ≤ 8 per diagram (vs. ≤ 12 for the old Mermaid version —
-> hand-positioned cards get crowded faster).
+> entities ≤ 8 per diagram — hand-positioned cards get crowded faster beyond that.
 
 ```
 ┌─────────┐         ┌─────────┐         ┌───────────┐
@@ -464,23 +393,12 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 | `sequence.html` | Protocol exchange / request-response / pipeline message flow — ≤ 15 messages | ~4K | Participant pill row + `.fg-lifeline` verticals + `.fg-lifeline-activation` box, aspect-ratio override via `--msg-count`, 5 tone variants |
 | `state.html` | Finite-state machine / lifecycle — ≤ 6 states | ~4K | `.fgraph-node.circle`/`.diamond` shapes, semantic `.fg-edge.control`/`.feedback` classes, start/end circles, no CDN |
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
-| `gantt-mermaid.html` | (Legacy — scheduled for deletion in #24) | ~4K | Mermaid `gantt`, auto-layout, `done`/`active`/`crit`/`milestone` states, `.diagram-shell` + pan/zoom · requires `mermaid@11` CDN |
-| `pie-mermaid.html` | (Legacy — scheduled for deletion in #24) | ~4K | Mermaid `pie showData`, 6 themed `pie1..pie6` slice colors, `.diagram-shell` + pan/zoom · requires `mermaid@11` CDN |
-| `er-mermaid.html` | (Legacy — scheduled for deletion in #24) | ~4K | Mermaid `erDiagram`, crow's-foot cardinality, `PK`/`FK` markers, `.diagram-shell` + pan/zoom · requires `mermaid@11` CDN |
 
 All **13 native fgraph** templates (`radial-hub`, `linear-flow`,
 `dual-cluster`, `radial-ring`, `layered`, `machine-clusters`,
 `deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`)
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
-
-The three **Mermaid legacy** templates (`gantt-mermaid`, `pie-mermaid`,
-`er-mermaid`) are self-rendering via the mermaid CDN — they share the
-`.diagram-shell` + zoom-control pattern (inherited from `base/components.css`
-/ `explainer-base.css`) and do not depend on `fgraph-base.css`. These are
-**scheduled for deletion in #24** and retained only for backwards
-compatibility during the Mermaid purge (#21) coexistence window. New work
-should use the native versions.
 
 ### Primitives (`fgraph-base.css`)
 
@@ -683,9 +601,6 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | Protocol exchange / message flow / pipeline — ≤ 15 messages | `sequence.html` | `/dev` pipeline interaction, API handshake |
 | Finite-state machine / lifecycle — ≤ 6 states | `state.html` | issue lifecycle, review workflow, connection states |
 | Issue dependency graph — phase columns × issue cards | `dep-graph.html` | roadmap backlog, blocks/depends-on visualisation (via `gen-deps.py` in #23) |
-| Timeline with auto-layout (declarative dates + durations, no manual positioning) — **legacy** | `gantt-mermaid.html` | scheduled for deletion in #24 — prefer `gantt.html` |
-| Pie with Mermaid auto-color slices — **legacy** | `pie-mermaid.html` | scheduled for deletion in #24 — prefer `pie.html` |
-| ER via `erDiagram` Mermaid DSL — **legacy** | `er-mermaid.html` | scheduled for deletion in #24 — prefer `er.html` |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
 All 13 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
@@ -695,12 +610,6 @@ All 13 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
 and a few shape-specific extensions (`.fg-axis-date`, `.fg-gantt-bar`,
 `.fg-lifeline`, `.fg-er-*` markers), so mixing features (e.g. a linear-flow
 with a dashed machine frame borrowed from radial-hub) is just copy-paste.
-
-The three legacy Mermaid templates (`gantt-mermaid`, `pie-mermaid`,
-`er-mermaid`) are self-rendering via the mermaid CDN and do not consume
-`fgraph-base.css` — customise by editing the `<script type="text/plain"
-data-mermaid>` block's Mermaid source and tuning `themeVariables` in
-`mermaid.initialize({...})`. These are scheduled for deletion in #24.
 
 ---
 
@@ -1130,40 +1039,16 @@ Remove the dev tier for a staging → prod view:
 
 | If your diagram is… | Use instead |
 |--------------------|-------------|
-| Linear flow / pipeline | `flowchart LR` via Mermaid (see `mermaid-guide.md`) — dagre auto-layout wins |
-| Sequence / message exchange | `sequenceDiagram` via Mermaid |
-| State machine | `stateDiagram-v2` via Mermaid |
-| Dependency graph > 8 nodes | Mermaid `flowchart TD` — dagre handles N peers, fgraph caps at ~6 satellites before labels collide |
-| Tree / hierarchy | Mermaid `flowchart TD` with `subgraph` |
+| Linear flow / pipeline | `linear-flow.html` — 3-stage horizontal |
+| Sequence / message exchange | `sequence.html` — participant lifelines |
+| State machine | `state.html` — state nodes + transitions |
+| Dependency graph > 8 nodes | `dep-graph.html` — phase columns + issue cards (via `gen-deps.py`) |
+| Tree / hierarchy | Start from `layered.html` and adapt |
 | Rich cards stacked vertically (no hub) | `architecture.html` pattern from visual-explainer — CSS Grid cards + tiny inline SVG connectors |
 
 `fgraph` is optimized for the specific case where **one center node connects
 N peers** and the peers deserve **rich HTML card content** (pills, pill shapes,
-warn lines, wrapped text). For anything else, Mermaid is almost always lower
-effort.
-
----
-
-## Decision matrix: fgraph vs Mermaid vs pure SVG
-
-| Criterion | `fgraph` (HTML cards + SVG overlay) | Mermaid | Pure inline SVG |
-|-----------|-------------------------------------|---------|-----------------|
-| Radial / hub-and-spoke layout | ✅ natural | ❌ dagre flattens to linear | ✅ but tedious |
-| Rich card content (pills, warn, wrap) | ✅ native HTML | ⚠ `<br>` only, no CSS flex | ❌ no text wrap |
-| Auto-layout for N > 8 nodes | ❌ manual | ✅ dagre / ELK | ❌ manual |
-| Labels on edges | ✅ HTML `<div>` | ✅ native syntax | ⚠ `<text>` + positioning |
-| Pixel-perfect control | ✅ | ❌ | ✅ |
-| One-shot authoring cost (new diagram) | low (fill placeholders) | low (write graph LR …) | high (recompute all coords) |
-| Runtime dependencies | none | Mermaid 11 ESM from CDN | none |
-| Dark/light theme | ✅ CSS vars | ⚠ re-render needed | ✅ CSS vars |
-| Hover / interactivity | ✅ CSS | ⚠ needs bindFunctions | ⚠ SVG filter |
-| Works in fetched tab fragment (`innerHTML`) | ✅ | ⚠ `mermaid.run()` after inject | ✅ |
-| Accessibility | ✅ real HTML | ✅ Mermaid emits SVG + titles | ⚠ `role="img"` + aria-label only |
-
-**Rule of thumb:**
-- 6 nodes, radial, rich cards → **fgraph**
-- 8+ nodes, linear/topology → **Mermaid**
-- Fallback when neither fits → **pure SVG** (last resort)
+warn lines, wrapped text).
 
 ---
 

@@ -48,7 +48,7 @@ Read `shells/split.html` for the complete template. It contains all necessary pl
 | `{TAB_LOADER_JS}` | tab-loader.js with `{NAME}` substituted |
 | `{HEAD_EXTRAS}` | Optional (e.g., svg-pan-zoom CDN) |
 | `{EXTRA_STYLES}` | Diagram-specific CSS |
-| `{EXTRA_SCRIPTS}` | Optional (e.g., mermaid-init.js) |
+| `{EXTRA_SCRIPTS}` | Optional (e.g., diagram libs) |
 
 **Directive: inline, never link** — skills should read and inline all CSS/JS, not link to external files.
 
@@ -71,7 +71,7 @@ Content patterns by tab type:
 
 ## Mermaid Support
 
-If any tab will contain a Mermaid diagram, see `references/mermaid-guide.md` for the complete checklist (dynamic tab pitfalls, `__postLoad`, `__initPanZoom`).
+Mermaid diagrams are no longer supported in forge outputs. Use fgraph templates from `references/graph-templates/` for architecture diagrams.
 
 ---
 
