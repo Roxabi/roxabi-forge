@@ -606,3 +606,163 @@
   color: var(--text-muted);
   pointer-events: none;
 }
+
+/* ── date axis ──
+   Consumed by: gantt.html
+   Shape: a horizontal baseline near the bottom of the container with evenly
+   spaced tick marks + labels. The axis coordinate space is the same 0–100
+   percentage as --x on nodes, so gantt bars can position directly in sync.
+
+   Authoring pattern (author pre-computes % offsets; no runtime math):
+
+     <div class="fg-axis-date">
+       <div class="fg-axis-date-baseline"></div>
+       <div class="fg-axis-date-tick" style="--x:0">   <span class="fg-axis-date-label">Apr 15</span></div>
+       <div class="fg-axis-date-tick" style="--x:25">  <span class="fg-axis-date-label">Apr 22</span></div>
+       <div class="fg-axis-date-tick" style="--x:50">  <span class="fg-axis-date-label">Apr 29</span></div>
+       <div class="fg-axis-date-tick" style="--x:75">  <span class="fg-axis-date-label">May 06</span></div>
+       <div class="fg-axis-date-tick" style="--x:100"> <span class="fg-axis-date-label">May 13</span></div>
+     </div>
+
+   Date → % mapping formula (compute once, hard-code):
+       x% = (tick_date - start_date) / (end_date - start_date) * 100
+*/
+.fg-axis-date {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 14%;
+  height: 22px;
+  pointer-events: none;
+}
+.fg-axis-date-baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--border-bright);
+}
+.fg-axis-date-tick {
+  position: absolute;
+  left: calc(var(--x, 0) * 1%);
+  top: 0;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 6px;
+  background: var(--border-bright);
+}
+.fg-axis-date-label {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── gantt bars (horizontal time bars) ──
+   Consumed by: gantt.html. Positioned in the same 0–100 % space as the
+   date axis so bar start / end align visibly with ticks.
+
+     <div class="fg-gantt-bar amber" style="--x:10; --w:28; --y:22">Task name</div>
+
+   --x : left edge % · --w : width % · --y : top offset %  (from wrap top).
+*/
+.fg-gantt-bar {
+  position: absolute;
+  left: calc(var(--x, 0) * 1%);
+  top:  calc(var(--y, 0) * 1%);
+  width: calc(var(--w, 10) * 1%);
+  height: 18px;
+  padding: 0 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  line-height: 18px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fg-gantt-bar.amber  { border-color: rgba(251,191,36,0.55);  background: rgba(251,191,36,0.10); color: var(--amber); }
+.fg-gantt-bar.cyan   { border-color: rgba(34,211,238,0.55);  background: rgba(34,211,238,0.10); color: var(--cyan); }
+.fg-gantt-bar.purple { border-color: rgba(192,132,252,0.55); background: rgba(192,132,252,0.10); color: var(--purple); }
+.fg-gantt-bar.green  { border-color: rgba(74,222,128,0.55);  background: rgba(74,222,128,0.10); color: var(--green); }
+.fg-gantt-bar.red    { border-color: rgba(248,113,113,0.55); background: rgba(248,113,113,0.10); color: var(--red); }
+
+/* ── lifelines (sequence-diagram vertical rules) ──
+   Consumed by: sequence.html. Pairs with a top participant pill
+   (authored as .fgraph-node.pill) that sits at --y:6 or similar.
+   The lifeline drops from just below the participant down to the bottom
+   of the wrap, visualising the participant's existence over time.
+
+     <div class="fg-lifeline" style="--x:20"></div>
+
+   Activation modifier (solid rectangle drawn on top of the dashed rule)
+   shows "this participant is currently processing a message":
+
+     <div class="fg-lifeline-activation" style="--x:20; --y1:30; --y2:55"></div>
+*/
+.fg-lifeline {
+  position: absolute;
+  left: calc(var(--x, 50) * 1%);
+  top: 12%;
+  bottom: 12%;
+  width: 0;
+  border-left: 1px dashed var(--border-bright);
+  pointer-events: none;
+}
+.fg-lifeline-activation {
+  position: absolute;
+  left: calc(var(--x, 50) * 1%);
+  top: calc(var(--y1, 30) * 1%);
+  height: calc((var(--y2, 55) - var(--y1, 30)) * 1%);
+  width: 6px;
+  transform: translateX(-50%);
+  background: rgba(74,222,128,0.18);
+  border: 1px solid rgba(74,222,128,0.55);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* ── ER markers (crow's-foot relationship endpoints) ──
+   Consumed by: er.html. SVG <marker> defs themselves live inside each
+   er.html's inline <defs> block — <marker> is an SVG element, so it
+   cannot be shipped purely from CSS. This block styles the marker
+   stroke / fill via the .mk-er-stroke class referenced inside the
+   <marker>'s path.
+
+   Chen / crow's-foot glyph inventory (author picks one per relationship end):
+
+     id                 glyph    meaning
+     ─────────────────  ───────  ──────────────────────────────
+     fg-er-one          ||       one, mandatory
+     fg-er-zero-one     o|       zero or one (optional)
+     fg-er-many         o{       zero or many (optional crow)
+     fg-er-one-many     }|       one or many (mandatory crow)
+     fg-er-zero-many    }o       zero or many (alt. dashed)
+
+   Template usage pattern:
+
+     <defs>
+       <marker id="fg-er-one" viewBox="0 0 10 10" refX="9" refY="5"
+               markerWidth="10" markerHeight="10" orient="auto">
+         <path d="M2,0 L2,10 M5,0 L5,10" class="mk-er-stroke"/>
+       </marker>
+       <!-- ... 4 more markers ... -->
+     </defs>
+
+     <path class="fg-edge" d="M 20,30 L 60,30"
+           marker-start="url(#fg-er-one)"
+           marker-end="url(#fg-er-many)"/>
+*/
+.fgraph-edges .mk-er-stroke {
+  stroke: var(--border-bright);
+  fill: none;
+  stroke-width: 1.4;
+}

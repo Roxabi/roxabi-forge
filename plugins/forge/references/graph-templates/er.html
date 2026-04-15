@@ -16,30 +16,53 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* {{BASE_STYLES}} — inline reset.css + layout.css + typography.css + components.css + explainer-base.css */
-/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic */
+/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic (lyra.css / roxabi.css / blueprint.css / ...) */
+
+/* ══════════════════════════════════════════════════════════════════
+   fgraph primitives — inlined from references/graph-templates/fgraph-base.css
+   ══════════════════════════════════════════════════════════════════ */
+/* {{FGRAPH_BASE}} — inline fgraph-base.css here */
+
+/* ── ER-specific entity & attribute styling ── */
+.fgraph-wrap.er { aspect-ratio: 16 / 10; max-width: 860px; }
+
+.fg-er-entity {
+  position: absolute;
+  left: calc(var(--x, 0) * 1%);
+  top:  calc(var(--y, 0) * 1%);
+  transform: translate(-50%, -50%);
+  width: calc(var(--w, 16) * 1%);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-bright);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text);
+}
+.fg-er-entity-name {
+  padding: 5px 10px;
+  background: rgba(74,222,128,0.12);
+  border-bottom: 1px solid var(--border-bright);
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 9.5px;
+}
+.fg-er-attr {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 10px;
+  color: var(--text-dim);
+  border-top: 1px dashed var(--border);
+}
+.fg-er-attr:first-of-type { border-top: none; }
+.fg-er-attr .type { color: var(--text-muted); font-size: 8.5px; }
+.fg-er-attr.pk { color: var(--amber); }
+.fg-er-attr.fk { color: var(--cyan); }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-      primaryColor: 'var(--surface)',
-      primaryTextColor: 'var(--text)',
-      primaryBorderColor: 'var(--accent)',
-      lineColor: 'var(--text-dim)',
-      secondaryColor: 'var(--border)',
-      background: 'var(--bg)',
-      edgeLabelBackground: 'var(--surface)',
-      nodeTextColor: 'var(--text-muted)',
-      attributeBackgroundColorOdd: 'var(--surface)',
-      attributeBackgroundColorEven: 'var(--bg)'
-    },
-    er: { useMaxWidth: false, layoutDirection: 'TB', minEntityWidth: 120, minEntityHeight: 80, fontSize: 12 }
-  })
-  window.__mermaidReady = mermaid
-</script>
 </head>
 <body>
 
@@ -52,96 +75,121 @@
 <main>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     CUSTOMISE — Entity-relationship schema
+     CUSTOMISE — this is the authoring surface.
 
-     Use this template when the content is:
-       - A database schema (tables + FK relationships)
-       - A domain model (aggregates + references)
-       - Any "nouns + how they connect" view
+     Layout: N entity boxes (HTML div cards) positioned in a 0..100 %
+     space; relationship <path>s in an SVG overlay use crow's-foot
+     markers (fg-er-one, fg-er-zero-one, fg-er-many, fg-er-one-many,
+     fg-er-zero-many) at their endpoints.
 
-     Mermaid `erDiagram` cardinality (left-end -- right-end):
-       ||--||   one to one              (both required)
-       ||--o|   one to zero-or-one      (left required, right optional)
-       ||--o{   one to zero-or-many     (one to many, most common)
-       }o--o{   many to many            (join table)
-       }|--||   one-or-many to one      (required on both sides)
-       }|..|{   identifying variant     (dotted = non-identifying)
+     Endpoint offset lookup (anchor % from entity --y by attr count):
 
-     Entity attributes:
-       TYPE NAME PK/FK/UK "comment"
-       TYPE NAME                       → no key, no comment
-       string id PK                    → primary key
-       uuid user_id FK                 → foreign key
-       datetime created_at             → plain attribute
+       attributes  box_height  half_height   top_edge   bottom_edge
+       ──────────  ──────────  ───────────   ────────   ───────────
+       2              42px         4.5%      y - 4.5     y + 4.5
+       3              56px         6.0%      y - 6.0     y + 6.0
+       4              70px         7.5%      y - 7.5     y + 7.5   ← default
+       5              84px         9.0%      y - 9.0     y + 9.0
+       6              98px        10.5%      y - 10.5    y + 10.5
 
-     Keep entities ≤ 12 per diagram; split into domain sub-diagrams above
-     that threshold (e.g. auth / billing / inventory).
+     For a relationship path between entity A (attrs=4, y=25, x=18)
+     and entity B (attrs=3, y=25, x=50), drawn as a horizontal line:
+
+       path d = "M 26, 25 L 42, 25"
+         26 = 18 (A.x) + 8  (A half-width)
+         42 = 50 (B.x) - 8  (B half-width)
+
+     Relationship kinds (common Chen / crow's-foot pairings):
+
+       many-to-many         marker-start: fg-er-many      marker-end: fg-er-many
+       one-to-many          marker-start: fg-er-one       marker-end: fg-er-many
+       one-or-many-to-one   marker-start: fg-er-one-many  marker-end: fg-er-one
+       zero-or-one-to-many  marker-start: fg-er-zero-one  marker-end: fg-er-many
+       zero-or-many-to-one  marker-start: fg-er-zero-many marker-end: fg-er-one
      ══════════════════════════════════════════════════════════════════ -->
 
-<section class="diagram-section">
-  <div class="diagram-shell">
-    <div class="zoom-controls">
-      <button data-zoom="in"  title="Zoom in">+</button>
-      <button data-zoom="fit" title="Fit">⤢</button>
-      <button data-zoom="out" title="Zoom out">−</button>
-    </div>
-    <div class="mermaid-container" data-mermaid-out id="diagram-er"></div>
-    <script type="text/plain" data-mermaid>
-erDiagram
-    {{ENTITY_1}} ||--o{ {{ENTITY_2}} : "{{REL_1_LABEL}}"
-    {{ENTITY_2}} ||--|| {{ENTITY_3}} : "{{REL_2_LABEL}}"
-    {{ENTITY_1}} }o--o{ {{ENTITY_4}} : "{{REL_3_LABEL}}"
+<div class="fgraph-wrap er green" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
 
-    {{ENTITY_1}} {
-        string   id              PK "primary key"
-        string   {{FIELD_1_1}}      "required"
-        datetime created_at         "audit"
-    }
-    {{ENTITY_2}} {
-        string   id              PK
-        string   {{ENTITY_1_LOWER}}_id FK "parent ref"
-        int      {{FIELD_2_1}}
-        string   status
-    }
-    {{ENTITY_3}} {
-        string   id              PK
-        string   {{ENTITY_2_LOWER}}_id FK
-        json     {{FIELD_3_1}}
-    }
-    {{ENTITY_4}} {
-        string   id              PK
-        string   label
-    }
-    </script>
+  <!-- ── RELATIONSHIP EDGE LAYER ────────────────────────────────── -->
+  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="fg-er-one"       viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+        <path d="M2,0 L2,10 M5,0 L5,10" class="mk-er-stroke"/>
+      </marker>
+      <marker id="fg-er-zero-one"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+        <circle cx="2.5" cy="5" r="1.6" class="mk-er-stroke"/>
+        <path d="M6,0 L6,10" class="mk-er-stroke"/>
+      </marker>
+      <marker id="fg-er-many"      viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+        <path d="M0,0 L9,5 L0,10" class="mk-er-stroke"/>
+        <path d="M9,0 L9,10" class="mk-er-stroke"/>
+      </marker>
+      <marker id="fg-er-one-many"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+        <path d="M2,0 L2,10" class="mk-er-stroke"/>
+        <path d="M0,0 L9,5 L0,10" class="mk-er-stroke"/>
+      </marker>
+      <marker id="fg-er-zero-many" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+        <circle cx="2" cy="5" r="1.5" class="mk-er-stroke"/>
+        <path d="M4,0 L9,5 L4,10" class="mk-er-stroke"/>
+      </marker>
+    </defs>
+
+    <!-- rel 1 : Entity A ↔ Entity B (one-to-many) -->
+    <path class="fg-edge" d="{{REL_1_PATH}}" stroke="var(--border-bright)" stroke-width="1" fill="none"
+          marker-start="url(#fg-er-one)" marker-end="url(#fg-er-many)"/>
+
+    <!-- rel 2 : Entity B ↔ Entity C (one-or-many-to-one) -->
+    <path class="fg-edge" d="{{REL_2_PATH}}" stroke="var(--border-bright)" stroke-width="1" fill="none"
+          marker-start="url(#fg-er-one-many)" marker-end="url(#fg-er-one)"/>
+
+    <!-- rel 3 : Entity C ↔ Entity D (zero-or-many-to-one) -->
+    <path class="fg-edge" d="{{REL_3_PATH}}" stroke="var(--border-bright)" stroke-width="1" fill="none"
+          marker-start="url(#fg-er-zero-many)" marker-end="url(#fg-er-one)"/>
+  </svg>
+
+  <!-- ── RELATIONSHIP LABELS ────────────────────────────────────── -->
+  <div class="fgraph-lbl" style="--x:{{REL_1_LBL_X}};--y:{{REL_1_LBL_Y}};">{{REL_1_LABEL}}</div>
+  <div class="fgraph-lbl" style="--x:{{REL_2_LBL_X}};--y:{{REL_2_LBL_Y}};">{{REL_2_LABEL}}</div>
+  <div class="fgraph-lbl" style="--x:{{REL_3_LBL_X}};--y:{{REL_3_LBL_Y}};">{{REL_3_LABEL}}</div>
+
+  <!-- ── ENTITY A ───────────────────────────────────────────────── -->
+  <div class="fg-er-entity" style="--x:18;--y:28;--w:20;">
+    <div class="fg-er-entity-name">{{ENTITY_A_NAME}}</div>
+    <div class="fg-er-attr pk"><span>{{ATTR_A_1}}</span><span class="type">pk</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_A_2}}</span><span class="type">{{ATTR_A_2_TYPE}}</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_A_3}}</span><span class="type">{{ATTR_A_3_TYPE}}</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_A_4}}</span><span class="type">{{ATTR_A_4_TYPE}}</span></div>
   </div>
-</section>
+
+  <!-- ── ENTITY B ───────────────────────────────────────────────── -->
+  <div class="fg-er-entity" style="--x:50;--y:28;--w:20;">
+    <div class="fg-er-entity-name">{{ENTITY_B_NAME}}</div>
+    <div class="fg-er-attr pk"><span>{{ATTR_B_1}}</span><span class="type">pk</span></div>
+    <div class="fg-er-attr fk"><span>{{ATTR_B_2}}</span><span class="type">fk</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_B_3}}</span><span class="type">{{ATTR_B_3_TYPE}}</span></div>
+  </div>
+
+  <!-- ── ENTITY C ───────────────────────────────────────────────── -->
+  <div class="fg-er-entity" style="--x:82;--y:28;--w:20;">
+    <div class="fg-er-entity-name">{{ENTITY_C_NAME}}</div>
+    <div class="fg-er-attr pk"><span>{{ATTR_C_1}}</span><span class="type">pk</span></div>
+    <div class="fg-er-attr fk"><span>{{ATTR_C_2}}</span><span class="type">fk</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_C_3}}</span><span class="type">{{ATTR_C_3_TYPE}}</span></div>
+  </div>
+
+  <!-- ── ENTITY D ───────────────────────────────────────────────── -->
+  <div class="fg-er-entity" style="--x:50;--y:72;--w:20;">
+    <div class="fg-er-entity-name">{{ENTITY_D_NAME}}</div>
+    <div class="fg-er-attr pk"><span>{{ATTR_D_1}}</span><span class="type">pk</span></div>
+    <div class="fg-er-attr fk"><span>{{ATTR_D_2}}</span><span class="type">fk</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_D_3}}</span><span class="type">{{ATTR_D_3_TYPE}}</span></div>
+    <div class="fg-er-attr">   <span>{{ATTR_D_4}}</span><span class="type">{{ATTR_D_4_TYPE}}</span></div>
+  </div>
+
+  <div class="fgraph-legend">{{LEGEND}}</div>
+</div>
 
 </main>
-
-<script type="module">
-  const mermaid = window.__mermaidReady
-  const sourceEl = document.querySelector('#diagram-er').previousElementSibling
-  const container = document.getElementById('diagram-er')
-  const { svg } = await mermaid.render('mermaid-svg-er', sourceEl.textContent)
-  container.innerHTML = svg
-  const svgEl = container.querySelector('svg')
-  if (svgEl) {
-    svgEl.setAttribute('height', '100%')
-    svgEl.setAttribute('width', '100%')
-    svgEl.style.maxWidth = 'none'
-    if (window.svgPanZoom) {
-      const pz = svgPanZoom(svgEl, {
-        zoomEnabled: true, panEnabled: true,
-        controlIconsEnabled: false,
-        fit: true, center: true,
-        minZoom: 0.15, maxZoom: 15
-      })
-      document.querySelector('[data-zoom="in"]')?.addEventListener('click', () => pz.zoomIn())
-      document.querySelector('[data-zoom="out"]')?.addEventListener('click', () => pz.zoomOut())
-      document.querySelector('[data-zoom="fit"]')?.addEventListener('click', () => { pz.resetZoom(); pz.resetPan(); pz.fit(); pz.center() })
-    }
-  }
-</script>
 
 </body>
 </html>

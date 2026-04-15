@@ -16,36 +16,39 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* {{BASE_STYLES}} — inline reset.css + layout.css + typography.css + components.css + explainer-base.css */
-/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic */
+/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic (lyra.css / roxabi.css / blueprint.css / ...) */
+
+/* ══════════════════════════════════════════════════════════════════
+   fgraph primitives — inlined from references/graph-templates/fgraph-base.css
+   ══════════════════════════════════════════════════════════════════ */
+/* {{FGRAPH_BASE}} — inline fgraph-base.css here */
+
+/* ── pie-specific sizing ── */
+.fgraph-wrap.pie { aspect-ratio: 4 / 3; max-width: 680px; }
+.fg-pie-slice { transition: opacity 0.15s, transform 0.15s; transform-origin: 50% 50%; }
+.fg-pie-slice:hover { opacity: 0.85; transform: scale(1.02); }
+
+.fg-pie-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 3px 0;
+}
+.fg-pie-legend-row .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.fg-pie-legend-row .swatch.amber  { background: var(--amber); }
+.fg-pie-legend-row .swatch.cyan   { background: var(--cyan); }
+.fg-pie-legend-row .swatch.purple { background: var(--purple); }
+.fg-pie-legend-row .swatch.green  { background: var(--green); }
+.fg-pie-legend-row .swatch.red    { background: var(--red); }
+.fg-pie-legend-row .value { margin-left: auto; color: var(--text-muted); }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-      primaryColor: 'var(--surface)',
-      primaryTextColor: 'var(--text)',
-      primaryBorderColor: 'var(--accent)',
-      lineColor: 'var(--text-dim)',
-      background: 'var(--bg)',
-      pie1: '#06b6d4',
-      pie2: '#10b981',
-      pie3: '#f59e0b',
-      pie4: '#8b5cf6',
-      pie5: '#f43f5e',
-      pie6: '#64748b',
-      pieTitleTextColor: 'var(--text)',
-      pieSectionTextColor: 'var(--text)',
-      pieLegendTextColor: 'var(--text-muted)',
-      pieStrokeColor: 'var(--bg)',
-      pieOuterStrokeColor: 'var(--border)'
-    },
-    pie: { useMaxWidth: false, textPosition: 0.75 }
-  })
-  window.__mermaidReady = mermaid
-</script>
 </head>
 <body>
 
@@ -58,70 +61,87 @@
 <main>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     CUSTOMISE — Pie proportion
+     CUSTOMISE — this is the authoring surface.
 
-     Use this template when the content is:
-       - A share / composition breakdown (time, cost, traffic, storage)
-       - A before/after proportion comparison (pair two pies side-by-side)
-       - Any single-axis "parts of a whole" view
+     Layout: a single SVG pie in a 0..100 viewBox (circle at 50,50,
+     radius 40) with N pre-computed arc paths. A legend below lists
+     each slice's label + value.
 
-     Mermaid `pie` rules:
-       - Slices are declared as `"Label" : number`
-       - Order is preserved; large → small reads naturally
-       - `showData` prints the numeric value after the label
-       - Aim for 3–7 slices; > 8 becomes unreadable — group small slices
-         into "Other"
+     Arc-path computation (pre-compute in author's head / in a cell,
+     NOT at runtime):
 
-     Use pie when ONE value per category matters. For multi-axis
-     comparison, use radar (P2/P3) or a stacked bar instead.
+       angle_start = sum(prior slice pcts) * 3.6      // degrees, 0..360
+       angle_end   = angle_start + slice_pct * 3.6
+
+       x1 = 50 + 40 * cos(angle_start_rad)
+       y1 = 50 + 40 * sin(angle_start_rad)
+       x2 = 50 + 40 * cos(angle_end_rad)
+       y2 = 50 + 40 * sin(angle_end_rad)
+
+       large = (slice_pct > 50) ? 1 : 0
+       sweep = 1   // always clockwise
+
+       d = "M 50,50 L {x1},{y1} A 40 40 0 {large} {sweep} {x2},{y2} Z"
+
+     Angles are measured in SVG convention: 0° at 3 o'clock, clockwise.
+     JS equivalent for convenience:
+
+       const rad = (deg) => (deg - 90) * Math.PI / 180;   // offset so 0° = 12 o'clock
+       // If you prefer 12 o'clock start, subtract 90 from every angle
+       // before computing x/y.
+
+     PRE-COMPUTED EXAMPLE — 5 slices of 10 / 20 / 30 / 25 / 15 %:
+
+       slice 1  (10%)  start=0°,   end=36°   → Moved into d1 below
+       slice 2  (20%)  start=36°,  end=108°  → d2
+       slice 3  (30%)  start=108°, end=216°  → d3 (large=1)
+       slice 4  (25%)  start=216°, end=306°  → d4
+       slice 5  (15%)  start=306°, end=360°  → d5
+
+     The placeholders below preserve the d= paths so authors only edit
+     percentages and labels when the distribution is already known.
+     For arbitrary distributions, regenerate d= values using the
+     formula above.
      ══════════════════════════════════════════════════════════════════ -->
 
-<section class="diagram-section">
-  <div class="diagram-shell">
-    <div class="zoom-controls">
-      <button data-zoom="in"  title="Zoom in">+</button>
-      <button data-zoom="fit" title="Fit">⤢</button>
-      <button data-zoom="out" title="Zoom out">−</button>
-    </div>
-    <div class="mermaid-container" data-mermaid-out id="diagram-pie"></div>
-    <script type="text/plain" data-mermaid>
-pie showData
-    title {{TITLE}}
-    "{{SLICE_1_LABEL}}" : {{SLICE_1_VALUE}}
-    "{{SLICE_2_LABEL}}" : {{SLICE_2_VALUE}}
-    "{{SLICE_3_LABEL}}" : {{SLICE_3_VALUE}}
-    "{{SLICE_4_LABEL}}" : {{SLICE_4_VALUE}}
-    "{{SLICE_5_LABEL}}" : {{SLICE_5_VALUE}}
-    </script>
+<div class="fgraph-wrap pie green" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       style="position:absolute; left:8%; top:4%; width:54%; height:92%;">
+
+    <!-- Default distribution is 10 / 20 / 30 / 25 / 15. To change,
+         recompute each d= using the formula in the block above and
+         regenerate below, or replace the whole <path> stack. -->
+
+    <!-- Slice 1 — {{SLICE_1_LABEL}} — {{SLICE_1_VALUE}}    (0 → 10%) -->
+    <path class="fg-pie-slice" fill="var(--amber)"  d="M 50,50 L 50,10 A 40 40 0 0 1 73.51,17.64 Z"/>
+    <!-- Slice 2 — {{SLICE_2_LABEL}} — {{SLICE_2_VALUE}}    (10 → 30%) -->
+    <path class="fg-pie-slice" fill="var(--cyan)"   d="M 50,50 L 73.51,17.64 A 40 40 0 0 1 88.04,62.36 Z"/>
+    <!-- Slice 3 — {{SLICE_3_LABEL}} — {{SLICE_3_VALUE}}    (30 → 60%) -->
+    <path class="fg-pie-slice" fill="var(--purple)" d="M 50,50 L 88.04,62.36 A 40 40 0 0 1 26.49,82.36 Z"/>
+    <!-- Slice 4 — {{SLICE_4_LABEL}} — {{SLICE_4_VALUE}}    (60 → 85%) -->
+    <path class="fg-pie-slice" fill="var(--green)"  d="M 50,50 L 26.49,82.36 A 40 40 0 0 1 17.64,26.49 Z"/>
+    <!-- Slice 5 — {{SLICE_5_LABEL}} — {{SLICE_5_VALUE}}    (85 → 100%) -->
+    <path class="fg-pie-slice" fill="var(--red)"    d="M 50,50 L 17.64,26.49 A 40 40 0 0 1 50,10 Z"/>
+
+    <!-- border ring -->
+    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border-bright)" stroke-width="0.5"/>
+  </svg>
+
+  <!-- ── LEGEND (right-hand column) ─────────────────────────────── -->
+  <div style="position:absolute; right:4%; top:14%; width:36%;">
+    <div class="fg-pie-legend-row"><div class="swatch amber"></div><div>{{SLICE_1_LABEL}}</div><div class="value">{{SLICE_1_VALUE}}</div></div>
+    <div class="fg-pie-legend-row"><div class="swatch cyan"></div><div>{{SLICE_2_LABEL}}</div><div class="value">{{SLICE_2_VALUE}}</div></div>
+    <div class="fg-pie-legend-row"><div class="swatch purple"></div><div>{{SLICE_3_LABEL}}</div><div class="value">{{SLICE_3_VALUE}}</div></div>
+    <div class="fg-pie-legend-row"><div class="swatch green"></div><div>{{SLICE_4_LABEL}}</div><div class="value">{{SLICE_4_VALUE}}</div></div>
+    <div class="fg-pie-legend-row"><div class="swatch red"></div><div>{{SLICE_5_LABEL}}</div><div class="value">{{SLICE_5_VALUE}}</div></div>
   </div>
-</section>
+
+  <div class="fgraph-legend">{{LEGEND}}</div>
+</div>
 
 </main>
-
-<script type="module">
-  const mermaid = window.__mermaidReady
-  const sourceEl = document.querySelector('#diagram-pie').previousElementSibling
-  const container = document.getElementById('diagram-pie')
-  const { svg } = await mermaid.render('mermaid-svg-pie', sourceEl.textContent)
-  container.innerHTML = svg
-  const svgEl = container.querySelector('svg')
-  if (svgEl) {
-    svgEl.setAttribute('height', '100%')
-    svgEl.setAttribute('width', '100%')
-    svgEl.style.maxWidth = 'none'
-    if (window.svgPanZoom) {
-      const pz = svgPanZoom(svgEl, {
-        zoomEnabled: true, panEnabled: true,
-        controlIconsEnabled: false,
-        fit: true, center: true,
-        minZoom: 0.15, maxZoom: 15
-      })
-      document.querySelector('[data-zoom="in"]')?.addEventListener('click', () => pz.zoomIn())
-      document.querySelector('[data-zoom="out"]')?.addEventListener('click', () => pz.zoomOut())
-      document.querySelector('[data-zoom="fit"]')?.addEventListener('click', () => { pz.resetZoom(); pz.resetPan(); pz.fit(); pz.center() })
-    }
-  }
-</script>
 
 </body>
 </html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="{{TITLE}}">
+<meta name="diagram:date"      content="{{DATE}}">
+<meta name="diagram:category"  content="{{CATEGORY}}">
+<meta name="diagram:cat-label" content="{{CAT_LABEL}}">
+<meta name="diagram:color"     content="{{COLOR}}">
+<!-- diagram-meta:end -->
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* {{BASE_STYLES}} — inline reset.css + layout.css + typography.css + components.css + explainer-base.css */
+/* {{AESTHETIC_STYLES}} — inline the chosen aesthetic */
+</style>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: 'var(--surface)',
+      primaryTextColor: 'var(--text)',
+      primaryBorderColor: 'var(--accent)',
+      lineColor: 'var(--text-dim)',
+      secondaryColor: 'var(--border)',
+      background: 'var(--bg)',
+      edgeLabelBackground: 'var(--surface)',
+      nodeTextColor: 'var(--text-muted)',
+      sectionBkgColor: 'var(--surface)',
+      altSectionBkgColor: 'var(--bg)',
+      gridColor: 'var(--border)',
+      todayLineColor: 'var(--accent)',
+      taskTextColor: 'var(--text)',
+      taskTextOutsideColor: 'var(--text-muted)'
+    },
+    gantt: { useMaxWidth: false, fontSize: 12, sectionFontSize: 14, barHeight: 22, barGap: 6 }
+  })
+  window.__mermaidReady = mermaid
+</script>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">{{CATEGORY_LABEL}}</div>
+  <h1>{{TITLE_PLAIN}} <span class="accent">{{TITLE_ACCENT}}</span></h1>
+  <p class="header-subtitle">{{SUBTITLE}}</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CUSTOMISE — Gantt timeline / schedule
+
+     Use this template when the content is:
+       - A roadmap with dated milestones
+       - A release schedule with overlapping workstreams
+       - A project plan grouped by section (team / phase / track)
+
+     Mermaid `gantt` auto-lays out — you only declare dates + durations.
+     Task formats:
+       Name :id1, 2026-04-14, 5d           → starts on date, 5 days
+       Name :id2, after id1, 3d            → starts after id1, 3 days
+       Name :crit, id3, 2026-04-20, 2d     → "crit" marks critical path
+       Name :done, id4, 2026-04-01, 2d     → "done" for completed work
+       Name :active, id5, 2026-04-14, 4d   → "active" for in-progress
+
+     `axisFormat` controls the tick label. `%m-%d` for sub-month spans,
+     `%Y-%m` for multi-quarter roadmaps. `excludes weekends` skips Sat/Sun.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<section class="diagram-section">
+  <div class="diagram-shell">
+    <div class="zoom-controls">
+      <button data-zoom="in"  title="Zoom in">+</button>
+      <button data-zoom="fit" title="Fit">⤢</button>
+      <button data-zoom="out" title="Zoom out">−</button>
+    </div>
+    <div class="mermaid-container" data-mermaid-out id="diagram-gantt"></div>
+    <script type="text/plain" data-mermaid>
+gantt
+    title       {{TITLE}}
+    dateFormat  YYYY-MM-DD
+    axisFormat  %m-%d
+    excludes    weekends
+
+    section {{SECTION_1_NAME}}
+    {{TASK_1_NAME}}     :done,    t1a, {{TASK_1_START}}, {{TASK_1_DURATION}}
+    {{TASK_2_NAME}}     :active,  t1b, after t1a,        {{TASK_2_DURATION}}
+    {{TASK_3_NAME}}     :         t1c, after t1b,        {{TASK_3_DURATION}}
+
+    section {{SECTION_2_NAME}}
+    {{TASK_4_NAME}}     :crit,    t2a, {{TASK_4_START}}, {{TASK_4_DURATION}}
+    {{TASK_5_NAME}}     :         t2b, after t2a,        {{TASK_5_DURATION}}
+
+    section {{SECTION_3_NAME}}
+    {{TASK_6_NAME}}     :         t3a, after t2b,        {{TASK_6_DURATION}}
+    {{TASK_7_NAME}}     :milestone, t3b, after t3a, 0d
+    </script>
+  </div>
+</section>
+
+</main>
+
+<script type="module">
+  const mermaid = window.__mermaidReady
+  const sourceEl = document.querySelector('#diagram-gantt').previousElementSibling
+  const container = document.getElementById('diagram-gantt')
+  const { svg } = await mermaid.render('mermaid-svg-gantt', sourceEl.textContent)
+  container.innerHTML = svg
+  const svgEl = container.querySelector('svg')
+  if (svgEl) {
+    svgEl.setAttribute('height', '100%')
+    svgEl.setAttribute('width', '100%')
+    svgEl.style.maxWidth = 'none'
+    if (window.svgPanZoom) {
+      const pz = svgPanZoom(svgEl, {
+        zoomEnabled: true, panEnabled: true,
+        controlIconsEnabled: false,
+        fit: true, center: true,
+        minZoom: 0.15, maxZoom: 15
+      })
+      document.querySelector('[data-zoom="in"]')?.addEventListener('click', () => pz.zoomIn())
+      document.querySelector('[data-zoom="out"]')?.addEventListener('click', () => pz.zoomOut())
+      document.querySelector('[data-zoom="fit"]')?.addEventListener('click', () => { pz.resetZoom(); pz.resetPan(); pz.fit(); pz.center() })
+    }
+  }
+</script>
+
+</body>
+</html>
