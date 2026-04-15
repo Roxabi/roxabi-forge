@@ -14,15 +14,9 @@ pre-commit:
       skip:
         - merge
         - rebase
-    mermaid-deprecation-warn:
-      # Non-blocking. Warns when staged files contain mermaid references.
-      # Scheduled for flip to blocking `mermaid-guard` in #24.
-      #
-      # Case-sensitivity: intentionally matches lowercase `mermaid` only.
-      # The P2.7/P2.8 stderr prose in scripts/render-md*.py uses capitalized
-      # `Mermaid` so the blocking #24 variant of this check can keep the
-      # same case-sensitive pattern without tripping on legitimate error
-      # messages. #24 should inherit this choice, not flip to -i.
+    mermaid-guard:
+      # Blocking guard. Fails commit when staged files contain lowercase mermaid.
+      # Pattern matches \bmermaid\b only — capitalized "Mermaid" in error prose is exempt.
       #
       # File-path safety: {staged_files} is a raw space-separated
       # substitution — lefthook tokenizes on whitespace before the shell
@@ -37,11 +31,11 @@ pre-commit:
         matches=$(printf '%s\n' {staged_files} | xargs -d '\n' -I {} grep -Hn '\bmermaid\b' {} 2>/dev/null || true)
         if [ -n "$matches" ]; then
           echo ""
-          echo "  warn: mermaid references detected in staged files (#21 — scheduled for deletion in Cycle 2)"
+          echo "  error: mermaid references detected — blocked by #21"
           echo "$matches" | sed 's/^/    /'
-          echo ""
+          echo "  See plugins/forge/references/graph-templates/README.md for native alternatives."
+          exit 1
         fi
-        exit 0
       glob:
         - "plugins/forge/**/*"
         - "scripts/*.py"
