@@ -374,6 +374,48 @@ Native, no CDN, file://-safe.
 Template: [`dep-graph.html`](./dep-graph.html) · demo: [`examples/dep-graph.html`](./examples/dep-graph.html).
 Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 
+### Lane-swim
+
+> N vertical lanes (fixed x-positions) × N rows — **one node per row**, any
+> lane. Flow runs top-to-bottom. Phases are visual groupings marked by faint
+> horizontal separator lines, **not** by shared y-coordinates. Connectors are
+> git-graph-style cubic bezier S-curves for cross-lane hops and straight
+> verticals for same-lane hops. Parallel edges from the same source bend with
+> a perpendicular offset so XOR splits read distinctly.
+>
+> Use for message-flow pipelines, request lifecycle diagrams, clean-arch layer
+> traces, or any process that crosses multiple horizontal domains over several
+> sequential phases. Container height is driven by `--fg-lane-min-height`
+> (default 900px) — no aspect-ratio constraint.
+
+```
+  Presentation   Application     Kernel      Infrastructure
+  ─────────────────────────────────────────────────────────── ← header strip
+       │               │             │               │
+  ① Receive  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ← phase separator
+  ●─ AdapterIn         │             │               │
+  ● STT (opt)          │             │               │    ← dashed circle
+  ●─ Normalize         │             │               │
+       │               │             │               │
+  ② Gate  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+       │               │         ● Guards             │
+       │           ●─ RateLimit      │               │
+       │           ●─ Session        │               │
+  ③ Dispatch ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+       │           ●─ Router         │               │
+       │         ╭─● Command[cmd]    │               │  ← right-bulge fork
+       │         ╰─● LLM [llm]       │               │  ← left-bulge fork
+       │               └────────────▶●─ StreamProc   │
+       │                             ●─ RenderEvent  │
+  ④ Respond ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+       │                             └──────────────▶●─ Persist
+       │                             └─ ─ ─ ─ ─ ─ ─▶●─ TTS? (opt)
+       │                                             ●─ AdapterOut
+```
+
+Template: [`lane-swim.html`](./lane-swim.html).
+Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
+
 ---
 
 ## Templates
@@ -393,10 +435,11 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 | `sequence.html` | Protocol exchange / request-response / pipeline message flow — ≤ 15 messages | ~4K | Participant pill row + `.fg-lifeline` verticals + `.fg-lifeline-activation` box, aspect-ratio override via `--msg-count`, 5 tone variants |
 | `state.html` | Finite-state machine / lifecycle — ≤ 6 states | ~4K | `.fgraph-node.circle`/`.diamond` shapes, semantic `.fg-edge.control`/`.feedback` classes, start/end circles, no CDN |
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
+| `lane-swim.html` | Message flow / request lifecycle across N architectural lanes, one node per row | ~6K | Lane header strip (`.fg-lane-header`/`.fg-lane-title`), phase separator lines (`.fg-lane-phase-line`/`.fg-lane-phase-lbl`), 18 px circle nodes (`.fg-lane-node`), inline tag pills (`.fg-lane-tag`), S-curve + parallel-bend connectors (`.fg-lane-curve`), chip-on-wire edge labels (`.fg-edge-lbl`), `--fg-lane-min-height` knob |
 
-All **13 native fgraph** templates (`radial-hub`, `linear-flow`,
+All **14 native fgraph** templates (`radial-hub`, `linear-flow`,
 `dual-cluster`, `radial-ring`, `layered`, `machine-clusters`,
-`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`)
+`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`)
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
 
@@ -601,15 +644,17 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | Protocol exchange / message flow / pipeline — ≤ 15 messages | `sequence.html` | `/dev` pipeline interaction, API handshake |
 | Finite-state machine / lifecycle — ≤ 6 states | `state.html` | issue lifecycle, review workflow, connection states |
 | Issue dependency graph — phase columns × issue cards | `dep-graph.html` | roadmap backlog, blocks/depends-on visualisation (via `gen-deps.py` in #23) |
+| Message flow / request lifecycle crossing N architectural layers over M phases | `lane-swim.html` | clean-arch layer trace, pipeline walkthrough, process with optional steps |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
-All 13 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+All 14 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
 `radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`, `gantt`,
-`pie`, `er`, `sequence`, `state`, `dep-graph`) share the same
+`pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`) share the same
 `fgraph-base.css` primitives — differences live only in layout coordinates
 and a few shape-specific extensions (`.fg-axis-date`, `.fg-gantt-bar`,
-`.fg-lifeline`, `.fg-er-*` markers), so mixing features (e.g. a linear-flow
-with a dashed machine frame borrowed from radial-hub) is just copy-paste.
+`.fg-lifeline`, `.fg-er-*` markers, `.fg-lane-*` swimlane primitives), so
+mixing features (e.g. a linear-flow with a dashed machine frame borrowed from
+radial-hub) is just copy-paste.
 
 ---
 
@@ -1065,6 +1110,181 @@ warn lines, wrapped text).
 - [ ] All labels fit within their assigned region (no overlap with nodes or other labels)
 - [ ] Tested hover glow works (card lifts + box-shadow)
 - [ ] Tested dark + light theme toggle (if shell includes one)
+
+---
+
+## How to customise `lane-swim.html`
+
+N vertical lanes (fixed x) × N rows — one node per row, any lane.
+Phases are visual separators, not y-coordinate constraints.
+
+### Step 1 — Diagram-meta placeholders
+
+| Placeholder | Example | Notes |
+|-------------|---------|-------|
+| `{{TITLE}}` / `{{DATE}}` / `{{CATEGORY}}` / `{{CAT_LABEL}}` / `{{COLOR}}` | standard diagram-meta | |
+| `{{WRAP_TONE}}` | `teal` / `amber` / `green` | container border tone |
+| `{{SLUG}}` | `lyra-flow` | unique suffix for arrowhead marker IDs — prevents collisions when multiple diagrams share a page |
+| `{{CATEGORY_LABEL}}` | `ARCHITECTURE` | header eyebrow |
+| `{{TITLE_PLAIN}}` / `{{TITLE_ACCENT}}` | `Lyra` / `Message Flow` | h1 split for accent color |
+| `{{SUBTITLE}}` | `4 lanes · 14 rows · dashed = optional` | header sub |
+| `{{DIAGRAM_ARIA}}` | `Lyra message flow swimlane` | `role="img"` aria-label |
+
+### Step 2 — Lane placeholders
+
+| Placeholder | Example | Notes |
+|-------------|---------|-------|
+| `{{LANE_N_LABEL}}` | `Presentation` / `Application` / `Kernel` / `Infrastructure` | title in header strip |
+| `{{LANE_N_TONE}}` | `teal` / `amber` / `accent` / `green` | tone class on `.fg-lane-title` |
+| `{{LANE_N_X}}` | `22` / `41` / `62` / `82` | x-position as a bare integer (no `%`) |
+
+Default x-positions for 4 lanes: `22, 41, 62, 82`.
+Add/remove lane entries in the header strip, lane rules, and all node/label positions.
+
+### Step 3 — Phase separators (visual only)
+
+Each phase gets a `.fg-lane-phase-line` (horizontal rule) and a `.fg-lane-phase-lbl` (name):
+
+```html
+<div class="fg-lane-phase-lbl"  style="top:10%">① Receive</div>
+<div class="fg-lane-phase-line" style="top:8%"></div>
+```
+
+The label `top` is the y of the first row in the phase. The line `top` is 2% above it.
+Phases are purely decorative — they do not constrain node y-coordinates.
+
+| Placeholder | Example | Notes |
+|-------------|---------|-------|
+| `{{PHASE_N_LABEL}}` | `① Receive` | text of the phase label |
+| `{{PHASE_N_Y}}` | `10` | top% for the label (first row y) |
+| `{{PHASE_N_Y_LINE}}` | `8` | top% for the horizontal rule (2 below label) |
+
+### Step 4 — Rows (one node per row)
+
+**Row-per-node layout rule:** every node gets its own y. Never place two nodes at
+the same `top` value, even if they belong to the same phase.
+
+Each row is two elements — node circle + label block — kept in sync on the same `top`:
+
+```html
+<!-- Row N — NodeName (lane x=41%) -->
+<div class="fg-lane-node amber"
+     style="left:41%; top:36%;"
+     title="Rate Limit"></div>
+<div class="fg-lane-label" style="left:calc(41% + 12px); top:36%;">
+  <div class="fg-lane-title amber">
+    Rate Limit <span class="fg-lane-tag">state</span>
+  </div>
+  <div class="fg-lane-sig">hub state read</div>
+</div>
+```
+
+Tag variants:
+
+| Class | Use for |
+|-------|---------|
+| *(none)* | generic tag |
+| `.pure` | pure / kernel (orange) |
+| `.opt` | optional / dashed |
+
+Optional node: add `.optional` to `.fg-lane-node` — dashed border, 72% opacity.
+
+**Row spacing:** 6 units per row (e.g. 10, 16, 22, 30...). Typical 14-row diagram
+fits in `--fg-lane-min-height: 900px`. Scale: `≈ 60px × row_count + 120px`.
+
+### Step 5 — Connector paths
+
+**Same-lane vertical:**
+
+```
+M x,y1  L x,y2
+```
+
+**Cross-lane S-curve:**
+
+```
+M x1,y1  C x1,ymid  x2,ymid  x2,y2    where ymid = (y1 + y2) / 2
+```
+
+The control points share the same y (ymid). The curve departs x1 heading straight
+down, crosses the lane gap smoothly at mid-height, and arrives at x2 heading straight
+down — no kink. Classic git-graph rounding.
+
+**Worked example** — Normalize (x=22, y=16) → Guards (x=62, y=30):
+
+```
+ymid = (16 + 30) / 2 = 23
+path: M 22,16  C 22,23  62,23  62,30
+```
+
+### Step 6 — Parallel edges in the same lane (XOR / fork bend rule)
+
+**Never draw two branches from the same source as coincident straight lines.**
+Bend one with a perpendicular offset of ±2–3 units at the apex so both branches
+read as distinct paths:
+
+```
+Branch A (right bulge, apex x+2):  M x,y1 C (x+2),cy1 (x+2),cy2 x,y2
+Branch B (left bulge,  apex x−3):  M x,y1 C (x-3),cy1 (x-3),cy2 x,y2
+```
+
+**Worked example** — Router (x=41, y=50) splits to Command (y=56) and LLM (y=62):
+
+```
+Branch A → Command:  M 41,50 C 43,52 43,54 41,56    (right bulge, apex x=43)
+Branch B → LLM:      M 41,50 C 38,54 38,58 41,62    (left bulge, apex x=38)
+```
+
+Edge labels sit at the apex of each branch (see next step).
+
+### Step 7 — Edge labels (bulge-apex rule)
+
+**Labels sit at the visible midpoint of the curve — for a bezier that is the BULGE
+APEX, not the straight-line midpoint between endpoints.**
+
+For a cubic `M x1,y1 C cx,cy1 cx,cy2 x2,y2`:
+
+```
+label --x = cx
+label --y = (cy1 + cy2) / 2
+```
+
+**Worked example** — Branch B (Router→LLM): `M 41,50 C 38,54 38,58 41,62`
+
+```
+cx = 38,  cy1 = 54,  cy2 = 58
+label: --x:38;  --y:56   (= (54+58)/2)
+```
+
+HTML:
+
+```html
+<div class="fg-edge-lbl amber" style="--x:38; --y:56">llm</div>
+```
+
+The `currentColor` border trick: the caller sets the tone class (e.g. `amber`), and
+both the text color and the `border:1px solid currentColor` follow it automatically —
+no extra per-tone rule is needed.
+
+### Step 8 — Min-height knob
+
+```html
+<div class="fgraph-wrap lane-swim teal"
+     style="--fg-lane-min-height: 900px;">
+```
+
+Default 900px suits 14 rows. Scale: `≈ 60px × row_count + 120px`.
+
+### Step 9 — Add / remove lanes
+
+To remove lane 4 (x=82): delete its `.fg-lane-title`, `.fg-lane-rule`, all nodes at `left:82%`, all connector paths ending at x=82. Spread remaining lanes: e.g. 3 lanes at 22, 50, 78.
+
+To add lane 5: insert a title at `left:88%`, a rule at `left:88%`, and nodes/paths as needed. Compress existing lanes: e.g. 5 lanes at 18, 34, 50, 66, 82.
+
+### Step 10 — Inline fgraph-base.css
+
+Replace `{{FGRAPH_BASE}}` with the full content of `fgraph-base.css`.
+Forge directive: inline, never link (Mode A).
 
 ---
 

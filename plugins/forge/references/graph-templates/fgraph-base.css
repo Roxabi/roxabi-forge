@@ -779,3 +779,250 @@
   fill: none;
   stroke-width: 1.4;
 }
+
+/* ── Lane-swim primitives  (rev 2 — row-per-node) ──
+   Consumed by: lane-swim.html.
+   N vertical lanes (fixed x) × N rows (one node per row, any lane).
+   Phases are visual groupings via separator lines — NOT shared y coords.
+
+   Primitive inventory:
+     .fgraph-wrap.lane-swim     — container: min-height, no aspect-ratio
+     .fg-lane-header            — sticky header strip (absolute, top:0..4%)
+     .fg-lane-title.{tone}      — lane title span inside header
+     .fg-lane-rule              — dashed vertical guideline per lane
+     .fg-lane-phase-line        — faint horizontal rule at phase boundary
+     .fg-lane-phase-lbl         — phase name label above the rule
+     .fg-lane-node.{tone}       — 18 px circle, positioned via left/top %
+     .fg-lane-node.optional     — dashed border, dimmed
+     .fg-lane-label             — absolutely-positioned text block
+     .fg-lane-title.{tone}      — node name line (flex + baseline-aligned tag)
+     .fg-lane-sig               — node signature line (monospace, muted)
+     .fg-lane-tag               — inline pill (sits on same baseline as title)
+     .fg-lane-tag.pure          — orange kernel variant
+     .fg-lane-tag.opt           — dashed optional variant
+     .fg-lane-curve.{tone}      — SVG connector paths
+     .fg-lane-curve.dashed      — optional / async edge
+     .fg-lane-svg               — SVG overlay element
+     .fg-edge-lbl.{tone}        — chip-on-a-wire edge label pill
+
+   Curve formula:
+     Same lane  → M x,y1  L x,y2
+     Diff lanes → M x1,y1  C x1,ymid  x2,ymid  x2,y2  (ymid=(y1+y2)/2)
+
+   Parallel-edge bend (XOR fork from same source, same lane):
+     Branch A (right bulge, +2):  M x,y1 C (x+2),cy1 (x+2),cy2 x,y2
+     Branch B (left bulge,  -3):  M x,y1 C (x-3),cy1 (x-3),cy2 x,y2
+     Edge label apex: --x=(x±offset); --y=((cy1+cy2)/2)
+
+   Min-height knob: --fg-lane-min-height (default 900px).
+     Scale: ≈ 60px × row_count + 120px (header + legend).
+*/
+
+/* Container — explicit min-height replaces aspect-ratio */
+.fgraph-wrap.lane-swim {
+  --bg-panel: var(--bg-panel, var(--bg));
+  aspect-ratio: unset;
+  min-height: var(--fg-lane-min-height, 900px);
+  max-width: 740px;
+}
+
+/* ── Lane header strip ── */
+.fg-lane-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4%;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+  z-index: 3;
+}
+.fg-lane-title {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+.fg-lane-title.teal        { color: var(--teal); }
+.fg-lane-title.amber       { color: var(--amber); }
+.fg-lane-title.accent      { color: var(--accent); }
+.fg-lane-title.green       { color: var(--green); }
+.fg-lane-title.cyan        { color: var(--cyan); }
+.fg-lane-title.purple      { color: var(--purple); }
+/* semantic aliases matching v3 class names */
+.fg-lane-title.presentation { color: var(--teal); }
+.fg-lane-title.application  { color: var(--amber); }
+.fg-lane-title.kernel       { color: var(--accent); }
+.fg-lane-title.infra        { color: var(--green); }
+
+/* ── Lane rules (dashed vertical guidelines) ── */
+.fg-lane-rule {
+  position: absolute;
+  top:    5%;
+  bottom: 3%;
+  width:  0;
+  border-left: 1px dashed var(--border);
+  opacity: 0.30;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Phase separator line + label ── */
+.fg-lane-phase-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(232,93,4,0.25), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.fg-lane-phase-lbl {
+  position: absolute;
+  left: 2px;
+  transform: translateY(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.55;
+  white-space: nowrap;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Node circles ──
+   Positioned via style="left:{x}%; top:{y}%" (not CSS custom props).
+   Uses currentColor for border so tone class drives both fill and ring.
+   .optional — dashed border + reduced opacity for optional nodes. */
+.fg-lane-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: var(--bg);
+  z-index: 3;
+  cursor: default;
+  transition: box-shadow 0.18s, transform 0.15s;
+}
+.fg-lane-node:hover { transform: translate(-50%, -50%) scale(1.3); }
+.fg-lane-node.optional { border-style: dashed; opacity: 0.72; }
+/* Tone variants — color drives currentColor border, glow, and fill */
+.fg-lane-node.teal        { color: var(--teal);   box-shadow: 0 0 7px rgba(6,182,212,0.4); }
+.fg-lane-node.amber       { color: var(--amber);  box-shadow: 0 0 7px rgba(245,158,11,0.4); }
+.fg-lane-node.accent      { color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 12px var(--accent-glow), 0 0 5px var(--accent-glow); }
+.fg-lane-node.green       { color: var(--green);  box-shadow: 0 0 7px rgba(16,185,129,0.4); }
+.fg-lane-node.cyan        { color: var(--cyan);   box-shadow: 0 0 7px rgba(34,211,238,0.4); }
+.fg-lane-node.purple      { color: var(--purple); box-shadow: 0 0 7px rgba(192,132,252,0.4); }
+/* semantic aliases */
+.fg-lane-node.presentation { color: var(--teal);   box-shadow: 0 0 7px rgba(6,182,212,0.4); }
+.fg-lane-node.application  { color: var(--amber);  box-shadow: 0 0 7px rgba(245,158,11,0.4); }
+.fg-lane-node.kernel       { color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 12px var(--accent-glow), 0 0 5px var(--accent-glow); }
+.fg-lane-node.infra        { color: var(--green);  box-shadow: 0 0 7px rgba(16,185,129,0.4); }
+
+/* ── Label block (node title + sig) ──
+   Positioned via style="left:calc({x}%+12px); top:{y}%".
+   transform:translateY(-50%) centres on the same y as the circle. */
+.fg-lane-label {
+  position: absolute;
+  transform: translateY(-50%);
+  z-index: 4;
+  pointer-events: none;
+  line-height: 1.25;
+}
+/* Node name row — flex so tag sits inline on the baseline */
+.fg-lane-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px; font-weight: 700; line-height: 1.15;
+  display: flex; align-items: baseline; gap: 5px;
+}
+/* Reuse tone colours from header declaration above — no duplication needed */
+
+/* Signature / sub-text */
+.fg-lane-sig {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* ── Inline tag pill (sits on the same baseline as the node title) ── */
+.fg-lane-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px;
+  padding: 1px 4px;
+  border-radius: 99px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.fg-lane-tag.pure { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+.fg-lane-tag.opt  { border-style: dashed; color: var(--text-muted); }
+
+/* ── SVG overlay ── */
+.fg-lane-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── Curve connectors ── */
+.fg-lane-curve {
+  fill: none;
+  stroke-width: 1.6;
+  opacity: 0.80;
+  vector-effect: non-scaling-stroke;
+}
+.fg-lane-curve.teal        { stroke: var(--teal); }
+.fg-lane-curve.amber       { stroke: var(--amber); }
+.fg-lane-curve.accent      { stroke: var(--accent); }
+.fg-lane-curve.green       { stroke: var(--green); }
+.fg-lane-curve.cyan        { stroke: var(--cyan); }
+.fg-lane-curve.purple      { stroke: var(--purple); }
+.fg-lane-curve.dashed      { stroke-dasharray: 4 3; opacity: 0.50; }
+
+/* ── Edge label pills (chip-on-a-wire) ──
+   Positioned via --x/--y custom props (0..100 space, matching SVG coords).
+   background:var(--bg) occludes the stroke behind the pill.
+   border:1px solid currentColor — caller sets the tone class; both text
+   and border colour follow currentColor automatically (no per-tone rule). */
+.fg-edge-lbl {
+  position: absolute;
+  left: calc(var(--x, 50) * 1%);
+  top:  calc(var(--y, 50) * 1%);
+  transform: translate(-50%, -50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid currentColor;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+.fg-edge-lbl.teal   { color: var(--teal); }
+.fg-edge-lbl.amber  { color: var(--amber); }
+.fg-edge-lbl.accent { color: var(--accent); }
+.fg-edge-lbl.green  { color: var(--green); }
+.fg-edge-lbl.cyan   { color: var(--cyan); }
+.fg-edge-lbl.purple { color: var(--purple); }
+.fg-edge-lbl.red    { color: var(--red); }
