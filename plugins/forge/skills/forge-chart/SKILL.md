@@ -78,6 +78,7 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 |---|---|---|
 | Issue / dependency graph | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) | Python-side topological layer assignment + elbow routing; declarative |
 | Data flow (linear, 2–3 stages) | `graph-templates/linear-flow.html` | Unidirectional arrows, labels above |
+| **Swimlane / message-flow pipeline** | **`graph-templates/lane-swim.html`** | N vertical lanes × N rows, cubic bezier S-curves, phase separators |
 | API sequence | `graph-templates/sequence.html` | Participant lifelines + horizontal message arrows; cap 15 messages |
 | State machine | `graph-templates/state.html` | `.fgraph-node.circle/.diamond` + semantic edge classes for start/end |
 | Timeline / schedule | `graph-templates/gantt.html` | Date axis (`.fg-axis-date`) + horizontal bars; CSS-only, offline-safe |
@@ -92,7 +93,7 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | **Comparison / matrix (≥4 rows or ≥3 cols)** | **HTML `<table>`** | Tabular data is not a graph |
 | Simple timeline | `.steps` timeline component | Shared CSS, no auto-layout needed |
 
-**Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph). If > 8 nodes or complex flow that no template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
+**Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / swimlane / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph). Swimlane for message-flow pipelines, request lifecycles, clean-arch layer traces crossing multiple horizontal domains. If > 8 nodes or complex flow that no template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
 
 **foreignObject rules (MANDATORY when using this type):**
 - Every `<foreignObject>` root element MUST have `xmlns="http://www.w3.org/1999/xhtml"` — omitting it causes silent render failure in Chrome/Edge
@@ -301,6 +302,7 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 |---------|----------|
 | Task / issue dependency graph | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) |
 | Data flow between services (linear) | `graph-templates/linear-flow.html` |
+| **Swimlane / message-flow / request lifecycle** | **`graph-templates/lane-swim.html`** |
 | API / message sequence | `graph-templates/sequence.html` |
 | State machine | `graph-templates/state.html` |
 | Timeline / schedule / roadmap | `graph-templates/gantt.html` |
@@ -314,6 +316,7 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 **Decision rule for architecture diagrams:**
 - Linear pipeline (2–3 stages) → `linear-flow.html`
+- Swimlane / message-flow / request lifecycle (N lanes × N rows) → `lane-swim.html`
 - Radial / hub-and-spoke with rich cards (pills, warn, multi-line) → `radial-hub.html` / `radial-ring.html`
 - Layered architecture (3–4 tiers) → `layered.html` or `deployment-tiers.html`
 - Multi-host deployment → `machine-clusters.html`
