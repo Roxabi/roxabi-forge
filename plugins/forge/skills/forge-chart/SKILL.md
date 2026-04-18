@@ -86,6 +86,7 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | Entity-relationship schema | `graph-templates/er.html` | Entity boxes + crow's-foot markers (`.fg-er-*`) |
 | **Hub-and-spoke, ≤ 6 peers, rich cards** | **`graph-templates/radial-hub.html`** | Pills, warn lines, multi-line |
 | 7 radial nodes | `radial-ring.html` (no center) or split into sub-diagrams | fgraph caps at ~6 before labels collide |
+| **Full-system architecture (≥ 15 components across ≥ 4 lifecycle layers)** | **`graph-templates/system-architecture.html`** | Users → cloud APIs → adapters → NATS bus strip → nested hub → stores → remote band; `.fg-bus-strip` spans full width; `.fgraph-group.{cluster,security-group}` overlays; 3-card executive summary row |
 | Layered architecture (3–4 tiers) | `graph-templates/layered.html` or `deployment-tiers.html` | Dashed frames per layer, vertical fan-out |
 | Multi-host deployment | `graph-templates/machine-clusters.html` | Cross-machine edge routing, wide aspect |
 | Architecture layers (node topology, arrows needed, ≤8 nodes) | foreignObject+CSS Flexbox SVG | No pixel math; LLM only computes arrow coords; inline SVG, no JS |
@@ -93,7 +94,7 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | **Comparison / matrix (≥4 rows or ≥3 cols)** | **HTML `<table>`** | Tabular data is not a graph |
 | Simple timeline | `.steps` timeline component | Shared CSS, no auto-layout needed |
 
-**Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / swimlane / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph). Swimlane for message-flow pipelines, request lifecycles, clean-arch layer traces crossing multiple horizontal domains. If > 8 nodes or complex flow that no template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
+**Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / swimlane / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph / **system-architecture**). Swimlane for message-flow pipelines, request lifecycles, clean-arch layer traces crossing multiple horizontal domains. **Full-system architecture (≥ 15 components across users → apis → adapters → bus → hub → stores) → `system-architecture.html`** — it composes nested `.fgraph-group` regions + the `.fg-bus-strip` primitive and ships a 3-card info row; prefer this over `radial-hub.html` whenever the reader's mental model is a top-to-bottom request lifecycle rather than "one hub, N peers". If > 8 nodes or complex flow that no other template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
 
 **foreignObject rules (MANDATORY when using this type):**
 - Every `<foreignObject>` root element MUST have `xmlns="http://www.w3.org/1999/xhtml"` — omitting it causes silent render failure in Chrome/Edge
@@ -129,6 +130,7 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`.
 | Sequence (`sequence.html`) | `.hero.left-border` | `.section-label.dot` | `.phases` (time-grouped arcs) + `.card.accent` legend |
 | State machine (`state.html`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for state meanings |
 | Radial hub (`radial-hub.html`, ≤ 6 peers) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for edge types (pills/warn/ok) |
+| System architecture (`system-architecture.html`) | header with `.fg-live-dot` + accent title | `.section-label.square` (optional) | built-in `.info-card-grid` row (3 cards); no extra hero needed |
 | Gantt (`gantt.html`) | `.hero.top-border` | `.section-label.triangle` | `.stat-grid` for milestones (optional) |
 | Pie (`pie.html`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend if > 5 slices |
 | ER schema (`er.html`) | `.hero.left-border` | `.section-label.square` | `.card.accent` legend for relationship types |
@@ -378,6 +380,95 @@ When drawing tiered memory, bind tiers to the palette consistently across diagra
 
 ---
 
+## Layout Rules (CRITICAL)
+
+These rules apply to ANY fgraph diagram with multiple node rows — `system-architecture`, `layered`, `machine-clusters`, `deployment-tiers`. Each rule caused a real bug in a prior rendering cycle. Skip these and the output will overlap, clip, or look visibly uneven on first render.
+
+Each rule has a **formula** (mechanical check) and **Wrong / Right** examples. Compute the math before writing the template, not after.
+
+### R1. Even-stride horizontal distribution
+
+**CRITICAL:** For N cards in a row, card centers go at `(100 / 2N) × (2i+1)` for `i = 0..N-1`. This guarantees equal left/right edge margins AND equal inter-card gaps.
+
+| N | Centers |
+|---|---|
+| 2 | `25, 75` |
+| 3 | `16.67, 50, 83.33` |
+| 4 | `12.5, 37.5, 62.5, 87.5` |
+| 5 | `10, 30, 50, 70, 90` |
+
+**Wrong:** `--x: 12, 37, 63, 85` for 4 cards — gaps between centers are 25/26/22, right edge margin (100 − 85 − w/2 = 5.5%) is 3% larger than left (12 − w/2 = 2.5%). Visibly uneven.
+
+**Right:** `--x: 12.5, 37.5, 62.5, 87.5` for 4 cards — stride is 25, both edge margins equal.
+
+### R2. Minimum inter-card gap
+
+**CRITICAL:** Inter-card gap must be ≥ 2%. For cards with center stride `s` and width `w`: `s − w ≥ 2`. Cards set to touch (`s = w`) look like one wide shape; cards overlapping (`s < w`) mis-render.
+
+**Wrong:** Stride 17, width 17% → 0% gap, cards literally touching with no visual break. (Hit this on the Lyra stores row.)
+
+**Right:** Stride 17, width 15% → 2% gap. Or stride 25 (4-card row), width 19% → 6% gap.
+
+### R3. Row clearance from frame label
+
+**CRITICAL:** When a `.fgraph-frame` dashed region has a label + sub at the top, the FIRST node row's top edge must be ≥ 2% below the frame sub. Card height ≈ `3% + (N_lines × 2%)` where N_lines = title + sub lines. Top edge = `--y − card_height / 2`.
+
+| Card content | Height estimate | Half-height |
+|---|---|---|
+| Title + 1 sub | 6% | 3% |
+| Title + 2 subs | 8% | 4% |
+| Title + 3 subs | 10% | 5% |
+| Title + pill + 3 subs | 12% | 6% |
+
+**Wrong:** Frame sub at `top: 29%`, adapter row at `--y: 34`, card has 4 lines (half-height 6%) → top edge at `y = 28`, which clips the frame sub at y=29.
+
+**Right:** Frame sub at `top: 26.5%`, adapter row at `--y: 34`, same 4-line card → top edge at y=28, 1.5% below sub. Safe.
+
+### R4. Straight-arrow invariant
+
+**CRITICAL:** Vertical data flow ⇒ `arrow.start.x == arrow.end.x`. Horizontal data flow ⇒ `arrow.start.y == arrow.end.y`. Any drift is a typo, not a design choice — it reads as "the flow goes sideways", confusing the reader.
+
+Use non-straight paths only for **intentional cross-section routes** (e.g., Anthropic API ⇒ hub LLM layer crossing three rows — those MUST be cubic beziers with two control points).
+
+**Wrong:** `M 16,79 L 14,83` for an Agent (x=14) → AgentStore (x=14) connection — diagonal because of a typo.
+
+**Right:** `M 14,79 L 14,83` — purely vertical. Or if intentional, use a labeled curve: `M 62.5,22 C 62.5,40 56,55 48,66` with two control points demonstrating the long route.
+
+### R5. Semantic edge color reservation
+
+**CRITICAL:** Edge colors carry meaning. Reserve each for its one purpose; don't reuse for aesthetic variety.
+
+| Color | Reserved for | Never |
+|---|---|---|
+| `cyan` | Network ingress (external user → service) | Internal calls |
+| `orange` | Message bus / NATS / Kafka / event flow | Auth |
+| `purple` | Storage read/write (to `.fgraph-node.purple`) | Ingress |
+| `red` / `rose` | **Security-only** — auth flows, guard boundaries, admin alerts | Anything else |
+| `amber` | Cloud-API outbound (to `.fgraph-node.amber`) | Internal |
+| `dim` | Phase-2 / planned / informational | Live flows |
+
+**Wrong:** A red dashed curve for "Anthropic API → hub LLM" combined with a `.fgraph-group.security-group` (also rose dashed) → reader sees one broken rose shape instead of two separate flows. (Hit this on Lyra.)
+
+**Right:** Amber dashed for Anthropic-API outbound (matches cloud-API amber tone); reserve red dashed for the security-group boundary + auth alerts back to admin.
+
+### R6. Node opacity & arrow masking
+
+**CRITICAL:** Default tone backgrounds on `.fgraph-node.{tone}` are `rgba(..., 0.14)` — arrows routing BEHIND a toned node show through. Use `.fgraph-node.solid` for any node that sits over an edge path, or place an explicit `.fg-edge-mask` rect before the path.
+
+**Wrong:** Hub interior with purple tinted Agent + MemoryManager cards; Anthropic curve crosses behind Agent → stroke shows through the tint, reads as "the arrow crosses inside the Agent card".
+
+**Right:** `.fgraph-node.purple.solid` — opaque `--bg-card` base + purple tint via `background-image`; arrow stroke cleanly masked. Or: `<rect class="fg-edge-mask" x="..." y="..." width="..." height="..."/>` immediately before the `<path>`.
+
+### R7. Overlay labels must not wrap
+
+**CRITICAL:** `.fgraph-group__label` has `white-space: nowrap` + `max-width: calc(100% - 20px)` + `text-overflow: ellipsis`. Labels longer than the overlay width truncate; they never wrap into children. **Keep labels ≤ 20 chars** to avoid the truncation:
+
+**Wrong:** `"Authenticator + GuardChain · trust levels"` — 42 chars, truncates to `"Authenticator + GuardCha…"` on a narrow overlay.
+
+**Right:** `"Auth · Guard · trust"` — 20 chars, fits without truncation.
+
+---
+
 ## Anti-Patterns (FORBIDDEN)
 
 | Anti-Pattern | Fix |
@@ -406,6 +497,13 @@ Serve + Deploy: see forge-ops.md
 
 14-item pre-flight checklist. Every item is binary — tick it or fix it. Sourced from the gmdiagram QC pattern + architecture-diagram-generator conventions.
 
+- [ ] **Even-stride (R1):** for every N-card row, compute `(100/2N)×(2i+1)` and verify each `--x` matches; edge margins and inter-card gaps are all equal
+- [ ] **Min gap (R2):** for every card row, `stride − width ≥ 2%` (cards do not touch)
+- [ ] **Row clearance (R3):** first row inside a `.fgraph-frame` has top edge ≥ 2% below frame sub label (compute half-height by content line count)
+- [ ] **Straight arrows (R4):** vertical flow paths have `start.x == end.x`; horizontal have `start.y == end.y`; all diagonal paths are labeled intentional beziers with explicit control points
+- [ ] **Edge semantics (R5):** red/rose reserved for security only; cyan for ingress; orange for message bus; purple for storage; amber for cloud-API out; dim for phase-2
+- [ ] **Solid nodes (R6):** every `.fgraph-node.{tone}` that sits over an edge path has `.solid` class; or an explicit `.fg-edge-mask` rect precedes the crossing path
+- [ ] **Overlay label length (R7):** every `.fgraph-group__label` is ≤ 20 chars (otherwise it truncates with ellipsis)
 - [ ] **Text fit:** no labels overlap, no text overflows its container, no truncation ellipses on node titles
 - [ ] **Arrow routing:** SVG paths do not pass through unrelated node boxes; endpoints land on node edges (not centers)
 - [ ] **foreignObject xmlns:** every `<foreignObject>` root has `xmlns="http://www.w3.org/1999/xhtml"` — silent failure in Chrome/Edge otherwise

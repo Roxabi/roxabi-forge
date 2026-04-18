@@ -1,3 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="Lyra — System Architecture">
+<meta name="diagram:date"      content="2026-04-18">
+<meta name="diagram:category"  content="architecture">
+<meta name="diagram:cat-label" content="Architecture · latest">
+<meta name="diagram:color"     content="amber">
+<!-- diagram-meta:end -->
+<title>Lyra — System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+/* ══ fgraph-base.css — inlined ══ */
 /* ══════════════════════════════════════════════════════════════════
    fgraph-base.css — reusable graph primitives for forge
    ─────────────────────────────────────────────────────────────────
@@ -1298,3 +1316,328 @@
 .fg-edge-lbl.cyan   { color: var(--cyan); }
 .fg-edge-lbl.purple { color: var(--purple); }
 .fg-edge-lbl.red    { color: var(--red); }
+
+</style>
+<style>
+/* base tokens */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+:root,[data-theme="dark"]{
+  --bg:#0a0a0f;--surface:#18181f;--surface2:#202028;
+  --border:#2a2a35;--border-bright:#3a3a45;
+  --text:#fafafa;--text-muted:#9ca3af;--text-dim:#6b7280;
+  --accent:#e85d04;--accent-dim:#7c2d0e;--accent-glow:rgba(232,93,4,0.22);
+  --bg-panel:var(--surface);--bg-card:var(--surface);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.14);
+  --cyan:#22d3ee;--cyan-dim:rgba(34,211,238,0.14);
+  --green:#4ade80;--green-dim:rgba(74,222,128,0.14);
+  --purple:#c084fc;--purple-dim:rgba(192,132,252,0.14);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.14);
+  --radius:8px;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.6;min-height:100vh;padding:40px 20px}
+main{max-width:1240px;margin:0 auto}
+
+/* header */
+header{max-width:1240px;margin:0 auto 24px}
+.header-eyebrow{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+header h1{font-family:'Outfit',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-0.02em;color:var(--text);display:flex;align-items:center;gap:14px}
+header h1 .accent{background:linear-gradient(135deg,var(--accent) 0%,#f97316 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.header-subtitle{font-family:'Space Mono',monospace;font-size:12px;color:var(--text-muted);letter-spacing:0.04em;margin-top:6px}
+
+/* template-local */
+.fgraph-wrap.arch{aspect-ratio:16/10;max-width:1200px}
+
+/* info-card grid */
+.info-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px auto 0;max-width:1240px}
+.info-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.info-card__dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-right:8px;vertical-align:middle}
+.info-card__dot.green{background:var(--green)}
+.info-card__dot.purple{background:var(--purple)}
+.info-card__dot.amber{background:var(--amber)}
+.info-card__title{font-family:'Outfit',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.08em;margin:0;display:flex;align-items:center}
+.info-card__list{list-style:none;padding:0;margin:0;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--text-muted);line-height:1.55}
+.info-card__list li{padding:2px 0}
+.info-card__list li b{color:var(--text);font-weight:600}
+.info-card__list code{font-family:inherit;color:var(--amber);font-size:inherit;background:none;padding:0;border:none}
+@media (max-width:900px){.info-card-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ══════ Canonical shared defs — all fgraph SVGs reference these ══════ -->
+<svg class="fgraph-defs" aria-hidden="true" width="0" height="0" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="fg-arr-amber"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+    <marker id="fg-arr-cyan"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+    <marker id="fg-arr-purple"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+    <marker id="fg-arr-green"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+    <marker id="fg-arr-red"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+    <marker id="fg-arr-orange"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-orange"/></marker>
+    <marker id="fg-arr-dim"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-dim"/></marker>
+  </defs>
+</svg>
+
+<header>
+  <div class="header-eyebrow">Architecture · latest · 2026-04-18</div>
+  <h1>
+    <span class="fg-live-dot"></span>
+    Lyra — <span class="accent">System Architecture</span>
+  </h1>
+  <p class="header-subtitle">hub-and-spoke · Python 3.12 · asyncio · NATS three-process · Phase 1b complete</p>
+</header>
+
+<main>
+
+<div class="fgraph-wrap arch gridded amber"
+     role="img"
+     aria-label="Lyra system architecture — request lifecycle from users through platform adapters, NATS bus, hub interior, data stores, to Machine 2">
+
+  <!-- ── Machine 1 frame ─────────────────────────────────────────── -->
+  <div class="fgraph-frame" style="inset: 24% 2% 8% 2%;"></div>
+  <div class="fgraph-frame-lbl" style="top: 24.5%; left: 3%;">MACHINE 1 · HUB · roxabituwer · 24/7</div>
+  <div class="fgraph-frame-sub" style="top: 26.5%; left: 3%;">Ubuntu 24.04 · RTX 3080 · supervisord + systemd (lyra.service, linger) · Podman Quadlet</div>
+
+  <!-- ── SVG edge layer ──────────────────────────────────────────── -->
+  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Users → Cloud APIs (dim) -->
+    <path class="fg-edge dim" d="M 12.5,10 L 12.5,13" marker-end="url(#fg-arr-dim)"/>
+    <path class="fg-edge dim" d="M 37.5,10 L 37.5,13" marker-end="url(#fg-arr-dim)"/>
+    <path class="fg-edge dim" d="M 62.5,10 L 62.5,13" marker-end="url(#fg-arr-dim)"/>
+
+    <!-- Cloud APIs → Adapters (cyan — network ingress) -->
+    <path class="fg-edge cyan" d="M 12.5,22 L 12.5,29" marker-end="url(#fg-arr-cyan)"/>
+    <path class="fg-edge cyan" d="M 37.5,22 L 37.5,29" marker-end="url(#fg-arr-cyan)"/>
+
+    <!-- Anthropic API → LLM·CliPool (amber, cloud-API semantic — lands on node top edge) -->
+    <path class="fg-edge amber dashed" d="M 62.5,22 C 62.5,40 56,55 48,66" marker-end="url(#fg-arr-amber)"/>
+
+    <!-- Adapters → NATS bus (orange) -->
+    <path class="fg-edge orange" d="M 12.5,39 L 12.5,44" marker-end="url(#fg-arr-orange)"/>
+    <path class="fg-edge orange" d="M 37.5,39 L 37.5,44" marker-end="url(#fg-arr-orange)"/>
+    <path class="fg-edge orange" d="M 62.5,39 L 62.5,44" marker-end="url(#fg-arr-orange)"/>
+    <path class="fg-edge orange" d="M 87.5,39 L 87.5,44" marker-end="url(#fg-arr-orange)"/>
+
+    <!-- NATS bus → Hub interior (central feed) -->
+    <path class="fg-edge orange thick" d="M 31,52 L 31,57" marker-end="url(#fg-arr-orange)"/>
+
+    <!-- Hub → Voice daemons (orange dashed) -->
+    <path class="fg-edge orange dashed" d="M 58,62 L 70,62" marker-end="url(#fg-arr-orange)"/>
+    <path class="fg-edge orange dashed" d="M 58,72 L 70,72" marker-end="url(#fg-arr-orange)"/>
+
+    <!-- Hub → Data stores (purple fan-out, straight vertical) -->
+    <path class="fg-edge purple" d="M 14,79 L 14,83" marker-end="url(#fg-arr-purple)"/>
+    <path class="fg-edge purple" d="M 31,79 L 31,83" marker-end="url(#fg-arr-purple)"/>
+    <path class="fg-edge purple" d="M 48,79 L 48,83" marker-end="url(#fg-arr-purple)"/>
+
+    <!-- Hub → Machine 2 (dim dashed, Phase 2) -->
+    <path class="fg-edge dim dashed" d="M 55,78 C 62,84 70,87 73,90" marker-end="url(#fg-arr-dim)"/>
+  </svg>
+
+  <!-- ═══════════════════════ ROW 1 — USERS ═════════════════════════════ -->
+  <div class="fgraph-node narrow solid" style="--x:12.5;--y:6;--w:19%;">
+    <div class="fgraph-title">Telegram Users</div>
+    <div class="fgraph-sub muted">DM · group · forum topic</div>
+  </div>
+  <div class="fgraph-node narrow solid" style="--x:37.5;--y:6;--w:19%;">
+    <div class="fgraph-title">Discord Users</div>
+    <div class="fgraph-sub muted">channel · thread · voice</div>
+  </div>
+  <div class="fgraph-node narrow solid" style="--x:62.5;--y:6;--w:19%;">
+    <div class="fgraph-title">Admin · CLI</div>
+    <div class="fgraph-sub muted">typer · lyra hub/adapter</div>
+  </div>
+
+  <!-- ═══════════════════════ ROW 2 — CLOUD APIs ════════════════════════ -->
+  <div class="fgraph-node amber solid narrow" style="--x:12.5;--y:17;--w:19%;">
+    <div class="fgraph-title amber">Telegram Bot API</div>
+    <div class="fgraph-sub">long-poll + webhook</div>
+    <div class="fgraph-sub muted">aiogram v3</div>
+  </div>
+  <div class="fgraph-node amber solid narrow" style="--x:37.5;--y:17;--w:19%;">
+    <div class="fgraph-title amber">Discord Gateway</div>
+    <div class="fgraph-sub">WebSocket + REST</div>
+    <div class="fgraph-sub muted">discord.py v2 [voice]</div>
+  </div>
+  <div class="fgraph-node amber solid narrow" style="--x:62.5;--y:17;--w:19%;">
+    <div class="fgraph-title amber">Anthropic API</div>
+    <div class="fgraph-sub">Claude (hub) · Haiku (monitor)</div>
+    <div class="fgraph-sub muted">CLI subprocess + SDK driver</div>
+  </div>
+  <div class="fgraph-node amber solid narrow" style="--x:87.5;--y:17;--w:19%;">
+    <div class="fgraph-title amber">GitHub (deps)</div>
+    <div class="fgraph-sub">roxabi-vault · voicecli</div>
+    <div class="fgraph-sub muted">release-please · gh actions</div>
+  </div>
+
+  <!-- ═══════════════════════ ROW 3 — ADAPTER PROCESSES ═════════════════ -->
+  <div class="fgraph-node green solid narrow" style="--x:12.5;--y:34;--w:19%;">
+    <div class="fgraph-title green">
+      lyra_telegram <span class="fgraph-pill green">proc</span>
+    </div>
+    <div class="fgraph-sub">aiogram v3 · FastAPI webhook</div>
+    <div class="fgraph-sub muted">inbound · outbound · normalize</div>
+    <div class="fgraph-sub muted">StreamingSession (edit-in-place)</div>
+  </div>
+  <div class="fgraph-node green solid narrow" style="--x:37.5;--y:34;--w:19%;">
+    <div class="fgraph-title green">
+      lyra_discord <span class="fgraph-pill green">proc</span>
+    </div>
+    <div class="fgraph-sub">discord.py v2 · gateway WS</div>
+    <div class="fgraph-sub muted">inbound · outbound · threads · voice</div>
+    <div class="fgraph-sub muted">_owned_threads (cross-bot silence)</div>
+  </div>
+  <div class="fgraph-node green solid narrow" style="--x:62.5;--y:34;--w:19%;">
+    <div class="fgraph-title green">Adapter Registry</div>
+    <div class="fgraph-sub">(Platform, bot_id) → Adapter</div>
+    <div class="fgraph-sub muted">N bots per platform</div>
+    <div class="fgraph-sub muted">RoutingKey · scope_id</div>
+  </div>
+  <div class="fgraph-node green solid narrow" style="--x:87.5;--y:34;--w:19%;">
+    <div class="fgraph-title green">NatsOutboundListener</div>
+    <div class="fgraph-sub">per-adapter consumer</div>
+    <div class="fgraph-sub muted">render_event_codec</div>
+    <div class="fgraph-sub muted">schema_version guard</div>
+  </div>
+
+  <!-- ═══════════════════════ BUS STRIP ════════════════════════════════ -->
+  <div class="fg-bus-strip orange" style="--y:45; --h:6;">
+    <div class="fg-bus-strip__title">NATS · Message Bus</div>
+    <div class="fg-bus-strip__sub">lyra.inbound.&lt;platform&gt;.&lt;bot_id&gt;  ·  lyra.outbound.&lt;platform&gt;.&lt;bot_id&gt;  ·  voice.tts / voice.stt  ·  embedded nats-server (Podman Quadlet)</div>
+  </div>
+
+  <!-- ═══════════════════════ ROW 4 — HUB INTERIOR ══════════════════════ -->
+  <div class="fgraph-group cluster" style="--x:5;--y:54;--w:52;--h:23;">
+    <span class="fgraph-group__label">lyra_hub · process</span>
+  </div>
+
+  <!-- Sub-row 4a: pipeline components -->
+  <div class="fgraph-node cyan solid narrow" style="--x:14;--y:62;--w:15%;">
+    <div class="fgraph-title cyan">MessagePipeline</div>
+    <div class="fgraph-sub">validate → rate-limit</div>
+    <div class="fgraph-sub muted">→ binding → pool</div>
+  </div>
+  <div class="fgraph-node cyan solid narrow" style="--x:31;--y:62;--w:15%;">
+    <div class="fgraph-title cyan">CommandRouter</div>
+    <div class="fgraph-sub">builtin · session · plugin</div>
+    <div class="fgraph-sub muted">/vault-add /search /explain</div>
+  </div>
+  <div class="fgraph-node cyan solid narrow" style="--x:48;--y:62;--w:15%;">
+    <div class="fgraph-title cyan">Pool · Dispatcher</div>
+    <div class="fgraph-sub">debounce · cancel · TTL</div>
+    <div class="fgraph-sub muted">retry 3× · route verify</div>
+  </div>
+
+  <!-- Sub-row 4b: agent / memory / llm -->
+  <div class="fgraph-node purple solid narrow" style="--x:14;--y:72;--w:15%;">
+    <div class="fgraph-title purple">Agent</div>
+    <div class="fgraph-sub">stateless · persona</div>
+    <div class="fgraph-sub muted">AgentStore · AgentSeeder</div>
+  </div>
+  <div class="fgraph-node purple solid narrow" style="--x:31;--y:72;--w:15%;">
+    <div class="fgraph-title purple">MemoryManager</div>
+    <div class="fgraph-sub">L0 compact · L3 recall</div>
+    <div class="fgraph-sub muted">freshness · extract</div>
+  </div>
+  <div class="fgraph-node green solid narrow" style="--x:48;--y:72;--w:15%;">
+    <div class="fgraph-title green">LLM · CliPool</div>
+    <div class="fgraph-sub">LlmProvider protocol</div>
+    <div class="fgraph-sub muted">smart-routing · CB</div>
+  </div>
+
+  <!-- Security overlay wrapping Agent + Memory -->
+  <div class="fgraph-group security-group" style="--x:7;--y:68;--w:32;--h:9;">
+    <span class="fgraph-group__label">Auth · Guard · trust</span>
+  </div>
+
+  <!-- Right side cluster: voice daemons + uv workspace -->
+  <div class="fgraph-group region" style="--x:59;--y:54;--w:37;--h:23;">
+    <span class="fgraph-group__label">voice daemons · uv workspace</span>
+  </div>
+  <div class="fgraph-node green solid narrow" style="--x:79;--y:62;--w:30%;">
+    <div class="fgraph-title green">voicecli_tts / _stt</div>
+    <div class="fgraph-sub">Qwen · faster-whisper v3</div>
+    <div class="fgraph-sub muted">NATS clients · circuit-breaker</div>
+  </div>
+  <div class="fgraph-node solid narrow" style="--x:79;--y:72;--w:30%;">
+    <div class="fgraph-title">roxabi-nats · roxabi-contracts</div>
+    <div class="fgraph-sub">transport SDK · Pydantic schemas</div>
+    <div class="fgraph-sub muted">uv workspace subpackages</div>
+  </div>
+
+  <!-- ═══════════════════════ ROW 5 — DATA STORES ═══════════════════════ -->
+  <div class="fgraph-node purple solid narrow" style="--x:14;--y:86;--w:15%;">
+    <div class="fgraph-title purple">AgentStore</div>
+    <div class="fgraph-sub">~/.lyra/config.db</div>
+    <div class="fgraph-sub muted">SQLite · TOML seeds</div>
+  </div>
+  <div class="fgraph-node purple solid narrow" style="--x:31;--y:86;--w:15%;">
+    <div class="fgraph-title purple">TurnStore · L1</div>
+    <div class="fgraph-sub">~/.lyra/turns.db</div>
+    <div class="fgraph-sub muted">fire-and-forget · aiosqlite</div>
+  </div>
+  <div class="fgraph-node purple solid narrow" style="--x:48;--y:86;--w:15%;">
+    <div class="fgraph-title purple">roxabi-vault · L3</div>
+    <div class="fgraph-sub">FTS5 + sqlite-vec</div>
+    <div class="fgraph-sub muted">fastembed ONNX · hybrid</div>
+  </div>
+
+  <!-- ═══════════════════════ MACHINE 2 BAND ═══════════════════════════ -->
+  <div class="fgraph-group region" style="--x:66;--y:81;--w:32;--h:14;">
+    <span class="fgraph-group__label">Machine 2 · RTX 5070Ti · Phase 2</span>
+  </div>
+  <div class="fgraph-node narrow solid" style="--x:75;--y:89;--w:15%;">
+    <div class="fgraph-title">Ollama / llama.cpp</div>
+    <div class="fgraph-sub muted">Qwen 2.5 14B · Gemma 3 27B</div>
+  </div>
+  <div class="fgraph-node narrow solid" style="--x:91;--y:89;--w:15%;">
+    <div class="fgraph-title">NATS LLM worker</div>
+    <div class="fgraph-sub muted">NatsDriver · #51</div>
+  </div>
+
+</div>
+
+<!-- ─── Executive summary cards ─────────────────────────────────── -->
+<div class="info-card-grid">
+  <div class="info-card">
+    <h3 class="info-card__title"><span class="info-card__dot green"></span>Runtime · Three-Process Mode</h3>
+    <ul class="info-card__list">
+      <li><b>lyra_hub</b> — MessagePipeline · Pool · Agent · Memory · LLM</li>
+      <li><b>lyra_telegram</b> — aiogram v3 (long-poll + FastAPI)</li>
+      <li><b>lyra_discord</b> — discord.py v2 (gateway + voice)</li>
+      <li><b>voicecli_tts / _stt</b> — separate NATS daemons</li>
+      <li>supervisord + systemd user unit (<code>lyra.service</code>)</li>
+      <li>monitoring as oneshot systemd timer every 5 min</li>
+    </ul>
+  </div>
+
+  <div class="info-card">
+    <h3 class="info-card__title"><span class="info-card__dot purple"></span>Data · Storage Layers</h3>
+    <ul class="info-card__list">
+      <li><b>L0</b> working memory — compacts at 80% of 200k tokens</li>
+      <li><b>L1</b> TurnStore — <code>~/.lyra/turns.db</code> raw log</li>
+      <li><b>L3</b> roxabi-vault — FTS5 + sqlite-vec hybrid</li>
+      <li><b>AgentStore</b> — <code>~/.lyra/config.db</code> + bot bindings</li>
+      <li>fastembed ONNX · nomic-embed-text (non-blocking)</li>
+      <li>aiosqlite mandatory — no sync SQLite on loop</li>
+    </ul>
+  </div>
+
+  <div class="info-card">
+    <h3 class="info-card__title"><span class="info-card__dot amber"></span>Transport · NATS + Integrations</h3>
+    <ul class="info-card__list">
+      <li>Topics: <code>lyra.{inbound,outbound}.&lt;plat&gt;.&lt;bot&gt;</code></li>
+      <li>Embedded <code>nats-server</code> when <code>NATS_URL</code> unset</li>
+      <li><b>roxabi-nats</b> — adapter_base · CB · readiness</li>
+      <li><b>roxabi-contracts</b> — <code>schema_version ≤ expected</code></li>
+      <li>External: Anthropic · Telegram · Discord · GitHub</li>
+      <li>Phase 2 — Machine 2 LLM worker via NATS (#51)</li>
+    </ul>
+  </div>
+</div>
+
+</main>
+
+</body>
+</html>

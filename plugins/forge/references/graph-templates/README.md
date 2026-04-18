@@ -124,6 +124,78 @@ Reference consumer: `tab-target.html` M3 (dual-hub lyra_hub-1 + lyra_hub-2 shari
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-project-ring.html`
 (6 active projects — voiceCLI, lyra, 2ndBrain, imageCLI, roxabi-plugins, roxabi-forge — as peers in a ring showing cross-consume dependencies).
 
+### System Architecture
+
+> Full-system architecture diagram — request lifecycle top-to-bottom, platform lanes
+> left-to-right. Composes users → cloud APIs → adapter processes → NATS bus strip
+> → nested hub interior (with security-group overlay) → data stores → optional
+> Phase 2 / remote band. Ships a 3-card executive summary row below the diagram.
+>
+> Use when `radial-hub` is too small and `layered` is too thin — specifically when
+> the diagram has ≥ 15 specific components across ≥ 4 lifecycle layers and the
+> reader needs to follow a request end-to-end. Uses `.fg-bus-strip` for the bus
+> (full-width pill band) and `.fgraph-group.{cluster,security-group}` for nested
+> sub-regions. Pulsing `.fg-live-dot` in the header conveys "live system".
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│   ┌──────┐         ┌──────┐         ┌──────┐   ← ROW 1 users       │
+│   │user-1│         │user-2│         │user-3│                        │
+│   └──┬───┘         └──┬───┘         └──┬───┘                        │
+│   ┌──▼───┐         ┌──▼───┐         ┌──▼───┐   ← ROW 2 cloud APIs   │
+│   │api-1 │         │api-2 │         │api-3 │    (amber)            │
+│   └──┬───┘         └──┬───┘         └──┬───┘                        │
+│┌─── Machine 1 ──────────────────────────────────────────────────┐  │
+││  ┌──▼────┐        ┌──▼────┐        ┌──▼────┐   ← ROW 3 adapters││
+││  │adpt-1 │        │adpt-2 │        │adpt-3 │    (green proc)   ││
+││  └──┬────┘        └──┬────┘        └──┬────┘                   ││
+││╔════════════════════ BUS STRIP ════════════════════════════════╗││
+││║  NATS · lyra.inbound.*.<bot> · lyra.outbound.*.<bot>          ║││
+││╚═══════════════════════════════════════════════════════════════╝││
+││┌─── hub cluster ─────────────────────┐ ┌── side cluster ────┐  ││
+│││ ┌───┐ ┌───┐ ┌───┐                    │ │ ┌──────────────┐   │  ││
+│││ │p-1│ │p-2│ │p-3│  ← sub-row 4a      │ │ │  voice tts   │   │  ││
+│││ └───┘ └───┘ └───┘                    │ │ └──────────────┘   │  ││
+│││ ┌───┐ ┌───┐ ┌───┐                    │ │ ┌──────────────┐   │  ││
+│││ │a  │ │mem│ │llm│  ← sub-row 4b      │ │ │  voice stt   │   │  ││
+│││ └───┘ └───┘ └───┘                    │ │ └──────────────┘   │  ││
+│││ ╭─── security overlay (rose dashed)──╮                       │  ││
+│││ │ auth + guard      │                                        │  ││
+│││ ╰────────────────────╯                                        │  ││
+││└──────────────────────────────────────┘ └────────────────────┘  ││
+││  ┌────┐        ┌────┐        ┌────┐       ← ROW 5 stores        ││
+││  │s-1 │        │s-2 │        │s-3 │         (purple)            ││
+││  └────┘        └────┘        └────┘                              ││
+│└────────────────────────────────────────────────────────────────┘  │
+│                                          ┌─────────────┐            │
+│                                          │ phase-2 band│ (dashed)  │
+│                                          └─────────────┘            │
+└────────────────────────────────────────────────────────────────────┘
+
+┌ Runtime ─────────┐  ┌ Data ──────────┐  ┌ Transport ────┐
+│ • bullet 1       │  │ • bullet 1     │  │ • bullet 1    │
+│ • bullet 2       │  │ • bullet 2     │  │ • bullet 2    │
+└──────────────────┘  └────────────────┘  └───────────────┘
+  3-card info row · .info-card-grid from base/components.css
+```
+
+Reference example (standalone, fgraph-base.css inlined):
+[`examples/system-architecture.html`](./examples/system-architecture.html)
+
+Reference consumer (Mode B, links to `_shared/fgraph-base.css`):
+`~/.roxabi/forge/lyra/visuals/architecture.html` (full Lyra system —
+users · Telegram/Discord/Admin · Cloud APIs · adapters · NATS bus · hub
+with nested MessagePipeline/Pool/Agent/Memory/LLM · voice daemons · data
+stores · Machine 2 Phase 2 band).
+
+**Layout Rules baked in:** the template (`system-architecture.html`)
+ships as a correct worked example — all `--x`/`--y` coords, widths,
+tones, and arrow paths follow the 7 Layout Rules in
+`forge-chart/SKILL.md § Layout Rules (CRITICAL)`. Copy the file, then
+replace **content only** (titles, sublabels, card bullets) — do not
+touch coordinates unless you re-compute R1 (even stride) or R3 (row
+clearance) for the new node count.
+
 ### Layered
 
 > 4 horizontal layers stacked vertically — ingress → hub → workers → storage.
@@ -426,6 +498,7 @@ Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 | `linear-flow.html` | 3-stage pipeline (source → middle → sink) | ~3K | 3 horizontal cards, single-direction arrows, labels above, 16/6 aspect, middle pill or wide, any-tone edges |
 | `dual-cluster.html` | 2 peers sharing 2 central resources (HA pair + session + bus) | ~4K | 2 top peers + center resource + bottom bus, 4 bidirectional arrows with wide-bulge routing, single centered labels, square aspect |
 | `radial-ring.html` | Peer-to-peer mesh / ring buffer / consensus ring (no center hub) | ~4K | 6 nodes in a circle, clockwise inter-peer edges, labels outside ring, square aspect |
+| `system-architecture.html` | Full-system architecture (≥ 15 components, ≥ 4 lifecycle layers, request-lifecycle view with bus + nested hub) | ~11K | Rows for users/cloud APIs/adapters/bus/hub-interior/stores/phase-2; full-width `.fg-bus-strip` between adapter row and hub; `.fgraph-group.cluster` wraps hub sub-components; `.fgraph-group.security-group` overlay for auth; `.fg-live-dot` in header; built-in 3-card `.info-card-grid` footer; wide aspect (14/10) |
 | `layered.html` | 3–4 horizontal layers (ingress → hub → workers → storage) | ~5K | 4 stacked layers with dashed frames, vertical fan-out/fan-in arrows, tall aspect (3/4), optional 3-layer variant |
 | `machine-clusters.html` | Multi-host deployment / distributed services across machines | ~5K | 3 machine frames side-by-side, cross-machine edge routing, wide aspect (16/9), per-machine labels |
 | `deployment-tiers.html` | CI/CD pipeline / dev → staging → prod promotion | ~5K | 3 colored tier stripes, promotion arrows upward, data sync arrows, tall aspect (4/5), tier-specific tones |
@@ -437,9 +510,9 @@ Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
 | `lane-swim.html` | Message flow / request lifecycle across N architectural lanes, one node per row | ~6K | Lane header strip (`.fg-lane-header`/`.fg-lane-title`), phase separator lines (`.fg-lane-phase-line`/`.fg-lane-phase-lbl`), 18 px circle nodes (`.fg-lane-node`), inline tag pills (`.fg-lane-tag`), S-curve + parallel-bend connectors (`.fg-lane-curve`), chip-on-wire edge labels (`.fg-edge-lbl`), `--fg-lane-min-height` knob |
 
-All **14 native fgraph** templates (`radial-hub`, `linear-flow`,
+All **15 native fgraph** templates (`radial-hub`, `linear-flow`,
 `dual-cluster`, `radial-ring`, `layered`, `machine-clusters`,
-`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`)
+`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`, `system-architecture`)
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
 
@@ -470,6 +543,8 @@ model depends on the consumer (see "Inlined vs shared" below).
 | `.fgraph-sub` / `.muted` / `.warn` / `.ok` | Node subtitles (default / muted / red / green) |
 | `.fgraph-lbl.{tone}` | Absolute HTML edge label via `--x` / `--y` |
 | `.fgraph-legend` | Bottom legend strip |
+| `.fg-bus-strip.{tone}` | Full-width horizontal pill band — use when a message bus / event bus spans the diagram between two node rows. Positioned via `--y` (top %) + `--h` (height %). Default tone is `.orange` (message-bus semantic); `.amber`/`.cyan`/`.purple`/`.green`/`.red` available. Contains `.fg-bus-strip__title` + `.fg-bus-strip__sub`. |
+| `.fg-live-dot.{tone}` | Pulsing status indicator. Inline element; sits next to a title to signal "live system". Default green (healthy); `.amber` (warn), `.red` (down). Pure CSS animation, no JS. |
 
 ### Coordinate system
 
