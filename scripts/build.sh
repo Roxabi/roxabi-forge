@@ -38,6 +38,7 @@ rsync -aL --delete --delete-excluded \
   --exclude='.git/' \
   --exclude='.stversions/' \
   --exclude='lyra/brand/prompts/' \
+  --exclude='*.mp4' \
   "$FORGE_DIR/" "$DIST/" || {
     RC=$?
     # exit code 23 = partial transfer (e.g. dangling symlinks) — non-fatal
