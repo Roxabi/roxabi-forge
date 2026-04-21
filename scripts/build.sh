@@ -28,10 +28,21 @@ python3 "$SCRIPT_DIR/gen-og-tags.py"
 
 echo "▸ Syncing to _dist/…"
 mkdir -p "$DIST"
+# Cloudflare Pages caps files at 25 MiB. Warn on oversize files so they're
+# visible in build output before rsync silently skips them via --max-size.
+MAX_SIZE_BYTES=$((25 * 1024 * 1024))
+LARGE_FILES=$(find "$FORGE_DIR" -type f -size +${MAX_SIZE_BYTES}c \
+  -not -path "*/_dist/*" -not -path "*/.git/*" -not -path "*/__pycache__/*" \
+  -printf '  %s\t%p\n' 2>/dev/null | sort -rn || true)
+if [ -n "$LARGE_FILES" ]; then
+  echo "  ⚠ Excluding files > 25M (Cloudflare Pages limit):"
+  echo "$LARGE_FILES" | awk -F'\t' '{printf "    %6.1f MB  %s\n", $1/1048576, $2}'
+fi
 # -L dereferences symlinks as real files so deployed _dist/ ships actual
 # content rather than dangling symlinks. Required for galleries that
 # symlink into external directories (e.g. ai-toolkit training output).
 rsync -aL --delete --delete-excluded \
+  --max-size=25M \
   --exclude='_dist/' \
   --exclude='*.py' \
   --exclude='__pycache__/' \
