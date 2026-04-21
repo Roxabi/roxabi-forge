@@ -56,6 +56,10 @@ rsync -aL --delete --delete-excluded \
     [ $RC -eq 23 ] && echo "  ⚠ rsync: skipped some files (broken symlinks?) — continuing" || exit $RC
   }
 
+# Purge oversize files left over in _dist/ from previous runs — rsync's
+# --max-size skips transfer but doesn't delete existing receiver files.
+find "$DIST" -type f -size +${MAX_SIZE_BYTES}c -delete 2>/dev/null || true
+
 # Copy gallery UI from canonical forge location into _dist
 cp "$FORGE_DIR/index.html" "$DIST/index.html"
 
