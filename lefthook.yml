@@ -14,6 +14,19 @@ pre-commit:
       skip:
         - merge
         - rebase
+    brand-drift:
+      # Blocking guard. Fails commit when shared CSS bases contain legacy
+      # off-brand hex values or non-brand fonts (Plus Jakarta Sans, etc.).
+      # See scripts/check-brand-drift.sh for the forbidden list.
+      # Scope: default tokens in shared bases only. Per-project --accent
+      # overrides in consuming pages are out of scope.
+      run: |
+        staged=$(printf '%s\n' {staged_files} | grep -E '(gallery-base|fgraph-base|explainer-base)\.css$' || true)
+        if [ -n "$staged" ]; then
+          scripts/check-brand-drift.sh $staged
+        fi
+      glob:
+        - "plugins/forge/references/**/*-base.css"
     mermaid-guard:
       # Blocking guard. Fails commit when staged files contain lowercase mermaid.
       # Pattern matches \bmermaid\b only — capitalized "Mermaid" in error prose is exempt.
