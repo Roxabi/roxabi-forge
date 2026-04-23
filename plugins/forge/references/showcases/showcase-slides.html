@@ -144,33 +144,13 @@ body.deck-body { overflow: hidden; }
   transform: none;
 }
 
-/* ── Staggered child reveals ── */
-.slide .reveal {
-  opacity: 0;
-  transform: translateY(20px);
-  transition:
-    opacity   0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.slide.visible .reveal { opacity: 1; transform: none; }
-.slide.visible .reveal:nth-child(1) { transition-delay: 0.10s; }
-.slide.visible .reveal:nth-child(2) { transition-delay: 0.20s; }
-.slide.visible .reveal:nth-child(3) { transition-delay: 0.30s; }
-.slide.visible .reveal:nth-child(4) { transition-delay: 0.40s; }
-.slide.visible .reveal:nth-child(5) { transition-delay: 0.50s; }
-.slide.visible .reveal:nth-child(6) { transition-delay: 0.60s; }
-.slide.visible .reveal:nth-child(7) { transition-delay: 0.70s; }
-.slide.visible .reveal:nth-child(8) { transition-delay: 0.80s; }
-
-.slide.visible .reveal[style*="--i"] {
-  transition-delay: calc(var(--i) * 0.10s);
-}
+/* ── Staggered child reveals (via .animate-in + .delay-N) ── */
+/* Note: .reveal class removed — use .animate-in.delay-N instead */
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .deck { scroll-behavior: auto; }
-  .slide, .slide .reveal, .slide * {
+  .slide, .slide * {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
@@ -922,11 +902,11 @@ body.deck-body { overflow: hidden; }
   <!-- ═══ SLIDE 1 — COVER ═══ -->
   <section class="slide slide--title slide--grid-bg" id="s1">
     <div class="wordmark">Roxabi<span>Forge</span></div>
-    <p class="slide__label reveal animate-in delay-1" style="--i:0">Claude Code Plugin</p>
-    <h1 class="slide__display reveal animate-in delay-2" style="--i:1">Forge<span class="cursor-blink cursor-blink--big"></span></h1>
-    <p class="slide__subtitle reveal animate-in delay-3" style="--i:2">HTML Visual Artifacts for Claude Code</p>
-    <div class="divider reveal animate-in delay-4" style="--i:3; margin-top: 28px;"></div>
-    <p class="reveal animate-in delay-5" style="--i:4; font-size: 12px; color: var(--text-dim); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 16px;">
+    <p class="slide__label animate-in delay-1" style="--i:0">Claude Code Plugin</p>
+    <h1 class="slide__display animate-in delay-2" style="--i:1">Forge<span class="cursor-blink cursor-blink--big"></span></h1>
+    <p class="slide__subtitle animate-in delay-3" style="--i:2">HTML Visual Artifacts for Claude Code</p>
+    <div class="divider animate-in delay-4" style="--i:3; margin-top: 28px;"></div>
+    <p class="animate-in delay-5" style="--i:4; font-size: 12px; color: var(--text-dim); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 16px;">
       Roxabi Forge · April 2026 · 5 min read
     </p>
   </section>
@@ -935,9 +915,9 @@ body.deck-body { overflow: hidden; }
   <section class="slide slide--content" id="s2">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">the problem</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">Why does <span style="color: var(--accent);">Forge</span> exist?</h2>
-      <ul class="reveal animate-in delay-3" style="--i:2">
+      <p class="slide__label animate-in delay-1" style="--i:0">the problem</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">Why does <span style="color: var(--accent);">Forge</span> exist?</h2>
+      <ul class="animate-in delay-3" style="--i:2">
         <li><strong>Single-file HTML outputs</strong> — diagrams, galleries, guides, slides</li>
         <li><strong>Offline-first</strong> — works from <code>file://</code>, no server needed</li>
         <li><strong>6 specialized skills</strong> — one CLI command per artifact type</li>
@@ -952,9 +932,9 @@ body.deck-body { overflow: hidden; }
   <section class="slide slide--content" id="s3">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">capabilities</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">6 Skills</h2>
-      <div class="skill-grid reveal animate-in delay-3" style="--i:2">
+      <p class="slide__label animate-in delay-1" style="--i:0">capabilities</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">6 Skills</h2>
+      <div class="skill-grid animate-in delay-3" style="--i:2">
         <div class="skill-card">
           <div class="skill-card__icon">G</div>
           <div class="skill-card__name">forge-gallery</div>
@@ -992,9 +972,9 @@ body.deck-body { overflow: hidden; }
   <!-- ═══ SLIDE 4 — ARCHITECTURE ═══ -->
   <section class="slide slide--diagram" id="s4">
     <div class="wordmark">Roxabi<span>Forge</span></div>
-    <p class="slide__label reveal animate-in delay-1" style="--i:0">under the hood</p>
-    <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">Architecture</h2>
-    <div class="slide__diagram-wrap reveal animate-in delay-3" style="--i:2">
+    <p class="slide__label animate-in delay-1" style="--i:0">under the hood</p>
+    <h2 class="slide__heading animate-in delay-2" style="--i:1">Architecture</h2>
+    <div class="slide__diagram-wrap animate-in delay-3" style="--i:2">
       <svg viewBox="0 0 600 320" width="100%" style="max-height: 300px;">
         <defs>
           <marker id="arr-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -1059,16 +1039,16 @@ body.deck-body { overflow: hidden; }
         <text x="500" y="293" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="#8b93a1">HTML</text>
       </svg>
     </div>
-    <p class="slide__caption reveal animate-in delay-4" style="--i:3">Prompt → Skill → Single-file HTML output</p>
+    <p class="slide__caption animate-in delay-4" style="--i:3">Prompt → Skill → Single-file HTML output</p>
   </section>
 
   <!-- ═══ SLIDE 5 — SKILL: forge-gallery ═══ -->
   <section class="slide slide--content" id="s5">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">skill deep-dive</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1"><span style="color: var(--cyan);">forge-gallery</span></h2>
-      <div class="split-6040 reveal animate-in delay-3" style="--i:2; margin-top: 1rem;">
+      <p class="slide__label animate-in delay-1" style="--i:0">skill deep-dive</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1"><span style="color: var(--cyan);">forge-gallery</span></h2>
+      <div class="split-6040 animate-in delay-3" style="--i:2; margin-top: 1rem;">
         <div class="code-block">
           <div class="code-block__header">
             <div class="code-block__dot code-block__dot--red"></div>
@@ -1106,9 +1086,9 @@ project screenshots.
   <section class="slide slide--content" id="s6">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">skill deep-dive</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1"><span style="color: var(--amber);">forge-slides</span></h2>
-      <div class="split-6040 reveal animate-in delay-3" style="--i:2; margin-top: 1rem;">
+      <p class="slide__label animate-in delay-1" style="--i:0">skill deep-dive</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1"><span style="color: var(--amber);">forge-slides</span></h2>
+      <div class="split-6040 animate-in delay-3" style="--i:2; margin-top: 1rem;">
         <div class="code-block">
           <div class="code-block__header">
             <div class="code-block__dot code-block__dot--red"></div>
@@ -1142,9 +1122,9 @@ our new API product.
   <!-- ═══ SLIDE 7 — DIAGRAM TYPES ═══ -->
   <section class="slide slide--diagram" id="s7">
     <div class="wordmark">Roxabi<span>Forge</span></div>
-    <p class="slide__label reveal animate-in delay-1" style="--i:0">visual outputs</p>
-    <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">Diagram Types</h2>
-    <div class="slide__diagram-wrap reveal animate-in delay-3" style="--i:2">
+    <p class="slide__label animate-in delay-1" style="--i:0">visual outputs</p>
+    <h2 class="slide__heading animate-in delay-2" style="--i:1">Diagram Types</h2>
+    <div class="slide__diagram-wrap animate-in delay-3" style="--i:2">
       <svg viewBox="0 0 700 200" width="100%" style="max-height: 200px;">
         <!-- Hub-Spoke -->
         <g transform="translate(50, 0)">
@@ -1186,27 +1166,27 @@ our new API product.
         </g>
       </svg>
     </div>
-    <p class="slide__caption reveal animate-in delay-4" style="--i:3">forge-chart supports hub-spoke, linear flow, tiered, and more</p>
+    <p class="slide__caption animate-in delay-4" style="--i:3">forge-chart supports hub-spoke, linear flow, tiered, and more</p>
   </section>
 
   <!-- ═══ SLIDE 8 — AESTHETICS ═══ -->
   <section class="slide slide--content" id="s8">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">brand identity</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">6 Aesthetics</h2>
+      <p class="slide__label animate-in delay-1" style="--i:0">brand identity</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">6 Aesthetics</h2>
       <div class="flex-col gap-20 v-center" style="margin-top: 1rem;">
-        <div class="pills-row reveal animate-in delay-3" style="--i:2">
+        <div class="pills-row animate-in delay-3" style="--i:2">
           <span class="pill pill--accent">lyra — Orange / GitHub-dark</span>
           <span class="pill pill--amber">editorial — Amber / Warm docs</span>
           <span class="pill pill--cyan">terminal — Cyan / Retro CLI</span>
         </div>
-        <div class="pills-row reveal animate-in delay-4" style="--i:3">
+        <div class="pills-row animate-in delay-4" style="--i:3">
           <span class="pill pill--violet">blueprint — Blue / Technical</span>
           <span class="pill pill--green">roxabi — Gold / Brand</span>
           <span class="pill" style="border-color: #78716c; background: rgba(120,113,108,0.1); color: #a8a29e;">caveman — Earth / Primitive</span>
         </div>
-        <p class="reveal animate-in delay-5" style="--i:4; font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
+        <p class="animate-in delay-5" style="--i:4; font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
           Each aesthetic provides a full token contract: colors, surfaces, borders, text, accent glow.
         </p>
       </div>
@@ -1216,8 +1196,8 @@ our new API product.
   <!-- ═══ SLIDE 9 — COMPARISON ═══ -->
   <section class="slide slide--comparison" id="s9">
     <div class="wordmark">Roxabi<span>Forge</span></div>
-    <h2 class="slide__heading reveal animate-in delay-1" style="--i:0">Forge vs Alternatives</h2>
-    <div class="slide__columns reveal animate-in delay-2" style="--i:1">
+    <h2 class="slide__heading animate-in delay-1" style="--i:0">Forge vs Alternatives</h2>
+    <div class="slide__columns animate-in delay-2" style="--i:1">
       <div class="slide__col">
         <h3>Alternatives</h3>
         <ul>
@@ -1245,9 +1225,9 @@ our new API product.
   <section class="slide slide--content" id="s10">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">how to use</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">The <span style="color: var(--accent);">Workflow</span></h2>
-      <div class="timeline reveal animate-in delay-3" style="--i:2; margin-top: 1.5rem;">
+      <p class="slide__label animate-in delay-1" style="--i:0">how to use</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">The <span style="color: var(--accent);">Workflow</span></h2>
+      <div class="timeline animate-in delay-3" style="--i:2; margin-top: 1.5rem;">
         <div class="timeline__step active">
           <div class="timeline__marker">1</div>
           <div class="timeline__content">
@@ -1288,9 +1268,9 @@ our new API product.
   <section class="slide slide--content" id="s11">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner text-center">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">by the numbers</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">What you get</h2>
-      <div class="stat-row reveal animate-in delay-3" style="--i:2; margin-top: 2rem;">
+      <p class="slide__label animate-in delay-1" style="--i:0">by the numbers</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">What you get</h2>
+      <div class="stat-row animate-in delay-3" style="--i:2; margin-top: 2rem;">
         <div class="stat-card">
           <div class="stat-card__number">6</div>
           <div class="stat-card__label">Skills</div>
@@ -1304,7 +1284,7 @@ our new API product.
           <div class="stat-card__label">Output types</div>
         </div>
       </div>
-      <p class="reveal animate-in delay-4" style="--i:3; margin-top: 2rem; font-size: 0.9rem; color: var(--text-muted); font-style: italic;">
+      <p class="animate-in delay-4" style="--i:3; margin-top: 2rem; font-size: 0.9rem; color: var(--text-muted); font-style: italic;">
         "Gallery, slides, diagrams, guides, epics — one plugin, zero config."
       </p>
     </div>
@@ -1314,9 +1294,9 @@ our new API product.
   <section class="slide slide--content" id="s12">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">under the hood</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">Technical Details</h2>
-      <div class="flex-col gap-16 reveal animate-in delay-3" style="--i:2; margin-top: 1.5rem;">
+      <p class="slide__label animate-in delay-1" style="--i:0">under the hood</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">Technical Details</h2>
+      <div class="flex-col gap-16 animate-in delay-3" style="--i:2; margin-top: 1.5rem;">
         <div class="pills-row">
           <span class="pill pill--accent">Zero runtime deps</span>
           <span class="pill pill--cyan">file:// safe</span>
@@ -1338,9 +1318,9 @@ our new API product.
   <section class="slide slide--content" id="s13">
     <div class="wordmark">Roxabi<span>Forge</span></div>
     <div class="slide-inner text-center">
-      <p class="slide__label reveal animate-in delay-1" style="--i:0">ready?</p>
-      <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">Get Started</h2>
-      <div class="flex-col gap-12 v-center reveal animate-in delay-3" style="--i:2; margin-top: 1.5rem;">
+      <p class="slide__label animate-in delay-1" style="--i:0">ready?</p>
+      <h2 class="slide__heading animate-in delay-2" style="--i:1">Get Started</h2>
+      <div class="flex-col gap-12 v-center animate-in delay-3" style="--i:2; margin-top: 1.5rem;">
         <div class="step-card">
           <div class="step-card__number">1</div>
           <div>
@@ -1369,13 +1349,13 @@ our new API product.
   <!-- ═══ SLIDE 14 — OUTRO ═══ -->
   <section class="slide slide--closing slide--grid-bg" id="s14">
     <div class="wordmark">Roxabi<span>Forge</span></div>
-    <p class="slide__label reveal animate-in delay-1" style="--i:0">that's it</p>
-    <h2 class="slide__heading reveal animate-in delay-2" style="--i:1">HTML artifacts,<br>delivered<span class="cursor-blink"></span></h2>
-    <p class="slide__body reveal animate-in delay-3" style="--i:2">
+    <p class="slide__label animate-in delay-1" style="--i:0">that's it</p>
+    <h2 class="slide__heading animate-in delay-2" style="--i:1">HTML artifacts,<br>delivered<span class="cursor-blink"></span></h2>
+    <p class="slide__body animate-in delay-3" style="--i:2">
       Single-file, offline-first, Claude-native. No servers, no builds, no friction.
     </p>
-    <a href="https://github.com/Roxabi/roxabi-forge" class="cta reveal animate-in delay-4" style="--i:3">View on GitHub</a>
-    <p class="reveal animate-in delay-5" style="--i:4; margin-top: 2rem; font-size: 12px; color: var(--text-dim); letter-spacing: 0.1em;">
+    <a href="https://github.com/Roxabi/roxabi-forge" class="cta animate-in delay-4" style="--i:3">View on GitHub</a>
+    <p class="animate-in delay-5" style="--i:4; margin-top: 2rem; font-size: 12px; color: var(--text-dim); letter-spacing: 0.1em;">
       <span style="color: var(--accent);">@roxabi</span> · roxabi.dev · Forge 2026
     </p>
   </section>
@@ -1468,12 +1448,6 @@ class SlideEngine {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Reset animations on the entering slide
-            entry.target.querySelectorAll('.animate-in').forEach(el => {
-              el.style.animationName = 'none'
-              el.offsetHeight // trigger reflow
-              el.style.animationName = ''
-            })
             entry.target.classList.add('visible')
             this.current = this.slides.indexOf(entry.target)
             this.update()
