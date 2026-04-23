@@ -1,0 +1,193 @@
+/**
+ * Android Frame — Generic Device Bezels
+ *
+ * Specifications:
+ * - Viewport: 360×800 (standard Android)
+ * - Camera cutout: pill-shaped at top
+ * - Status bar: 24dp height
+ * - Navigation bar: 48dp height (gesture or 3-button)
+ *
+ * Usage:
+ *   <div class="android-frame">
+ *     <div class="android-frame__camera"></div>
+ *     <div class="android-frame__status">
+ *       <span class="android-frame__time">12:00</span>
+ *       <span class="android-frame__icons">●●●</span>
+ *     </div>
+ *     <div class="android-frame__content">
+ *       <!-- Your app content here -->
+ *     </div>
+ *     <div class="android-frame__nav"></div>
+ *   </div>
+ */
+
+.android-frame {
+  --android-frame-width: 360px;
+  --android-frame-height: 800px;
+  --android-bezel-radius: 36px;
+  --android-border-width: 2px;
+  --android-camera-width: 96px;
+  --android-camera-height: 24px;
+  --android-camera-top: 12px;
+  --android-status-height: 28px;
+  --android-nav-height: 48px;
+  --android-content-top: var(--android-status-height);
+  --android-content-bottom: var(--android-nav-height);
+
+  position: relative;
+  width: var(--android-frame-width);
+  height: var(--android-frame-height);
+  background: #1a1a1a;
+  border-radius: var(--android-bezel-radius);
+  border: var(--android-border-width) solid #2a2a2a;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  font-family: 'Roboto', 'Noto Sans', -apple-system, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Camera Cutout (pill-shaped) */
+.android-frame__camera {
+  position: absolute;
+  top: var(--android-camera-top);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--android-camera-width);
+  height: var(--android-camera-height);
+  background: #000;
+  border-radius: calc(var(--android-camera-height) / 2);
+  z-index: 100;
+}
+
+/* Status Bar */
+.android-frame__status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--android-status-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  padding-top: calc(var(--android-camera-top) + var(--android-camera-height) + 4px);
+  color: #e4e4e4;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.android-frame__time {
+  font-variant-numeric: tabular-nums;
+}
+
+.android-frame__icons {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+/* Content Area */
+.android-frame__content {
+  position: absolute;
+  top: var(--android-content-top);
+  left: 0;
+  right: 0;
+  bottom: var(--android-content-bottom);
+  overflow: auto;
+  background: var(--android-content-bg, #fafafa);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Navigation Bar */
+.android-frame__nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--android-nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* Gesture navigation bar */
+.android-frame__nav::before {
+  content: '';
+  width: 120px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 2px;
+}
+
+/* Three-button navigation (alternative) */
+.android-frame--three-button .android-frame__nav {
+  justify-content: space-around;
+  padding: 0 16px;
+}
+
+.android-frame--three-button .android-frame__nav::before {
+  display: none;
+}
+
+.android-frame--three-button .android-frame__nav::after {
+  content: '◁ ○ □';
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 24px;
+}
+
+/* Dark mode content support */
+.android-frame[data-theme="dark"] .android-frame__content {
+  --android-content-bg: #121212;
+}
+
+.android-frame[data-theme="dark"] .android-frame__nav::before {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Light mode content support */
+.android-frame[data-theme="light"] .android-frame__status {
+  color: #1f1f1f;
+}
+
+.android-frame[data-theme="light"] .android-frame__nav::before {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive scaling */
+@media (max-width: 420px) {
+  .android-frame {
+    --android-frame-width: 100%;
+    --android-frame-height: auto;
+    aspect-ratio: 360 / 800;
+  }
+}
+
+/* Side-by-side layout */
+.android-frame-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 48px;
+  align-items: flex-start;
+  justify-content: center;
+  background: #0d1117;
+}
+
+.android-frame-grid > * {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.android-frame-grid__label {
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+}

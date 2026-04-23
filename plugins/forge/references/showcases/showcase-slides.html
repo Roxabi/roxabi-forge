@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:title" content="Forge — HTML Visual Artifacts">
+<meta property="og:description" content="HTML Visual Artifacts for Claude Code — diagrams, galleries, guides, epics, slides">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://forge.roxabi.dev/showcases/showcase-slides.html">
+<meta property="og:image" content="https://forge.roxabi.dev/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Roxabi Forge">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Forge — HTML Visual Artifacts">
+<meta name="twitter:description" content="HTML Visual Artifacts for Claude Code — diagrams, galleries, guides, epics, slides">
+<meta name="twitter:image" content="https://forge.roxabi.dev/og-image.png">
+<title>Forge — HTML Visual Artifacts</title>
+
+<meta name="diagram-meta" content='{"categories":["showcase","slides"],"aestheticLabel":"lyra","generatedAt":"2026-04-23","latest":true}'>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   reset.css — box-sizing reset, antialiasing, baseline token contract
+   ══════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+:root, [data-theme="dark"] {
+  --bg:           #0a0a0f;
+  --surface:      #18181f;
+  --surface2:     #202028;
+  --border:       #2a2a35;
+  --border-bright: #3a3a45;
+  --text:         #fafafa;
+  --text-muted:   #9ca3af;
+  --text-dim:     #6b7280;
+  --accent:       #e85d04;
+  --accent-dim:   #7c2d0e;
+  --accent-glow:  rgba(232,93,4,0.2);
+  --radius:       8px;
+  --radius-sm:    6px;
+  --shadow:       0 1px 3px rgba(0,0,0,0.3);
+  --bg-panel:     var(--surface);
+  --bg-card:      var(--surface);
+  --amber:        #fbbf24;
+  --amber-dim:    rgba(251,191,36,0.12);
+  --cyan:         #22d3ee;
+  --cyan-dim:     rgba(34,211,238,0.12);
+  --green:        #4ade80;
+  --green-dim:    rgba(74,222,128,0.12);
+  --purple:       #c084fc;
+  --purple-dim:   rgba(192,132,252,0.12);
+  --red:          #f87171;
+  --red-dim:      rgba(248,113,113,0.12);
+}
+
+[data-theme="light"] {
+  --bg:           #fafaf9;
+  --surface:      #f4f4f0;
+  --surface2:     #eaeae6;
+  --border:       #d1ccc7;
+  --border-bright: #b0aaa5;
+  --text:         #1c1917;
+  --text-muted:   #57534e;
+  --text-dim:     #78716c;
+  --accent:       #c2410c;
+  --accent-dim:   #fef2e8;
+  --accent-glow:  rgba(194,65,12,0.15);
+  --shadow:       0 1px 3px rgba(0,0,0,0.1);
+  --bg-panel:     var(--surface);
+  --bg-card:      var(--surface);
+  --amber:        #d97706;
+  --amber-dim:    rgba(217,119,6,0.1);
+  --cyan:         #0891b2;
+  --cyan-dim:     rgba(8,145,178,0.1);
+  --green:        #16a34a;
+  --green-dim:    rgba(22,163,74,0.1);
+  --purple:       #9333ea;
+  --purple-dim:   rgba(147,51,234,0.1);
+  --red:          #dc2626;
+  --red-dim:      rgba(220,38,38,0.1);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   typography.css — font loading, type scale, code blocks
+   ══════════════════════════════════════════════════════════════════ */
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 { color: var(--text); font-weight: 600; }
+h1 { font-size: 1.75rem; margin-bottom: 0.75rem; }
+h2 { font-size: 1.25rem; margin: 2rem 0 0.75rem; }
+h3 { font-size: 1rem;    margin: 1.5rem 0 0.5rem; }
+
+p  { color: var(--text-muted); margin-bottom: 0.875rem; }
+ul, ol { color: var(--text-muted); padding-left: 1.5rem; margin-bottom: 0.875rem; }
+li { margin-bottom: 0.25rem; }
+
+code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.875em;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 0.125em 0.35em; border-radius: 3px; color: var(--text);
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem; overflow-x: auto; margin-bottom: 1rem;
+}
+pre code {
+  background: none; border: none; padding: 0;
+  font-size: 0.875rem; white-space: pre-wrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   lyra.css — Lyra brand aesthetic (Forge Orange)
+   ══════════════════════════════════════════════════════════════════ */
+
+:root, [data-theme="dark"] {
+  --bg:         #0a0a0f;
+  --surface:    #18181f;
+  --border:     #2a2a35;
+  --text:       #fafafa;
+  --text-muted: #9ca3af;
+  --text-dim:   #6b7280;
+  --accent:     #e85d04;
+  --accent-dim: #7c2d0e;
+}
+
+[data-theme="light"] {
+  --bg:         #fafaf9;
+  --surface:    #f4f4f0;
+  --border:     #d1ccc7;
+  --text:       #1c1917;
+  --text-muted: #57534e;
+  --text-dim:   #78716c;
+  --accent:     #c2410c;
+  --accent-dim: #fef2e8;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Slide mode — lyra aesthetic
+   ══════════════════════════════════════════════════════════════════ */
+
+.deck .slide--title {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-glow) 0%, transparent 55%),
+    linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+}
+.deck .slide--title .slide__display {
+  background: linear-gradient(135deg, var(--accent) 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+.deck .slide--title .slide__subtitle {
+  color: var(--text-muted);
+}
+.deck .slide--content .slide__label { color: var(--accent); }
+.deck .slide--content .slide__heading {
+  color: var(--text);
+  letter-spacing: -0.75px;
+}
+.deck .slide--content li::before { color: var(--accent); }
+.deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.1;
+}
+.deck .slide--closing {
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(to top, var(--bg), var(--surface));
+}
+.deck .slide--closing .slide__heading {
+  color: var(--accent);
+  font-weight: 700;
+}
+.deck .slide--closing .cta {
+  background: linear-gradient(135deg, var(--accent) 0%, #f97316 100%);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+}
+.deck .slide--quote .slide__quote-mark { color: var(--accent); }
+.deck .slide--comparison .slide__col.accent {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.deck .slide--table th { background: var(--surface); }
+
+/* ══════════════════════════════════════════════════════════════════
+   slide-deck-base.css — scroll-snap slide engine + nav chrome
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --fs-display: clamp(48px,  8vw,  120px);
+  --fs-heading: clamp(28px,  4vw,  48px);
+  --fs-body:    clamp(16px,  2vw,  24px);
+  --fs-caption: clamp(10px,  1vw,  14px);
+}
+
+html, body { height: 100%; }
+body.deck-body { overflow: hidden; }
+
+.deck {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.slide {
+  height: 100dvh;
+  scroll-snap-align: start;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+  isolation: isolate;
+  opacity: 0;
+  transform: translateY(40px) scale(0.98);
+  transition:
+    opacity   0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide.visible {
+  opacity: 1;
+  transform: none;
+}
+
+.slide .reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity   0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide.visible .reveal { opacity: 1; transform: none; }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.10s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.20s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.30s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.40s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.50s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.60s; }
+.slide.visible .reveal:nth-child(7) { transition-delay: 0.70s; }
+.slide.visible .reveal:nth-child(8) { transition-delay: 0.80s; }
+
+.slide.visible .reveal[style*="--i"] {
+  transition-delay: calc(var(--i) * 0.10s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck { scroll-behavior: auto; }
+  .slide,
+  .slide .reveal,
+  .slide * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  .deck-progress,
+  .deck-dot,
+  .deck-hints {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   NAV CHROME
+   ══════════════════════════════════════════════════════════════════ */
+
+.deck-progress {
+  position: fixed; top: 0; left: 0;
+  height: 3px; width: 0;
+  background: var(--accent);
+  z-index: 100;
+  transition: width 0.3s ease;
+  pointer-events: none;
+}
+
+.deck-dots {
+  position: fixed;
+  right: clamp(12px, 2vw, 24px); top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  padding: 8px;
+  background: color-mix(in srgb, var(--bg) 60%, transparent 40%);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.deck-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.3;
+  border: none; padding: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.deck-dot:hover  { opacity: 0.6; }
+.deck-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  opacity: 1;
+}
+.deck-dot.active { opacity: 1; transform: scale(1.5); background: var(--accent); }
+
+.deck-counter {
+  position: fixed;
+  bottom: clamp(12px, 2vh, 24px);
+  right:  clamp(12px, 2vw, 24px);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  z-index: 100;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.deck-hints {
+  position: fixed;
+  bottom: clamp(12px, 2vh, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  z-index: 100;
+  transition: opacity 0.5s ease;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.deck-hints.faded { opacity: 0; }
+
+/* ══════════════════════════════════════════════════════════════════
+   SHARED SLIDE ELEMENTS
+   ══════════════════════════════════════════════════════════════════ */
+
+.slide__display {
+  font-size: var(--fs-display);
+  font-weight: 600;
+  letter-spacing: -2px;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+.slide__heading {
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.slide__body {
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-wrap: pretty;
+  max-width: 68ch;
+}
+
+.slide__subtitle {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: clamp(12px, 1.5vw, 18px);
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.slide__label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.slide__decor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.slide-inner {
+  width: 100%;
+  transform-origin: center center;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   V1 SLIDE TYPES — title, content, closing
+   ══════════════════════════════════════════════════════════════════ */
+
+.slide--title {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-dim) 0%, transparent 50%);
+}
+
+.slide--title .slide__display {
+  color: var(--accent);
+  max-width: 20ch;
+}
+
+.slide--title .slide__subtitle {
+  margin-top: 1.25rem;
+}
+
+.slide--content {
+  justify-content: center;
+}
+
+.slide--content .slide__heading {
+  max-width: 22ch;
+  margin-bottom: 1.5rem;
+}
+
+.slide--content ul,
+.slide--content ol {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 68ch;
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+}
+
+.slide--content li {
+  padding-left: 1.75rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.slide--content li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.slide--content ol {
+  counter-reset: slide-ol;
+}
+.slide--content ol li {
+  counter-increment: slide-ol;
+}
+.slide--content ol li::before {
+  content: counter(slide-ol, decimal-leading-zero);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+.slide--closing {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-dim) 0%, transparent 60%);
+}
+
+.slide--closing .slide__heading {
+  color: var(--accent);
+  max-width: 22ch;
+}
+
+.slide--closing .slide__body {
+  max-width: 50ch;
+  margin-top: 1rem;
+}
+
+.slide--closing .cta {
+  margin-top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+}
+
+.slide--closing .cta:hover {
+  background: var(--accent-dim);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (max-height: 600px) {
+  .slide { padding: 24px clamp(24px, 6vw, 64px); }
+}
+
+@media (max-width: 640px) {
+  .deck-dots  { right: 8px; gap: 6px; }
+  .deck-dot   { width: 6px; height: 6px; }
+  .deck-hints { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   V2 SLIDE TYPES — section, diagram, table, code, quote, image, comparison
+   ══════════════════════════════════════════════════════════════════ */
+
+.slide--section {
+  justify-content: center;
+  text-align: left;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 140px);
+}
+.slide--section .slide__number {
+  font-size: clamp(100px, 22vw, 260px);
+  font-weight: 200;
+  line-height: 0.85;
+  opacity: 0.08;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -55%);
+  pointer-events: none;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.slide--section .slide__content {
+  position: relative;
+  z-index: 1;
+}
+.slide--section .slide__subtitle {
+  margin-top: 1rem;
+  color: var(--text-dim);
+  max-width: 50ch;
+}
+
+.slide--diagram {
+  padding: clamp(24px, 4vh, 48px) clamp(32px, 6vw, 80px);
+  justify-content: center;
+  gap: 1.25rem;
+}
+.slide--diagram .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.slide--diagram .slide__diagram-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-height: 75vh;
+  overflow: hidden;
+}
+.slide--diagram .slide__diagram-wrap svg,
+.slide--diagram .slide__diagram-wrap .fgraph-wrap {
+  width: 100%;
+  max-width: 100%;
+  max-height: 75vh;
+  height: auto;
+}
+.slide--diagram .slide__caption {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  color: var(--text-dim);
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.slide--table {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+}
+.slide--table .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+.slide--table .table-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.slide--table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(14px, 1.6vw, 18px);
+}
+.slide--table th,
+.slide--table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.slide--table th {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: sticky; top: 0;
+}
+.slide--table tbody tr:hover { background: var(--surface); }
+.slide--table td { color: var(--text-muted); }
+
+.slide--comparison {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+}
+.slide--comparison .slide__heading {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: clamp(22px, 3vw, 36px);
+}
+.slide--comparison .slide__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 3vw, 40px);
+  align-items: stretch;
+}
+.slide--comparison .slide__col {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.slide--comparison .slide__col h3 {
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+.slide--comparison .slide__col.accent {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.slide--comparison .slide__col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--text-muted);
+}
+.slide--comparison .slide__col li {
+  padding-left: 1.25rem;
+  position: relative;
+}
+.slide--comparison .slide__col li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .slide--comparison .slide__columns { grid-template-columns: 1fr; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Skill badges (custom for this showcase)
+   ══════════════════════════════════════════════════════════════════ */
+
+.skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  max-width: 900px;
+  width: 100%;
+}
+
+.skill-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.skill-badge:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.skill-badge__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-dim);
+  border-radius: 6px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.skill-badge__name {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Preview card (custom for gallery/diagram examples)
+   ══════════════════════════════════════════════════════════════════ */
+
+.preview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 600px;
+  width: 100%;
+}
+
+.preview-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-card__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.preview-card__dot--red { background: #f87171; }
+.preview-card__dot--amber { background: #fbbf24; }
+.preview-card__dot--green { background: #4ade80; }
+
+.preview-card__title {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-left: 0.5rem;
+}
+
+.preview-card__body {
+  padding: 1.5rem;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-card__body svg {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+}
+
+/* Mini fgraph style for diagram preview */
+.mini-fgraph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.mini-fgraph__node {
+  padding: 0.5rem 1rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.mini-fgraph__node--accent {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mini-fgraph__arrow {
+  width: 2px;
+  height: 24px;
+  background: var(--border-bright);
+  position: relative;
+}
+
+.mini-fgraph__arrow::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--border-bright);
+}
+
+/* Gallery preview grid */
+.gallery-preview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.gallery-preview__item {
+  aspect-ratio: 1;
+  background: var(--surface2);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.gallery-preview__item:nth-child(1) { background: linear-gradient(135deg, var(--amber-dim), var(--amber-dim)); border-color: var(--amber); }
+.gallery-preview__item:nth-child(2) { background: linear-gradient(135deg, var(--cyan-dim), var(--cyan-dim)); border-color: var(--cyan); }
+.gallery-preview__item:nth-child(3) { background: linear-gradient(135deg, var(--purple-dim), var(--purple-dim)); border-color: var(--purple); }
+.gallery-preview__item:nth-child(4) { background: linear-gradient(135deg, var(--green-dim), var(--green-dim)); border-color: var(--green); }
+</style>
+</head>
+<body class="deck-body" data-theme="dark">
+
+<div class="deck" role="region" aria-label="Forge — HTML Visual Artifacts showcase">
+
+  <!-- 1. TITLE -->
+  <section class="slide slide--title" id="s1">
+    <p class="slide__label reveal" style="--i:0">Claude Code Plugin</p>
+    <h1 class="slide__display reveal" style="--i:1">Forge</h1>
+    <p class="slide__subtitle reveal" style="--i:2">HTML Visual Artifacts for Claude Code</p>
+  </section>
+
+  <!-- 2. CONTENT: What is Forge? -->
+  <section class="slide slide--content" id="s2">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">the problem</p>
+      <h2 class="slide__heading reveal" style="--i:1">What is Forge?</h2>
+      <ul class="reveal" style="--i:2">
+        <li><strong>Single-file HTML outputs</strong> — diagrams, galleries, guides, slides</li>
+        <li><strong>Offline-first</strong> — works from <code>file://</code>, no server needed</li>
+        <li><strong>6 specialized skills</strong> — one CLI command per artifact type</li>
+        <li><strong>6 brand aesthetics</strong> — match your project's identity</li>
+        <li><strong>Zero runtime deps</strong> — just CDN fonts and optional Mermaid</li>
+        <li><strong>Claude-native</strong> — prompt → polished artifact in seconds</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. CONTENT: 6 Skills -->
+  <section class="slide slide--content" id="s3">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">capabilities</p>
+      <h2 class="slide__heading reveal" style="--i:1">6 Skills</h2>
+      <div class="skill-grid reveal" style="--i:2">
+        <div class="skill-badge">
+          <div class="skill-badge__icon">G</div>
+          <span class="skill-badge__name">forge-gallery</span>
+        </div>
+        <div class="skill-badge">
+          <div class="skill-badge__icon">D</div>
+          <span class="skill-badge__name">forge-chart</span>
+        </div>
+        <div class="skill-badge">
+          <div class="skill-badge__icon">E</div>
+          <span class="skill-badge__name">forge-epic</span>
+        </div>
+        <div class="skill-badge">
+          <div class="skill-badge__icon">U</div>
+          <span class="skill-badge__name">forge-guide</span>
+        </div>
+        <div class="skill-badge">
+          <div class="skill-badge__icon">S</div>
+          <span class="skill-badge__name">forge-slides</span>
+        </div>
+        <div class="skill-badge">
+          <div class="skill-badge__icon">M</div>
+          <span class="skill-badge__name">forge-md</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. CONTENT: Gallery -->
+  <section class="slide slide--content" id="s4">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">visual output</p>
+      <h2 class="slide__heading reveal" style="--i:1">Gallery</h2>
+      <div class="preview-card reveal" style="--i:2">
+        <div class="preview-card__header">
+          <div class="preview-card__dot preview-card__dot--red"></div>
+          <div class="preview-card__dot preview-card__dot--amber"></div>
+          <div class="preview-card__dot preview-card__dot--green"></div>
+          <span class="preview-card__title">gallery.html</span>
+        </div>
+        <div class="preview-card__body">
+          <div class="gallery-preview">
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+            <div class="gallery-preview__item"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. CONTENT: Diagrams -->
+  <section class="slide slide--content" id="s5">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">architecture</p>
+      <h2 class="slide__heading reveal" style="--i:1">Diagrams</h2>
+      <div class="preview-card reveal" style="--i:2">
+        <div class="preview-card__header">
+          <div class="preview-card__dot preview-card__dot--red"></div>
+          <div class="preview-card__dot preview-card__dot--amber"></div>
+          <div class="preview-card__dot preview-card__dot--green"></div>
+          <span class="preview-card__title">architecture.html</span>
+        </div>
+        <div class="preview-card__body">
+          <div class="mini-fgraph">
+            <div class="mini-fgraph__node">Claude</div>
+            <div class="mini-fgraph__arrow"></div>
+            <div class="mini-fgraph__node mini-fgraph__node--accent">Forge</div>
+            <div class="mini-fgraph__arrow"></div>
+            <div class="mini-fgraph__node">HTML Output</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. CONTENT: Guides & Slides -->
+  <section class="slide slide--content" id="s6">
+    <div class="slide-inner">
+      <p class="slide__label reveal" style="--i:0">documentation</p>
+      <h2 class="slide__heading reveal" style="--i:1">Guides & Slides</h2>
+      <ul class="reveal" style="--i:2">
+        <li><strong>forge-guide</strong> — multi-tab split-file docs with navigation</li>
+        <li><strong>forge-slides</strong> — scroll-snap pitch decks (like this one)</li>
+        <li><strong>forge-epic</strong> — issue-linked visual analysis pages</li>
+        <li><strong>forge-md</strong> — render existing markdown to themed HTML</li>
+      </ul>
+      <p class="slide__body reveal" style="--i:3; margin-top: 1rem;">
+        All outputs are single-file, self-contained, and work offline.
+      </p>
+    </div>
+  </section>
+
+  <!-- 7. COMPARISON: Forge vs Alternatives -->
+  <section class="slide slide--comparison" id="s7">
+    <h2 class="slide__heading reveal" style="--i:0">Forge vs Alternatives</h2>
+    <div class="slide__columns reveal" style="--i:1">
+      <div class="slide__col">
+        <h3>Alternatives</h3>
+        <ul>
+          <li>Server-required outputs</li>
+          <li>Complex build pipelines</li>
+          <li>Multiple files to track</li>
+          <li>Manual styling per project</li>
+          <li>Separate tooling per format</li>
+        </ul>
+      </div>
+      <div class="slide__col accent">
+        <h3>Forge</h3>
+        <ul>
+          <li>Single HTML file per artifact</li>
+          <li>Zero build — prompt → HTML</li>
+          <li>Offline-first, file:// safe</li>
+          <li>6 curated aesthetics included</li>
+          <li>6 skills, one Claude plugin</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. CLOSING: Get Started -->
+  <section class="slide slide--closing" id="s8">
+    <p class="slide__label reveal" style="--i:0">ready?</p>
+    <h2 class="slide__heading reveal" style="--i:1">Get Started</h2>
+    <p class="slide__body reveal" style="--i:2">
+      Install the Claude Code plugin and run <code>/forge-init</code> to set up your environment.
+      Then invoke any skill with a natural language prompt.
+    </p>
+    <a href="https://github.com/Roxabi/roxabi-forge" class="cta reveal" style="--i:3">View on GitHub</a>
+  </section>
+
+</div>
+
+<script type="module">
+/* ══════════════════════════════════════════════════════════════════
+   slide-deck-base.js — scroll-snap slide engine
+   ══════════════════════════════════════════════════════════════════ */
+
+class SlideEngine {
+  constructor(deck) {
+    this.deck = deck || document.querySelector('.deck')
+    this.slides = [...this.deck.querySelectorAll('.slide')]
+    this.total = this.slides.length
+    this.current = 0
+
+    this.buildChrome()
+    this.bindEvents()
+    this.observe()
+    this.update()
+  }
+
+  buildChrome() {
+    // Progress bar
+    this.bar = Object.assign(document.createElement('div'), { className: 'deck-progress' })
+    document.body.appendChild(this.bar)
+
+    // Dot indicator
+    const dots = Object.assign(document.createElement('div'), { className: 'deck-dots' })
+    this.slides.forEach((_, i) => {
+      const d = Object.assign(document.createElement('button'), { className: 'deck-dot' })
+      d.type = 'button'
+      d.title = `Slide ${i + 1}`
+      d.setAttribute('aria-label', `Go to slide ${i + 1}`)
+      d.addEventListener('click', () => this.goTo(i))
+      dots.appendChild(d)
+    })
+    document.body.appendChild(dots)
+    this.dots = [...dots.children]
+
+    // Counter
+    this.counter = Object.assign(document.createElement('div'), { className: 'deck-counter' })
+    document.body.appendChild(this.counter)
+
+    // Hints
+    this.hints = Object.assign(document.createElement('div'), { className: 'deck-hints' })
+    this.hints.textContent = 'Arrow keys or scroll to navigate'
+    document.body.appendChild(this.hints)
+    this.hintTimer = setTimeout(() => this.hints.classList.add('faded'), 4000)
+  }
+
+  bindEvents() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input,textarea,[contenteditable],.table-scroll,.code-scroll')) return
+
+      const k = e.key
+      if (['ArrowDown', 'ArrowRight', ' ', 'PageDown'].includes(k)) {
+        e.preventDefault()
+        this.next()
+      } else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(k)) {
+        e.preventDefault()
+        this.prev()
+      } else if (k === 'Home') {
+        e.preventDefault()
+        this.goTo(0)
+      } else if (k === 'End') {
+        e.preventDefault()
+        this.goTo(this.total - 1)
+      } else return
+      this.fadeHints()
+    })
+
+    // Touch swipe
+    let tY = 0
+    this.deck.addEventListener(
+      'touchstart',
+      (e) => { tY = e.touches[0].clientY },
+      { passive: true },
+    )
+    this.deck.addEventListener('touchend', (e) => {
+      const dy = tY - e.changedTouches[0].clientY
+      if (Math.abs(dy) > 50) dy > 0 ? this.next() : this.prev()
+    })
+  }
+
+  observe() {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible')
+            this.current = this.slides.indexOf(entry.target)
+            this.update()
+          }
+        })
+      },
+      { threshold: 0.5 },
+    )
+    this.slides.forEach((s) => obs.observe(s))
+  }
+
+  goTo(i) {
+    const clamped = Math.max(0, Math.min(i, this.total - 1))
+    this.slides[clamped].scrollIntoView({ behavior: 'smooth' })
+  }
+  next() {
+    if (this.current < this.total - 1) this.goTo(this.current + 1)
+  }
+  prev() {
+    if (this.current > 0) this.goTo(this.current - 1)
+  }
+
+  update() {
+    this.bar.style.width = `${((this.current + 1) / this.total) * 100}%`
+    this.dots.forEach((d, i) => d.classList.toggle('active', i === this.current))
+    this.counter.textContent = `${this.current + 1} / ${this.total}`
+  }
+
+  fadeHints() {
+    clearTimeout(this.hintTimer)
+    this.hints.classList.add('faded')
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  new SlideEngine()
+})
+</script>
+
+</body>
+</html>
