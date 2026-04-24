@@ -21,9 +21,12 @@ roxabi-forge/
 │   └── plugin.json              # plugin metadata (version, author)
 ├── plugins/
 │   └── forge/
-│       ├── skills/              # 7 skills: forge-init, forge-chart, forge-epic, forge-gallery, forge-guide, forge-md, forge-slides
+│       ├── skills/              # 8 skills: forge-init, forge-chart, forge-epic, forge-gallery, forge-guide, forge-md, forge-presentation, forge-slides
 │       ├── references/          # HTML/CSS/JS templates, design docs, aesthetics
 │       │   ├── slide-templates/ # scroll-snap deck engine (generation source, always inlined)
+│       │   ├── showcases/       # per-skill reference demos (chart/epic/gallery/guide/md/presentation/slides)
+│       │   ├── device-frames/   # iOS/Android device frame CSS for mobile mockups
+│       │   ├── aesthetics/      # brand presets (lyra-v2, cool-dark, …) — inlined into output
 │       ├── runtime/             # Makefile + .env.example for ~/.roxabi/forge/
 │       ├── supervisor/          # supervisord config + wrapper script
 │       └── Makefile             # deploy + register targets

@@ -1,6 +1,6 @@
-# diagrams
+# forge
 
-Generate HTML diagrams, visuals, and galleries for the `~/.roxabi/forge/` ecosystem — brand-aware, manifest-indexed, Cloudflare Pages ready.
+Generate HTML visual artifacts for the `~/.roxabi/forge/` ecosystem — diagrams, galleries, guides, epics, slide decks, long-form presentations, rendered markdown. Brand-aware, manifest-indexed, Cloudflare Pages ready.
 
 ## Install
 
@@ -13,23 +13,32 @@ claude plugin install forge
 
 | Skill | Trigger | What it creates |
 |-------|---------|-----------------|
-| `init` | "init forge", "setup forge", "forge init" | Set up `~/.roxabi/forge/` with server, shared assets, directory structure |
-| `guide` | "guide", "user guide", "project recap", "architecture doc", "analysis", "comparison", "roadmap" | Split-file multi-tab doc: shell HTML + CSS + JS + tab fragments |
-| `epic` | "epic", "epic preview", "issue visual", "issue plan", "#N" | Issue/epic-linked analysis tied to a GitHub issue number |
-| `chart` | "chart", "flowchart", "dependency tree", "quick chart" | Self-contained single-file CSS visual |
-| `gallery` | "gallery", "image gallery", "brand gallery", "audio gallery" | Image or audio comparison gallery (requires `forge-init` first) |
+| `forge-init` | "init forge", "setup forge" | Set up `~/.roxabi/forge/` with server, shared assets, directory structure |
+| `forge-chart` | "draw", "diagram", "visualize", "quick visual" | Single-file native fgraph diagram (hub-spoke, gantt, pie, ER, sequence, state, dep-graph), architecture layout, or CSS Grid explainer — works with `file://` |
+| `forge-epic` | "visualize #N", "epic preview", "illustrate issue" | Issue-linked analysis: overview, scope breakdown, dependency graph, acceptance criteria |
+| `forge-gallery` | "gallery", "showcase", "compare visually", "sprite gallery" | Image or audio gallery with pivot grouping, dynamic filters, search, lightbox, multi-mode datasets |
+| `forge-guide` | "write a guide", "multi-tab doc", "architecture doc", "recap" | Split-file multi-tab HTML document (shell + CSS + JS + tab fragments) |
+| `forge-md` | "render md", "md to html", "tabbed docs" | Themed self-contained HTML from existing markdown — single-file or multi-tab |
+| `forge-presentation` | "create presentation", "scroll presentation", "visual article" | Single-file long-form scroll presentation — hero + numbered sections, reveal animations |
+| `forge-slides` | "create deck", "slide deck", "pitch deck", "slides from #N" | Magazine-quality scroll-snap deck — 10 slide types, 6 aesthetic presets, keyboard + touch nav |
 
 ## When to use each
 
-**`guide`** — any rich multi-section document: user guide, architecture overview, project recap, analysis/comparison, roadmap. Split-file, lazy-loaded tabs. Like `lyra-user-guide-v16`.
+**`forge-chart`** — quick single diagram: native fgraph (hub-and-spoke, gantt, pie, ER, sequence, state, dep-graph), architecture layout, or CSS Grid explainer. Self-contained, works with `file://`.
 
-**`epic`** — always tied to a GitHub issue `#N`. Produces: overview, scope breakdown, dependency graph, acceptance criteria. Filename always includes the issue number (e.g. `477-tool-registry.html`). Like `tool-registry-477`.
+**`forge-epic`** — always tied to a GitHub issue `#N`. Filename always includes the issue number (e.g. `477-tool-registry.html`).
 
-**`chart`** — quick single diagram: Mermaid flowchart, dependency tree, sequence diagram, simple CSS layout. Self-contained, works with `file://`. Like `445-nats-dependency-tree`.
+**`forge-gallery`** — comparing brand iterations, avatar batches, TTS engine outputs, voice clones, sprite datasets.
 
-**`gallery`** — comparing brand iterations, avatar batches, TTS engine outputs, voice clones. Uses HTML templates with dynamic filtering, sorting, search, and pivot grouping.
+**`forge-guide`** — rich multi-section docs: user guide, architecture overview, project recap, analysis/comparison, roadmap. Split-file, lazy-loaded tabs.
 
-### Gallery templates (v0.4.0)
+**`forge-md`** — when markdown is already written and you just want it rendered as-is (no tab planning, no rewriting).
+
+**`forge-presentation`** — long-form visual article with a hero and numbered scroll sections; continuous scroll with reveal animations.
+
+**`forge-slides`** — magazine-style pitch deck, scroll-snap navigated, 10 slide types × 6 aesthetic presets (including `lyra-v2`, `cool-dark`).
+
+### Gallery templates
 
 5 ready-to-use templates in `references/gallery-templates/`:
 
@@ -41,16 +50,12 @@ claude plugin install forge
 
 Matrix view with col×row grouping. Dynamic filters, score-based sorting, search, size +/−. Best for: image comparison with scoring/clustering data.
 
-*Example: V20 avatar A/B test — 400 images, batch × score matrix*
-
 </td>
 <td width="50%">
 
 **Simple Gallery** — `simple-gallery.html`
 
 Batch tabs with starring. Tag-based filtering, lightbox with prev/next. Best for: iterative exploration (V1 → V2 → V3 batches).
-
-*Example: Avatar gallery — 38 exploration + 36 refinement images*
 
 </td>
 </tr>
@@ -61,8 +66,6 @@ Batch tabs with starring. Tag-based filtering, lightbox with prev/next. Best for
 
 Cards with spec tables and verdict badges. Best for: pipeline comparison with detailed metadata per image.
 
-*Example: 1024 pipeline comparison — Klein 4B vs FLUX.1-dev vs PuLID variants*
-
 </td>
 <td>
 
@@ -70,46 +73,83 @@ Cards with spec tables and verdict badges. Best for: pipeline comparison with de
 
 Audio players with engine/quality badges. Card and list views. Best for: TTS engine comparison, voice cloning A/B tests.
 
-*Example: VoiceCLI engine compare — 5 engines × 10 samples*
-
 </td>
 </tr>
 <tr>
 <td colspan="2">
 
-**Multi-Mode Gallery** — `multi-mode-gallery.html` *(new in v0.4.0)*
+**Multi-Mode Gallery** — `multi-mode-gallery.html`
 
-Mode tab bar with per-mode DIMS, atomic mode switching, downloads dropdown, pixel-art rendering. Best for: multi-dataset visualizations where each mode has its own dimensions (sprite browsers, A/B/C dataset comparisons, mode-based tabs).
-
-Uses the items-as-objects pattern: each mode's `buildItems()` returns `{file, dir, label, ...customFields}` and `dim.fn` reads fields directly. Includes a 5-step incremental upgrade path documented in `references/gallery-templates/README.md` for migrating existing single-mode galleries.
-
-*Example: PI Buddy sprite gallery — 3 modes (Baby Showcase 512×512, Full Set 256×256, Production 32×32 sprites) × 24 species*
+Mode tab bar with per-mode DIMS, atomic mode switching, downloads dropdown, pixel-art rendering. Best for: multi-dataset visualizations where each mode has its own dimensions (sprite browsers, A/B/C dataset comparisons).
 
 </td>
 </tr>
 </table>
 
-All templates share `gallery-base.css` (tokens, toolbar, controls, `.pixelated` utility, downloads dropdown `.dl-*`, toast `.toast-*`) + `gallery-base.js` (theme, dual-API filter builder, segmented controls, file discovery, batch bar, starring, `initDownloads` dropdown, `buildPivotSegsFromDims` dynamic pivot, `showToast` with a11y). Dynamic filters (OFF = inactive = show all), search, sort, size controls, lightbox, img-manifest.json discovery.
+All templates share `gallery-base.css` + `gallery-base.js` (tokens, toolbar, controls, filters, starring, lightbox, downloads dropdown, toasts). See `references/gallery-templates/README.md` for the customisation guide.
 
-See `references/gallery-templates/README.md` for customisation guide, including the "Items-as-objects vs filename-strings" pattern, downloads dropdown + CSP requirements, dynamic pivot seg construction, pixel-art rendering, and the incremental single-mode → multi-mode upgrade path.
+### Showcases
+
+`references/showcases/` — one reference demo per skill (`showcase-chart`, `showcase-epic`, `showcase-gallery`, `showcase-guide`, `showcase-md`, `showcase-presentation`, `showcase-slides`). Use as canonical style + structure examples when authoring new outputs.
 
 ## How it works
 
 ### Brand-aware
 
-Checks `~/.roxabi/forge/<project>/brand/forge.yml` (full schema) and `~/.roxabi/forge/<project>/brand/BRAND-BOOK.md` (legacy palette-only) before choosing a palette. Fallback: Lyra → Forge Orange, Roxabi/2ndBrain → Gold.
+Checks `~/.roxabi/forge/<project>/brand/forge.yml` (full schema) and `~/.roxabi/forge/<project>/brand/BRAND-BOOK.md` (legacy palette-only) before choosing a palette. Aesthetic presets live under `references/aesthetics/` (e.g. `lyra-v2`, `cool-dark`) and are inlined into output. A `scripts/check-brand-drift.sh` pre-commit guard keeps `gallery-base.css` defaults aligned to the Roxabi palette.
 
 ### Manifest-indexed
 
-Every HTML file includes `diagram:*` meta tags parsed by `serve.py` and `gen-manifest.py` into `manifest.json` (diagram registry) — which powers the gallery UI at `http://localhost:8080/`. Image directories use separate `img-manifest.json` files (generated by `gen-image-manifests.py`).
-
-> **After merging the img-manifest rename:** run `python3 scripts/gen-image-manifests.py` then `make forge deploy` to regenerate image manifests under the new filename. Existing `manifest.json` files in image dirs are not auto-renamed.
+Every HTML file includes `diagram:*` meta tags parsed by `serve.py` and `gen-manifest.py` into `manifest.json` (diagram registry) — powers the gallery UI at `http://localhost:8080/`. Image directories use separate `img-manifest.json` files (generated by `gen-image-manifests.py`).
 
 ### Cloudflare Pages
 
+#### One-time setup
+
+**1. Prerequisites** — Node.js available (`npx` is used to invoke `wrangler`; no global install required).
+
+**2. Create an API token** at <https://dash.cloudflare.com/profile/api-tokens> with scopes:
+
+| Scope | Permission |
+|---|---|
+| Account → Cloudflare Pages | Edit |
+| Account → Account Settings | Read |
+| User → User Details | Read |
+
+**3. Get your Account ID** — Cloudflare dashboard → any domain → right sidebar → **Account ID**.
+
+**4. Login + create the Pages project** (once per account):
+
 ```bash
-make forge deploy       # from the supervisor hub directory
+npx wrangler login                                # browser OAuth
+npx wrangler pages project create forge \
+  --production-branch=main                        # project name must match Makefile (--project-name=forge)
 ```
+
+**5. Configure `.env`** — `runtime/.env.example` is deployed to `~/.roxabi/forge/.env` by `make -C plugins/forge deploy`. Fill it in:
+
+```bash
+# ~/.roxabi/forge/.env
+CLOUDFLARE_ACCOUNT_ID=<account-id-from-step-3>
+CLOUDFLARE_API_TOKEN=<token-from-step-2>
+DEPLOY_HOST=forge.roxabi.com                      # optional — custom domain for Pages
+```
+
+The Makefile auto-loads `.env` and exports the Cloudflare vars so `wrangler` picks them up.
+
+#### Deploy
+
+```bash
+make forge deploy       # from the supervisor hub directory (~/projects/)
+# or
+make -C ~/.roxabi/forge deploy
+```
+
+`deploy` runs `build` (regenerates manifest + syncs to `_dist/`) then `npx wrangler pages deploy _dist --project-name=forge --branch=main`. It refuses to run on a dirty git tree.
+
+#### Size limits
+
+Cloudflare Pages caps individual files at **25 MB**. The build excludes `*.mp4` and any file >25 MB from `_dist/` (warning printed), and purges existing oversize files on each run. Host large media elsewhere (R2, S3, etc.) and link in.
 
 ### BATCHES pattern (galleries)
 
@@ -117,13 +157,13 @@ Single `BATCHES` array = source of truth. Adding a new batch = one line. Everyth
 
 ### Dynamic filters (galleries)
 
-All filter buttons start **OFF** — filter is inactive, all images shown. Clicking a button activates that filter dimension. Values are auto-discovered from data at load time — no hardcoded button lists.
+All filter buttons start **OFF** — filter is inactive, all images shown. Clicking a button activates that filter dimension. Values auto-discovered from data at load time.
 
 ## Output paths
 
 | Context | Path |
 |---------|------|
-| Guide / epic / chart (exploration) | `~/.roxabi/forge/<project>/visuals/` |
+| Guide / epic / chart / presentation / slides (exploration) | `~/.roxabi/forge/<project>/visuals/` |
 | Guide (final / canonical) | `~/projects/<project>/docs/visuals/` |
 | Gallery | `~/.roxabi/forge/<project>/` |
 | Cross-project chart | `~/.roxabi/forge/_shared/diagrams/` |
@@ -131,12 +171,12 @@ All filter buttons start **OFF** — filter is inactive, all images shown. Click
 ## Serving
 
 ```bash
-# Full gallery — diagrams supervisord on :8080
+# Full gallery — forge supervisord on :8080
 http://localhost:8080/
 
 # Standalone (split-file guide or epic)
 cd ~/.roxabi/forge/<project>/visuals && python3 -m http.server 8080
 
-# Chart — no server needed
+# Single-file artifact (chart, slides, presentation, md) — no server needed
 file://~/.roxabi/forge/<project>/visuals/<name>.html
 ```
