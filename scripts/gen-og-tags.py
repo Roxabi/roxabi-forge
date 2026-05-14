@@ -122,5 +122,6 @@ parts = [f'og-tags — {injected} updated, {up_to_date} already up-to-date.']
 for reason, files in skipped.items():
     if files:
         label = reason.replace('_', ' ')
-        parts.append(f'Skipped ({label}): {", ".join(files)}')
+        parts.append(f'  ⚠ skipped ({label}) — {len(files)} files:')
+        parts.extend(f'      {f}' for f in files)
 print('\n'.join(parts))
