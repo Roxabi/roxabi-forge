@@ -143,6 +143,17 @@ No runtime JS. Coord space is 0..100 for both `--x/--y` node positions and SVG p
 
 Template picker: see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the decision matrix (11 shapes: radial-hub, radial-ring, linear-flow, dual-cluster, layered, deployment-tiers, machine-clusters, gantt, pie, er, sequence, state, dep-graph).
 
+### ⚠ CRITICAL — SVG path resolution in tab fragments
+
+Tab fragments are loaded into the shell HTML via JS `fetch()`. Relative paths in `<img src="...">` resolve against the **document URL (the shell HTML)**, NOT the fragment URL.
+
+| Path in fragment | Resolves to | OK? |
+|---|---|---|
+| `src="diagrams/X.svg"` | `{ROOT}/diagrams/X.svg` | ❌ 404 |
+| `src="tabs/{SLUG}/diagrams/X.svg"` | `{ROOT}/tabs/{SLUG}/diagrams/X.svg` | ✓ |
+
+**Always use the full path from shell root** in tab fragments. This is non-obvious because fragments live deeper in the tree.
+
 ### Tab fragments — content patterns by tab type:
 
 | Tab type | Content |
