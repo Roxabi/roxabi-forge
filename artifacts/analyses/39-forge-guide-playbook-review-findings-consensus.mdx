@@ -1,0 +1,133 @@
+---
+title: "PR #39 forge-guide playbook learnings — Review Findings Consensus"
+issue: 39
+status: consensus-reached
+date: 2026-05-20
+panel: architect, devops, product-lead
+confidence: medium-high
+---
+
+## Problem
+
+PR #39 (`feat(forge-guide): adopt multi-tab guide playbook learnings`) is doc-only, +234/-15 across 4 files, bumps skill `0.3.0→0.3.1` and plugin `0.7.1→0.7.2`. It distills a real production session (16 chapters / 29 SVGs) into the skill as 5 new phases (2 §4, 2.5, 3.5, 5), a CSS defaults table, anti-patterns 8→23, cluster specialization, and a SVG path warning. CI passes.
+
+Initial review surfaced 10 findings across 3 severity tiers. Question: which fix-before-merge, which fix-in-follow-up, which drop?
+
+## Panel
+
+| α | Focus |
+|---|-------|
+| architect | structural soundness, phase contract, drift risk, design coherence |
+| devops | cross-platform tooling, dependency portability, ops failure modes, agent budget |
+| product-lead | user-success rate, time-to-market, scope discipline, audience asymmetry |
+
+## Consensus ρ
+
+**Fix-then-merge** — 4 surgical fixes block merge; 4 land as follow-up; 2 drop.
+
+### Per-finding verdict
+
+| # | Finding | Verdict | Rationale |
+|---|---|---|---|
+| 1 | Phase ordering inverted (3 → 3.5 → 4 → 5) | **fix-before** | 2-1: architect + product-lead. Devops conceded "awkward, not broken" — but every user's first complete run deploys before browser QA. Cheap rearrange. |
+| 2 | PNG conversion is Linux-only (Flatpak/apt) | **fix-before (bundle #8)** | 2-1: architect + devops. Add `brew install librsvg` for macOS + WSL note for Windows. Public marketplace = silent failure unacceptable. |
+| 3 | Local server orphan (no PID cleanup) | **fix-before** | UNANIMOUS. 2-line fix (`SERVER_PID=$!` + trap). Port 8080 collision predictable. `file://` won't work (CORS blocks `fetch()` of tab fragments). |
+| 4 | `gris muted` (French) in anti-patterns | **fix-before (hybrid)** | 2-1: devops + product-lead voted drop ("`gris` is the token name"); architect voted fix. Hybrid: quote as CSS class (`.gris` or `--gris`) — preserves token identity, kills French ambiguity. |
+| 5 | Hard-coded 4-agent split in Phase 3.5 | **fix-in-follow-up** | UNANIMOUS. Add "scale to non-empty clusters" note. No agent crashes on empty task list — low blast radius. |
+| 6 | SVG path warning duplicated in 2 files | **fix-in-follow-up** | 3-way split. Mediator hybrid: keep both with `<!-- DUPE: also in phase-3-generate.md -->` marker to signal intentional redundancy AND make drift visible. |
+| 7 | Phase 3.5 Step 5 references "Phase 4" | **resolves with #1** | UNANIMOUS. Symptom of #1 — auto-fixed by phase reorder. |
+| 8 | Phase 3.5 no rsvg-convert prereq mention | **bundle with #2** | UNANIMOUS. Add one-line cross-reference to Phase 2.5 install path. |
+| 9 | Phase 5 `tabs = [...]` placeholder | **fix-in-follow-up** | 2-1: architect + product-lead voted drop (template notation for Claude); devops worried about silent failure on copy-paste. Compromise: add `# substituted from Phase 2; e.g. ['overview', 'setup']` comment. |
+| 10 | Phase 2.5 checklist duplicates Anti-Patterns | **drop** | UNANIMOUS. Different reading contexts (validation gate vs. reference table) — duplication is intentional and useful. |
+
+### Plus: architect-flagged missed finding
+
+**Threshold/agent-count inconsistency** — Phase 2.5 (≥5), Phase 3.5 (≥5), cluster specialization (≥15, 5 agents), Phase 3.5 QA (4 agents). 5-agent gen vs. 4-agent QA never reconciled.
+**Verdict:** **fix-in-follow-up** — only 1 panelist surfaced it, low user impact. Add note: "Phase 3.5's 4-agent QA split is independent of the 5-agent generation split — QA covers the whole diagram set regardless of how many generation agents ran."
+
+### Action summary
+
+- **Fix-before-merge (4 items):** #1 phase reorder · #2+#8 cross-platform + prereq · #3 server cleanup · #4 `.gris` quote
+- **Fix-in-follow-up (5 items):** #5 dynamic agents · #6 dup-marker · #7 (auto via #1) · #9 placeholder comment · missed threshold reconciliation
+- **Drop (1 item):** #10 intentional checklist redundancy
+
+### Rationale
+
+All 3 panelists agreed on the **fix-then-merge** verdict — no one wanted ship-as-is, no one wanted split, no one wanted defer. The disagreements were on **tier assignment**, not on the validity of findings.
+
+For 2-1 splits, the consensus biased toward the majority WHEN the fix was cheap (#1, #2, #3, #4) — the dissenter typically conceded the concern but disagreed on timing. For the 3-way split (#6), the architect's drift-risk argument and product-lead's "intentional context separation" argument were both valid — the mediator hybrid (DUPE marker comment) addresses both without forcing a choice.
+
+### Trade-offs
+
+1. **Author momentum vs. polish gate:** institutional memory is fresh now (session just ended); delaying merge risks losing context for follow-ups. But shipping #1 unfixed means every first-time user trips on the report-before-QA inversion. The 4 fix-before items are <60 min of work — the gate is cheap.
+2. **Linux-first author vs. cross-platform marketplace:** product-lead noted the playbook itself never qualified the platform; this is a pre-existing gap. Architect + devops countered that the SKILL.md going to public marketplace makes silent macOS/Windows failures a credibility issue. Verdict erred on the side of cross-platform — fix is 2-3 lines.
+3. **SKILL.md size (548 lines) vs. reference delegation:** most new content went into SKILL.md instead of `references/`. Architect flagged this as drift surface growing. Not blocking, but next major bump should consider extracting Phase 3.5/5 to `references/phase-qa.md`.
+
+## Alternatives
+
+| ω | Proposed by | Rejected because |
+|---|---|---|
+| Merge as-is, all 10 → follow-up issues | (none) | Phase ordering (#1) breaks the pipeline contract on every run — leaving it shifts pain to N users |
+| Split PR into skill-update + playbook-source | (none) | Playbook is source of truth; SKILL.md is its distillation. Decoupling creates drift window |
+| Block on #2 (full cross-platform parity) | architect-leaning | Product-lead countered: WSL fallback for Windows + brew for macOS is sufficient signal, not full parity |
+| Drop #4 entirely (keep French) | devops + product-lead | Architect's clarity concern is fair for a public artifact; hybrid (`.gris` quote) resolves both sides |
+| Remove SVG-path-dup, keep one canonical | architect | Product-lead's "two reading contexts" rebuttal validates retention; mediator hybrid wins |
+
+## Dissent
+
+- **devops** dissents on #1 severity ("awkward, not broken"). Recorded — does not block consensus.
+- **product-lead** dissents on #2 priority ("internal-first audience, playbook precedent"). Recorded — does not block consensus.
+- **architect** dissents on #4 form (preferred replace over quote). Hybrid adopted.
+- **architect** unilaterally raised threshold-reconciliation finding. Adopted at follow-up tier (not blocker due to single-panelist surface).
+
+## Implementation Notes
+
+### Fix-before-merge changes (target: ≤60 min)
+
+**SKILL.md edits in `plugins/forge/skills/forge-guide/SKILL.md`:**
+
+1. **Phase reorder (#1, resolves #7):**
+   - Move current `## Phase 5 — Browser QA` block (lines 450-506) to before `## Phase 4 — Report`
+   - Renumber: Phase 5 Browser QA → Phase 4, current Phase 4 Report → Phase 5
+   - OR: keep numbering, rename current Phase 4 to "Phase 6 — Report & Deploy" and move it last
+   - Update Phase 3.5 Step 5 wording ("before Phase 4" → "before deploy")
+
+2. **Cross-platform PNG (#2, bundles #8):**
+   - In Phase 2.5 Step 3 block, replace single Flatpak command with platform table:
+     ```
+     Linux (Flatpak):  flatpak --user run --branch=49 ... rsvg-convert ...
+     Linux (apt):      apt install librsvg2-bin && rsvg-convert -z 2 -o out.png in.svg
+     macOS:            brew install librsvg && rsvg-convert -z 2 -o out.png in.svg
+     Windows:          wsl rsvg-convert ...  (or skip PNG QA → rely on Phase 5 browser QA)
+     ```
+   - In Phase 3.5 Step 1, add: "Requires `rsvg-convert` — see Phase 2.5 Step 3 for install."
+
+3. **Server orphan (#3):**
+   - In Phase 5 Step 1, replace:
+     ```bash
+     cd {ROOT} && python3 -m http.server 8080 &
+     ```
+     with:
+     ```bash
+     cd {ROOT} && python3 -m http.server ${PORT:-8090} &
+     SERVER_PID=$!
+     trap "kill $SERVER_PID 2>/dev/null" EXIT
+     ```
+   - Default port 8090 (less collision-prone than 8080).
+
+4. **`.gris` quote (#4):**
+   - In Anti-Patterns Diagram-level table, change `gris muted applied to active steps` → `\`.gris\` muted applied to active steps` (backticks signal CSS class).
+
+### Follow-up issue (recommended title)
+
+`chore(forge-guide): apply consensus follow-ups from PR #39 review` — covers #5 (dynamic agent count), #6 (dup-marker comment), #9 (placeholder example comment), missed threshold reconciliation.
+
+### Cleanup recommendation for next major
+
+When SKILL.md crosses ~600 lines, extract Phase 3.5 (SVG QA) and Phase 5 (Browser QA) to a new `references/phase-qa.md` to reduce drift surface and reinforce reference-delegation pattern already established for Phase 3.
+
+## Next
+
+- `/dev-core:fix` with the 4 fix-before items, OR direct Edit pass
+- After fixes: re-push to PR #39, verify CI still green
+- File follow-up issue for the 4 deferred items
