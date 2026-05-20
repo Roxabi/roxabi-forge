@@ -143,6 +143,8 @@ No runtime JS. Coord space is 0..100 for both `--x/--y` node positions and SVG p
 
 Template picker: see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the decision matrix (11 shapes: radial-hub, radial-ring, linear-flow, dual-cluster, layered, deployment-tiers, machine-clusters, gantt, pie, er, sequence, state, dep-graph).
 
+<!-- DUPE: same block lives in plugins/forge/skills/forge-guide/SKILL.md — keep in sync if edited -->
+
 ### ⚠ CRITICAL — SVG path resolution in tab fragments
 
 Tab fragments are loaded into the shell HTML via JS `fetch()`. Relative paths in `<img src="...">` resolve against the **document URL (the shell HTML)**, NOT the fragment URL.

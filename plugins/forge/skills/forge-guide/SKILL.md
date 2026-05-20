@@ -241,6 +241,8 @@ Each writes self-contained SVG files to `{ROOT}/tabs/{SLUG}/diagrams/`. No path 
 
 **HTML fragments parallelization** (similar pattern): for ≥10 tabs, split tab fragment filling into 4 parallel agents grouped by content density (light / medium / dense / special-format).
 
+<!-- DUPE: same block lives in references/phase-3-generate.md — keep in sync if edited -->
+
 ### ⚠ CRITICAL — SVG path resolution in tab fragments
 
 Tab fragments are loaded into the shell HTML via JS `fetch()`. Relative paths in `<img src="...">` resolve against the **document URL (the shell HTML)**, NOT the fragment URL.
@@ -377,12 +379,13 @@ Before mass-producing diagrams, produce ONE reference and validate visually.
 1. Pick the most representative diagram (typically the core state machine or hub-spoke).
 2. Generate as self-contained SVG via fgraph template.
 3. Convert to PNG for visual inspection:
-   ```bash
-   flatpak --user run --branch=49 --filesystem="$PWD" \
-     --command=rsvg-convert org.gnome.Platform \
-     -z 2 -f png -o reference.png reference.svg
-   ```
-   (Alternative: `apt install librsvg2-bin` then `rsvg-convert -z 2 -o out.png in.svg`)
+
+   | Platform | Install + invoke |
+   |---|---|
+   | Linux (Flatpak) | `flatpak --user run --branch=49 --filesystem="$PWD" --command=rsvg-convert org.gnome.Platform -z 2 -f png -o out.png in.svg` |
+   | Linux (apt) | `sudo apt install librsvg2-bin` → `rsvg-convert -z 2 -f png -o out.png in.svg` |
+   | macOS | `brew install librsvg` → `rsvg-convert -z 2 -f png -o out.png in.svg` |
+   | Windows | WSL2 + Linux path above, OR skip PNG QA and rely on Phase 4 browser QA |
 4. Validate against Anti-Patterns table (read first). Must pass:
    - No decorative all-caps sub-headers
    - No palette legend with dots
@@ -405,9 +408,9 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/forge-guide/references/phase-3-generate.md` b
 
 After Phase 3 generates all SVGs, run a visual QA pass.
 
-**Step 1:** Convert all SVG → PNG into `{ROOT}/tabs/{SLUG}/diagrams/_previews/`.
+**Step 1:** Convert all SVG → PNG into `{ROOT}/tabs/{SLUG}/diagrams/_previews/`. Requires `rsvg-convert` — see Phase 2.5 Step 3 for install commands per platform.
 
-**Step 2:** Spawn 4 parallel QA agents (`Agent` tool, `subagent_type: general-purpose`), one per visual cluster:
+**Step 2:** Spawn up to 4 parallel QA agents (`Agent` tool, `subagent_type: general-purpose`), one per non-empty visual cluster (skip agents whose cluster has no diagrams):
 
 | Agent | Cluster |
 |---|---|
@@ -429,25 +432,11 @@ Each agent reads PNGs + benchmark + Anti-Patterns table. Reports verdict 🟢/�
 
 ⚠ **PNG QA false-positive trap:** green/amber colors blur together in dark-mode PNG renders. For semantic color disputes, **trust SVG source inspection** (Read the file + verify color attribute) over PNG visual inspection. Track "claimed fixed" vs "actually applied" — fix agents sometimes report inline without effect.
 
----
-
-## Phase 4 — Report
-
-```
-Created:
-  {ROOT}/{SLUG}.html
-  {ROOT}/css/{SLUG}.css
-  {ROOT}/js/{SLUG}.js
-  {ROOT}/tabs/{SLUG}/tab-{ID}.html  (×N)
-
-View:    make forge → http://localhost:8080/{PROJ}/visuals/{SLUG}.html
-         (or: cd ~/.roxabi/forge && python3 -m http.server 8080)
-Deploy:  make forge deploy
-```
+⚠ **Agent-count note:** Phase 3.5's 4-agent QA split is independent from the cluster specialization generation split (5 agents, defined earlier in "Context Isolation → Cluster specialization"). QA covers the whole diagram set regardless of how many generation agents produced it.
 
 ---
 
-## Phase 5 — Browser QA (mandatory for multi-tab guides)
+## Phase 4 — Browser QA (mandatory for multi-tab guides)
 
 Static analysis misses tab overflow, broken paths, and layout bugs. Real-browser test catches them.
 
@@ -456,7 +445,9 @@ Static analysis misses tab overflow, broken paths, and layout bugs. Real-browser
 **Step 1:** Start local server in `{ROOT}`:
 
 ```bash
-cd {ROOT} && python3 -m http.server 8080 &
+cd {ROOT} && python3 -m http.server "${PORT:-8090}" &
+SERVER_PID=$!
+trap "kill $SERVER_PID 2>/dev/null" EXIT
 ```
 
 **Step 2:** Capture all tabs via Playwright (1440×900 viewport, full-page screenshots):
@@ -464,14 +455,14 @@ cd {ROOT} && python3 -m http.server 8080 &
 ```python
 from playwright.sync_api import sync_playwright
 
-tabs = [...]  # all tab IDs from Phase 2
+tabs = [...]  # all tab IDs from Phase 2 tab plan; e.g. ['overview', 'setup', 'usage']
 out = '{ROOT}/_qa-screenshots'
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     ctx = browser.new_context(viewport={'width': 1440, 'height': 900})
     page = ctx.new_page()
-    page.goto('http://localhost:8080/{SLUG}.html')
+    page.goto('http://localhost:8090/{SLUG}.html')
     page.wait_for_selector('.tab-btn[data-tab="' + tabs[0] + '"]', state='visible')
     page.screenshot(path=f'{out}/00-initial.png', full_page=False)
     for i, t in enumerate(tabs, start=1):
@@ -507,6 +498,22 @@ with sync_playwright() as p:
 
 ---
 
+## Phase 5 — Report
+
+```
+Created:
+  {ROOT}/{SLUG}.html
+  {ROOT}/css/{SLUG}.css
+  {ROOT}/js/{SLUG}.js
+  {ROOT}/tabs/{SLUG}/tab-{ID}.html  (×N)
+
+View:    make forge → http://localhost:8090/{PROJ}/visuals/{SLUG}.html
+         (or: cd ~/.roxabi/forge && python3 -m http.server "${PORT:-8090}")
+Deploy:  make forge deploy
+```
+
+---
+
 ## Anti-Patterns (FORBIDDEN)
 
 ### Wireframe-level
@@ -528,7 +535,7 @@ with sync_playwright() as p:
 | Palette legend with colored dots/squares at bottom | Remove — color is self-explanatory |
 | Triple-redundant optional markers (dashed + amber + text "(opt)") | Pick ONE signal |
 | Cyclic loop on a single state when not semantically a cycle | Remove the loop |
-| `gris muted` applied to active steps | Reserve `gris` for passive infra only |
+| `.gris` (muted) applied to active steps | Reserve the `.gris` class for passive infra only |
 | ASCII art in `<pre class="arch">` | Convert to the matching fgraph template |
 
 ### HTML/CSS-level
