@@ -50,6 +50,33 @@
 
      Keep state graphs to ≤ 6 states. Larger state machines belong in
      a flowchart (see Shape picker).
+
+     MULTI-ROW LAYOUT — States on > 1 horizontal line
+     ─────────────────────────────────────────────────
+     When a state machine has > 4 states or branching paths that
+     need vertical separation, apply these layout rules (from
+     forge-chart SKILL.md § Layout Rules R2 / R3):
+
+       R2. Minimum inter-card gap ≥ 2%:
+           stride − card_width ≥ 2  (cards must not touch)
+
+       R3. Row clearance from frame label:
+           first row inside a .fgraph-frame has top edge ≥ 2% below
+           the frame sub label. Card height ≈ 3% + (N_lines × 2%).
+
+     Formulas for multi-row state machines (0..100 space):
+       row_y(row_index)     = 20 + (row_index × 22)
+       state_x(i, N_in_row) = (100 / 2N) × (2i+1)
+
+     Example — 6 states on 3 rows:
+       Row 1 (y=20): idle(16.7) → running(50) → result?(83.3)
+       Row 2 (y=42): retry(25)   → failed(75)
+       Row 3 (y=64): success(50)
+
+     Keep transition paths straight (R4):
+       vertical flow  → start.x == end.x
+       horizontal flow → start.y == end.y
+       intentional curves → cubic bezier with 2 control points.
      ══════════════════════════════════════════════════════════════════ -->
 
 <div class="fgraph-wrap state green" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
