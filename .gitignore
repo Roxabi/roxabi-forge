@@ -13,3 +13,5 @@ node_modules/
 
 # Keep example
 !.claude/stack.yml.example
+# CocoIndex Code (ccc)
+/.cocoindex_code/

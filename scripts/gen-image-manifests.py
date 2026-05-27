@@ -52,7 +52,6 @@ for dirpath, dirnames, filenames in os.walk(FORGE_DIR, followlinks=True):
         for f in images
     ]
     (d / 'img-manifest.json').write_text(json.dumps(entries, indent=2) + '\n')
-    print(f'  [leaf]   {d.relative_to(FORGE_DIR)}/img-manifest.json: {len(entries)} images')
 
 # ── Pass 2: parent manifests ─────────────────────────────────────────────
 # For each dir that has images, propagate its existence up to every ancestor
@@ -96,8 +95,8 @@ for parent, child_names in parents_with_image_subtree.items():
             continue
     merged = existing + dir_entries
     (parent / 'img-manifest.json').write_text(json.dumps(merged, indent=2) + '\n')
-    label = 'merged' if existing else 'parent'
-    print(
-        f'  [{label}] {parent.relative_to(FORGE_DIR)}/img-manifest.json: '
-        f'{len(existing)} images + {len(dir_entries)} subdirs'
-    )
+
+leaf_count = len(dirs_with_images)
+parent_count = len(parents_with_image_subtree) - sum(1 for p in parents_with_image_subtree if p in dirs_with_images)
+merged_count = sum(1 for p in parents_with_image_subtree if p in dirs_with_images)
+print(f'img-manifests — {leaf_count} leaf, {parent_count} parent, {merged_count} merged.')

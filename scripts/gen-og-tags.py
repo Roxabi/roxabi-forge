@@ -57,13 +57,18 @@ def build_og_block(title, description, url):
     )
 
 
+SKIP_NO_HEAD = 'no_head'
+SKIP_NO_TITLE = 'no_title'
+SKIP_NO_VIEWPORT = 'no_viewport'
+SKIP_UP_TO_DATE = 'up_to_date'
+
+
 def process(filepath, rel):
     text = filepath.read_text(encoding='utf-8', errors='ignore')
 
-    # Only touch the <head> section
     head_end = text.lower().find('</head>')
     if head_end == -1:
-        return False
+        return SKIP_NO_HEAD
     head = text[:head_end]
 
     # Extract title: prefer diagram:title, fall back to <title>
@@ -73,22 +78,19 @@ def process(filepath, rel):
     if not title:
         m = TITLE_RE.search(head)
         if not m:
-            return False
+            return SKIP_NO_TITLE
         title = unescape(m.group(1).strip())
 
-    # Extract description: prefer existing <meta name="description">
     dm = DESC_RE.search(head)
     description = unescape(dm.group(1).strip()) if dm else title
 
     url = f'{BASE_URL}/{rel}'
 
-    # Strip existing OG/Twitter lines from full text
     cleaned = OG_LINE_RE.sub('', text)
 
-    # Inject after viewport meta
     vm = VIEWPORT_RE.search(cleaned)
     if not vm:
-        return False
+        return SKIP_NO_VIEWPORT
 
     og_block = build_og_block(title, description, url)
     insert_at = vm.end()
@@ -96,21 +98,30 @@ def process(filepath, rel):
 
     if new_text != text:
         filepath.write_text(new_text, encoding='utf-8')
-        return True
-    return False
+        return None  # updated
+    return SKIP_UP_TO_DATE
 
 
-injected, skipped = 0, []
+injected = 0
+skipped: dict[str, list[str]] = {SKIP_NO_TITLE: [], SKIP_NO_VIEWPORT: [], SKIP_NO_HEAD: []}
+up_to_date = 0
 for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
     fp = Path(match)
     rel = str(fp.relative_to(DIR))
     if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
         continue
-    if process(fp, rel):
+    result = process(fp, rel)
+    if result is None:
         injected += 1
+    elif result == SKIP_UP_TO_DATE:
+        up_to_date += 1
     else:
-        skipped.append(rel)
+        skipped[result].append(rel)
 
-print(f'og-tags — {injected} files updated.')
-if skipped:
-    print(f'Skipped (no viewport or title): {", ".join(skipped)}')
+parts = [f'og-tags — {injected} updated, {up_to_date} already up-to-date.']
+for reason, files in skipped.items():
+    if files:
+        label = reason.replace('_', ' ')
+        parts.append(f'  ⚠ skipped ({label}) — {len(files)} files:')
+        parts.extend(f'      {f}' for f in files)
+print('\n'.join(parts))
