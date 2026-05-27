@@ -1,9 +1,9 @@
 {
   "name": "roxabi-forge",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Forge — HTML visual artifacts for Claude Code (diagrams, galleries, guides, epics)",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
     "lint": "bunx biome check .",
