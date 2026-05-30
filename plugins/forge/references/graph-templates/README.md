@@ -1186,6 +1186,16 @@ warn lines, wrapped text).
 - [ ] Tested hover glow works (card lifts + box-shadow)
 - [ ] Tested dark + light theme toggle (if shell includes one)
 
+### Live mode (`gen-fgraph.py` / `data-fgraph="live"`)
+
+- [ ] Wrap carries `data-fgraph="live"` **and** `data-interactive="true"` (interact.js needs the latter for spotlight + legend)
+- [ ] Each node is `.fgraph-node` with a unique `data-node` (+ `data-group` to enable group filtering)
+- [ ] Edges live in one `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; every `f`/`t` references an existing `data-node` id
+- [ ] `<svg class="fgraph-edges" data-coord="px">` left **empty** — the runtime fills it (px coords, no `preserveAspectRatio`)
+- [ ] `fgraph-auto.js` + `fgraph-interact.js` inlined into `<script>` (file://-safe, no CDN); they no-op without a live wrap
+- [ ] Tones limited to the 7 reserved (`cyan/orange/purple/green/amber/red/dim`); unknown tones fall back to `dim`
+- [ ] For print / PDF / JS-less embed: regenerate the same JSON with `--mode static`
+
 ---
 
 ## How to customise `lane-swim.html`
@@ -1371,6 +1381,8 @@ Static templates hand-author every `<path>` and lean on layout rules R1–R7 to 
 - **Data-driven:** `scripts/gen-fgraph.py --in <graph>.json --out <file>.html [--mode live|static]` generalizes `gen-deps.py` to any node/edge graph (DAG-layered rows, R1 even-stride). `--mode static` emits Python-routed paths (print/PDF-safe); `--mode live` emits the contract below.
 - **Contract:** wrap carries `data-fgraph="live"` and `data-interactive="true"` (interact.js requires it for spotlight/legend); nodes are `.fgraph-node` with `data-node` (+ optional `data-group`); edges are a `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; the `<svg class="fgraph-edges" data-coord="px">` is left empty for the runtime to fill.
 - **When:** dense architecture (> 8 nodes) that must stay one diagram AND be explorable. For print / PDF / embed, use static mode (live needs JS).
+
+> **`file://`-safety.** The inlined runtime (`fgraph-auto.js`, `fgraph-interact.js`) and every diagram style are CDN-free — a generated file renders fully offline by double-click. Web fonts (Inter / Outfit / Space Mono) still load from Google Fonts via `<link>`, exactly like every other forge template and `render-md.py`; with no network they degrade to the `system-ui` / `monospace` fallbacks declared in each `font-family` stack. Layout, tones, and edge routing are unaffected — only the typeface changes. Embedding the fonts is an ecosystem-wide decision (every template + the renderers), out of scope for a single generator.
 
 ## Extending the template set
 

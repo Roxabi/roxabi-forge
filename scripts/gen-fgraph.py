@@ -80,6 +80,15 @@ def assign_layers(nodes: list[dict], edges: list[dict]) -> dict[str, int]:
     Subsequent layers = max(layer of parents) + 1.
     Cycles: back-edges are ignored for layering; cycle members that remain
     unreachable from any root fall back to layer 0 with a stderr warning.
+
+    Shares the BFS longest-path skeleton with gen-deps.py::assign_layers but is
+    deliberately NOT extracted to a shared module. The two differ in data model
+    (generic nodes/edges here vs. issue dicts keyed on `blocked_by` there) and
+    this variant adds explicit cycle-edge detection. Both scripts are standalone
+    stdlib CLIs with hyphenated, non-importable names by convention; a shared
+    layout module would be the first cross-script import and would pull the
+    production gen-deps.py into this change's blast radius. DRY-ing the core
+    layering across both generators is left as a separate, dedicated refactor.
     """
     node_ids = {n["id"] for n in nodes}
 
@@ -308,7 +317,22 @@ def route_static_edges(
 # ── CSS inlining ───────────────────────────────────────────────────────────────
 
 def inline_base_css() -> str:
-    """Inline the minimal base CSS needed for a self-contained file."""
+    """Inline the base token layer for a self-contained file.
+
+    Only `reset.css` is pulled from `base/`: it is the *sole* token-defining
+    file (the full `:root` palette — --bg/--text/--accent/--border plus the tone
+    tokens --cyan/--amber/--green/--purple/--red, in both dark + light themes).
+    Everything the diagram draws resolves from this plus `fgraph-base.css`
+    (inline_fgraph_css — which self-defines --fg-orange and maps tone `dim` to
+    --text-muted) and `page_chrome_css`.
+
+    The other `base/` files are excluded by design, not oversight: they style
+    artifact types a diagram does not contain — typography.css (prose + IBM-Plex
+    `code` blocks), components.css (cards), explainer-base.css (~36 KB explainer
+    chrome), layout.css (doc grid). Inlining them would add dead rules and
+    references to fonts this page never loads, not robustness. Add a file here
+    only if the diagram itself starts consuming a token it defines.
+    """
     parts = []
     for name in ("reset.css",):
         f = BASE_DIR / name
@@ -378,14 +402,20 @@ main {
 
 # ── Marker defs for static mode ────────────────────────────────────────────────
 
+# Static-mode arrowhead markers. markerWidth/Height=6 in the DEFAULT (strokeWidth)
+# marker units — NOT userSpaceOnUse — matching the proven gen-deps.py convention
+# for an SVG with viewBox="0 0 100 100" preserveAspectRatio="none". userSpaceOnUse
+# here would anisotropically stretch arrowheads with the 16:9 wrap (x and y scale
+# differ). Live mode (fgraph-auto.js) DOES use userSpaceOnUse=8 because its SVG is
+# px-space with no preserveAspectRatio — different context, different convention.
 STATIC_MARKER_DEFS = """    <defs>
-      <marker id="fg-arr-cyan"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
-      <marker id="fg-arr-orange"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-orange"/></marker>
-      <marker id="fg-arr-purple"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
-      <marker id="fg-arr-green"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
-      <marker id="fg-arr-amber"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
-      <marker id="fg-arr-red"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
-      <marker id="fg-arr-dim"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-dim"/></marker>
+      <marker id="fg-arr-cyan"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+      <marker id="fg-arr-orange"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-orange"/></marker>
+      <marker id="fg-arr-purple"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+      <marker id="fg-arr-green"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+      <marker id="fg-arr-amber"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+      <marker id="fg-arr-red"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+      <marker id="fg-arr-dim"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-dim"/></marker>
     </defs>"""
 
 
