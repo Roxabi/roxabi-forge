@@ -8,7 +8,8 @@
 #   2. Attribute quotes     — rg for unquoted attributes in SVG/HTML open tags
 #   3. Marker refs          — every url(#id) must have a matching id="id"
 #   4. Path data            — each <path d="..."> has ≥ 2 points
-#   5. rsvg-convert smoke   — render to /dev/null (skipped if rsvg-convert absent)
+#   5. Marker units         — fail markerUnits="userSpaceOnUse" on a stretched SVG (giant arrowheads)
+#   6. rsvg-convert smoke   — render to /dev/null (skipped if rsvg-convert absent)
 #
 # Behavior:
 #   - Pass        → exit 0
@@ -109,6 +110,22 @@ check_paths() {
   return "$bad"
 }
 
+check_marker_units() {
+  local f=$1
+  # GIANT-ARROWHEAD BUG: markerUnits="userSpaceOnUse" on a stretched SVG
+  # (preserveAspectRatio="none", as every fgraph edge layer uses) sizes the
+  # marker in the 0..100 user space, which the non-uniform scale blows up to
+  # ~60-80px and distorts. Canonical markers omit markerUnits (→ strokeWidth
+  # default) so they stay small + proportional via vector-effect:non-scaling-stroke.
+  if grep -q 'preserveAspectRatio="none"' "$f" 2>/dev/null \
+     && grep -q 'markerUnits="userSpaceOnUse"' "$f" 2>/dev/null; then
+    note_fail "marker-units ($f): markerUnits=\"userSpaceOnUse\" on a preserveAspectRatio=\"none\" SVG → giant/distorted arrowheads. Remove markerUnits (use strokeWidth default), markerWidth/Height=6."
+    return 1
+  fi
+  note_ok "marker-units ($f)"
+  return 0
+}
+
 check_rsvg() {
   local f=$1
   # Only meaningful for pure SVG (HTML with <svg> fragments won't render alone).
@@ -146,6 +163,7 @@ main() {
     check_attrs   "$f" || overall=1
     check_markers "$f" || overall=1
     check_paths   "$f" || overall=1
+    check_marker_units "$f" || overall=1
     check_rsvg    "$f" || overall=1
   done
   return "$overall"

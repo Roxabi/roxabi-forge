@@ -507,6 +507,7 @@ Use non-straight paths only for **intentional cross-section routes** (e.g., Anth
 | Hard-coded px coords on `.fgraph-node` | Use `--x`/`--y` custom props in 0..100 space |
 | Plain `<h2>` for section titles | Use `.section-title` class |
 | No hero section (multi-section chart) | Add hero with left-border variant |
+| `markerUnits="userSpaceOnUse"` on an arrow `<marker>` | **Remove it.** The `.fgraph-edges` SVG is `preserveAspectRatio="none"` (stretched) — `userSpaceOnUse` sizes the head in the 0..100 user space, which the non-uniform scale blows up to ~60–80px distorted arrowheads. Markers MUST omit `markerUnits` (→ `strokeWidth` default) with `markerWidth="6" markerHeight="6"`; strokes stay crisp via `vector-effect: non-scaling-stroke`. Copy the canonical defs from `fgraph-base.css`, never hand-author. |
 
 ---
 
@@ -540,6 +541,7 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Text escaping:** `&`, `<`, `>`, `"`, `'` escaped in labels/titles rendered inside SVG `<text>` or `<foreignObject>`
 - [ ] **Legend accuracy:** legend lists only node types + edge tones actually present in the diagram — no leftover entries
 - [ ] **Title accuracy:** `<title>` + `diagram:title` meta + hero `<h1>` all state the Frame Signal 2 takeaway consistently
+- [ ] **Marker units:** no `<marker>` uses `markerUnits="userSpaceOnUse"` (giant/distorted heads on the stretched `.fgraph-edges` SVG); every arrow/crow's-foot marker omits `markerUnits` and uses `markerWidth="6" markerHeight="6"`
 - [ ] **Marker refs:** every `url(#id)` arrow marker has a matching `<marker id="id">` in `<defs>` (including `fg-arr-*` arrow markers and, for ER diagrams, `fg-er-one`/`fg-er-many`/`fg-er-zero-one`/`fg-er-one-many`/`fg-er-zero-many` crow's-foot markers)
 - [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
 - [ ] **fgraph inlining:** `fgraph-base.css` is inlined into the output `<style>` (Mode A) — no `<link>` to `_shared/fgraph-base.css`

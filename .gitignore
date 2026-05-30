@@ -15,3 +15,9 @@ node_modules/
 !.claude/stack.yml.example
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+
+# forge-chart QA loop (transient harness + generated artifacts)
+.claude/fc-loop/out/
+.claude/fc-loop/shots/
+.claude/fc-loop/node_modules/
+.claude/fc-loop/package-lock.json
