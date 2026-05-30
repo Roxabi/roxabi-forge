@@ -1,0 +1,151 @@
+{
+  "meta": {
+    "title": "Roxabi Infra Stack",
+    "accent": "cyan"
+  },
+  "nodes": [
+    {
+      "id": "ingress",
+      "label": "ingress",
+      "sub": "nginx · TLS term",
+      "shape": "diamond",
+      "tone": "amber",
+      "group": "edge",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "cloud",
+      "label": "Cloud APIs",
+      "sub": "Claude · Kimi · DeepSeek",
+      "shape": "diamond",
+      "tone": "amber",
+      "group": "edge",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "hub",
+      "label": "lyra-hub",
+      "sub": "orchestrator · pool",
+      "shape": "pill",
+      "tone": "orange",
+      "group": "core",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "nats",
+      "label": "lyra-nats",
+      "sub": "NATS · JetStream",
+      "shape": "pill",
+      "tone": "orange",
+      "group": "core",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "tg",
+      "label": "telegram-bot",
+      "sub": "lyra-telegram",
+      "shape": "hexagon",
+      "tone": "cyan",
+      "group": "bots",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "discord",
+      "label": "discord-bot",
+      "sub": "lyra-discord",
+      "shape": "hexagon",
+      "tone": "cyan",
+      "group": "bots",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "clipool",
+      "label": "cli-pool",
+      "sub": "lyra-clipool · GPU",
+      "shape": "hexagon",
+      "tone": "purple",
+      "group": "workers",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "stt",
+      "label": "voicecli-stt",
+      "sub": "Whisper · STT",
+      "shape": "hexagon",
+      "tone": "purple",
+      "group": "workers",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "tts",
+      "label": "voicecli-tts",
+      "sub": "Chatterbox · TTS",
+      "shape": "hexagon",
+      "tone": "purple",
+      "group": "workers",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "llm",
+      "label": "llmCLI",
+      "sub": "LiteLLM proxy · M1",
+      "shape": "hexagon",
+      "tone": "green",
+      "group": "workers",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "store",
+      "label": "vault-db",
+      "sub": "SQLite · embeddings",
+      "shape": "cylinder",
+      "tone": "purple",
+      "group": "storage",
+      "x": null,
+      "y": null
+    },
+    {
+      "id": "gh",
+      "label": "gh-helper",
+      "sub": "GitHub API bridge",
+      "shape": "folded",
+      "tone": "cyan",
+      "group": "core",
+      "x": null,
+      "y": null
+    }
+  ],
+  "edges": [
+    {"f": "ingress", "t": "hub",     "tone": "amber",  "mods": ["thick"],     "label": "HTTPS"},
+    {"f": "ingress", "t": "tg",      "tone": "amber",  "mods": [],            "label": null},
+    {"f": "ingress", "t": "discord", "tone": "amber",  "mods": [],            "label": null},
+    {"f": "hub",     "t": "nats",    "tone": "orange", "mods": ["thick"],     "label": "lyra.*"},
+    {"f": "hub",     "t": "clipool", "tone": "orange", "mods": ["animated"],  "label": null},
+    {"f": "hub",     "t": "llm",     "tone": "orange", "mods": [],            "label": null},
+    {"f": "hub",     "t": "gh",      "tone": "cyan",   "mods": ["dashed"],    "label": null},
+    {"f": "nats",    "t": "tg",      "tone": "orange", "mods": [],            "label": null},
+    {"f": "nats",    "t": "discord", "tone": "orange", "mods": [],            "label": null},
+    {"f": "nats",    "t": "stt",     "tone": "orange", "mods": [],            "label": null},
+    {"f": "nats",    "t": "tts",     "tone": "orange", "mods": [],            "label": null},
+    {"f": "cloud",   "t": "llm",     "tone": "amber",  "mods": ["dashed"],    "label": "API"},
+    {"f": "clipool", "t": "store",   "tone": "purple", "mods": [],            "label": null},
+    {"f": "llm",     "t": "store",   "tone": "purple", "mods": ["dashed"],    "label": null}
+  ],
+  "groups": [
+    {"id": "edge",    "label": "edge / ingress"},
+    {"id": "core",    "label": "core services"},
+    {"id": "bots",    "label": "bot adapters"},
+    {"id": "workers", "label": "workers"},
+    {"id": "storage", "label": "storage"}
+  ]
+}
