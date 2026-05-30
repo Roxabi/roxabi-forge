@@ -14,7 +14,8 @@
       if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '0')
       if (!node.hasAttribute('aria-label')) {
         const titleEl = node.querySelector('.fgraph-title')
-        node.setAttribute('aria-label', (titleEl ? titleEl.textContent : node.dataset.node).trim())
+        const name = (titleEl ? titleEl.textContent : '').trim() || node.dataset.node
+        node.setAttribute('aria-label', name)
       }
     }
 
