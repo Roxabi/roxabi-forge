@@ -3,12 +3,19 @@
   if (!liveWraps.length) return
 
   function initWrap(wrap) {
+    // idempotent guard: a legend means this wrap was already initialised — bail
+    // to avoid a duplicate legend + double listeners if the script is inlined twice
+    if (wrap.querySelector('.fgraph-legend--live')) return
     const nodes = Array.from(wrap.querySelectorAll('[data-node]'))
     if (!nodes.length) return
 
-    // add tabindex for keyboard a11y
+    // tabindex + accessible name for keyboard a11y (focus → spotlight)
     for (const node of nodes) {
       if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '0')
+      if (!node.hasAttribute('aria-label')) {
+        const titleEl = node.querySelector('.fgraph-title')
+        node.setAttribute('aria-label', (titleEl ? titleEl.textContent : node.dataset.node).trim())
+      }
     }
 
     // build adjacency for spotlight: which nodes are neighbors of id
@@ -74,7 +81,10 @@
     }
 
     // collect tones present in edges + groups from nodes' data-group
-    const tonesPresent = [...new Set(edgeDefs.map((e) => e.tone).filter(Boolean))]
+    // restrict to the 7 reserved tones (mirror of fgraph-auto.js TONES); an unknown
+    // tone has no CSS rule, so a chip for it would be a dead toggle
+    const TONES = ['cyan', 'orange', 'purple', 'green', 'red', 'amber', 'dim']
+    const tonesPresent = [...new Set(edgeDefs.map((e) => e.tone).filter((t) => TONES.includes(t)))]
     const groups = [...new Set(nodes.map((n) => n.dataset.group).filter(Boolean))]
 
     if (!tonesPresent.length) return
@@ -88,11 +98,15 @@
       chip.className = `fg-legend-chip ${tone}`
       chip.textContent = tone
       chip.dataset.tone = tone
-      chip.setAttribute('aria-pressed', 'false')
+      // aria-pressed = filter engaged = tone SHOWN. Tone starts visible → pressed.
+      // classList.toggle returns true when the chip goes OFF (hidden) → pressed=!hidden.
+      chip.setAttribute('aria-pressed', 'true')
+      chip.setAttribute('aria-label', `Hide ${tone} edges`)
       chip.addEventListener('click', () => {
-        const active = chip.classList.toggle('fg-legend-chip--off')
-        chip.setAttribute('aria-pressed', String(active))
-        wrap.classList.toggle(`fg-hide-${tone}`, active)
+        const hidden = chip.classList.toggle('fg-legend-chip--off')
+        chip.setAttribute('aria-pressed', String(!hidden))
+        chip.setAttribute('aria-label', hidden ? `Show ${tone} edges` : `Hide ${tone} edges`)
+        wrap.classList.toggle(`fg-hide-${tone}`, hidden)
       })
       legend.appendChild(chip)
     }

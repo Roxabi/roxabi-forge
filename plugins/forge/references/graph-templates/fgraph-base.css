@@ -1299,6 +1299,7 @@
 .fg-edge-lbl.cyan   { color: var(--cyan); }
 .fg-edge-lbl.purple { color: var(--purple); }
 .fg-edge-lbl.red    { color: var(--red); }
+.fg-edge-lbl.orange { color: var(--fg-orange); }
 
 
 /* ════ live-mode hooks (merged from fgraph-live.css — feat/fgraph-live-edges) ════ */
@@ -1332,16 +1333,16 @@
 
 /* ── spotlight / dim state ── */
 /* dim non-hot nodes */
-.fgraph-wrap.fg-dim .fgraph-node:not(.fg-hot) {
+.fgraph-wrap[data-fgraph="live"].fg-dim .fgraph-node:not(.fg-hot) {
   opacity: 0.32;
   transition: opacity 0.18s;
 }
 /* dim non-hot edges */
-.fgraph-wrap.fg-dim svg.fgraph-edges path.fg-edge:not(.fg-hot) {
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges path.fg-edge:not(.fg-hot) {
   opacity: 0.08;
 }
 /* hot edges: full opacity boost */
-.fgraph-wrap.fg-dim svg.fgraph-edges path.fg-edge.fg-hot {
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges path.fg-edge.fg-hot {
   opacity: 1;
   stroke-width: 2.4;
 }

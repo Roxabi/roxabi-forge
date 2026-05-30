@@ -77,6 +77,10 @@
     const wrapH = wrap.offsetHeight
     svg.setAttribute('viewBox', `0 0 ${wrapW} ${wrapH}`)
     svg.removeAttribute('preserveAspectRatio')
+    // decorative edge layer — node cards carry the semantic content; hide the SVG
+    // (and its <text> labels) from the a11y tree so labels aren't announced out of
+    // reading-order context
+    svg.setAttribute('aria-hidden', 'true')
 
     ensureMarkers(svg)
 
@@ -113,7 +117,7 @@
         d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`
       }
 
-      const tone = edge.tone || 'dim'
+      const tone = TONES.includes(edge.tone) ? edge.tone : 'dim'
       const mods = Array.isArray(edge.mods) ? edge.mods : []
       const cls = ['fg-edge', tone, ...mods].join(' ')
       const mid = `fg-arr-${tone}--live`
@@ -166,6 +170,15 @@
   for (const wrap of liveWraps) {
     window.addEventListener('load', () => drawWrap(wrap))
     drawWrap(wrap) // also attempt eagerly (after script eval)
-    new ResizeObserver(() => scheduleRedraw(wrap)).observe(wrap)
+    // ResizeObserver fires once synchronously on observe(); the eager draw above
+    // already covered that, so skip the first callback to avoid a redundant draw
+    let firstResize = true
+    new ResizeObserver(() => {
+      if (firstResize) {
+        firstResize = false
+        return
+      }
+      scheduleRedraw(wrap)
+    }).observe(wrap)
   }
 })()

@@ -6,8 +6,8 @@ Generalises gen-deps.py to arbitrary node/edge graphs. Reads a JSON
 input spec and emits a self-contained HTML file with auto-placed nodes.
 
 Supports two modes:
-  live   (default) — nodes + JSON edge data + empty SVG; JS runtime draws edges.
-  static           — nodes + Python-computed SVG paths; no JS required.
+  static (default) — nodes + Python-computed SVG paths; no JS required.
+  live             — nodes + JSON edge data + empty SVG; JS runtime draws edges.
 
 Usage:
   python3 gen-fgraph.py --in <data.json> --out <output.html> [--mode live|static] [--title "..."]
@@ -29,8 +29,6 @@ Placement rules:
 import argparse
 import html
 import json
-import math
-import os
 import sys
 from collections import deque
 from datetime import date
@@ -41,7 +39,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = REPO_ROOT / "plugins" / "forge" / "references" / "graph-templates"
 BASE_DIR = REPO_ROOT / "plugins" / "forge" / "references" / "base"
-AESTHETICS_DIR = REPO_ROOT / "plugins" / "forge" / "references" / "aesthetics"
 
 FGRAPH_AUTO_JS = TEMPLATES_DIR / "fgraph-auto.js"
 FGRAPH_INTERACT_JS = TEMPLATES_DIR / "fgraph-interact.js"
@@ -60,15 +57,6 @@ LAYER_Y_STRIDE = 22.0
 LAYER_Y_FIRST = 15.0
 # Elbow corridor width for static mode
 CORRIDOR_WIDTH = 2.0
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def load_css_file(path: Path) -> str:
-    """Read a CSS file, return its content or empty string if missing."""
-    if path.exists():
-        return path.read_text()
-    return ""
 
 
 # ── Layer assignment ───────────────────────────────────────────────────────────
@@ -195,7 +183,12 @@ def auto_place(nodes: list[dict], edges: list[dict]) -> dict[str, tuple[float, f
     if not auto_nodes:
         return explicit
 
-    layer = assign_layers(auto_nodes, edges)
+    # Layer over ALL nodes, not just auto_nodes: an explicit/pinned node can be
+    # the DAG parent of an auto node and must set that child's depth. assign_layers
+    # filters edges to its node set, so passing only auto_nodes silently drops
+    # explicit→auto edges and orphans the child to layer 0 (wrong row). Explicit
+    # nodes are still placed by their pinned x/y via `positions.update(explicit)`.
+    layer = assign_layers(nodes, edges)
     max_layer = max(layer.values()) if layer else 0
     layer_count = max_layer + 1
 
@@ -219,6 +212,13 @@ def auto_place(nodes: list[dict], edges: list[dict]) -> dict[str, tuple[float, f
             continue
         n_nodes = len(members)
         y = round(LAYER_Y_FIRST + lvl * LAYER_Y_STRIDE, 2)
+        if y > 100.0:
+            print(
+                f"WARNING R3 layer overflow: layer {lvl} y={y:.1f}% exceeds 100% — "
+                f"nodes overflow the wrap. Increase LAYER_Y_STRIDE/LAYER_Y_FIRST or "
+                f"split the graph.",
+                file=sys.stderr,
+            )
 
         # R1 formula: centers at (100 / (2N)) * (2i+1)
         stride = 100.0 / (2 * n_nodes)
@@ -241,11 +241,10 @@ def auto_place(nodes: list[dict], edges: list[dict]) -> dict[str, tuple[float, f
         for i, node in enumerate(members):
             x = centers[i]
             positions[node["id"]] = (x, y)
-            # R1 verification: assert center == (100/(2N)) * (2i+1)
-            expected = round((100.0 / (2 * n_nodes)) * (2 * i + 1), 2)
-            assert abs(x - expected) < 0.01, (
-                f"R1 violation: node {node['id']} x={x} expected={expected}"
-            )
+            # x comes from the R1 even-stride formula above: (100/2N)*(2i+1) is in
+            # (0,100) and strictly increasing in i → on-canvas and collision-free by
+            # construction. (The former assert compared x to its own formula — a
+            # tautology that never fired, and is stripped entirely under `python -O`.)
             row_gap_info = f"inter={inter_center_gap:.1f}% usable={usable_gap:.1f}% {gap_status}" if i == 0 else ""
             print(f"{lvl:>5}  {n_nodes:>3}  {node['id']:<20}  {x:>7.2f}  {y:>7.2f}  {row_gap_info}", file=sys.stderr)
 
@@ -456,6 +455,7 @@ def render_live(data: dict, positions: dict, title: str) -> str:
     """Render live-mode fgraph wrap: nodes + JSON edge data + empty SVG."""
     meta = data.get("meta", {})
     accent = meta.get("accent", "cyan")
+    accent = accent if accent in VALID_TONES else "cyan"
     nodes = data.get("nodes", [])
     edges = data.get("edges", [])
 
@@ -502,6 +502,7 @@ def render_static(data: dict, positions: dict, title: str) -> str:
     """Render static-mode fgraph wrap: nodes + computed SVG paths."""
     meta = data.get("meta", {})
     accent = meta.get("accent", "cyan")
+    accent = accent if accent in VALID_TONES else "cyan"
     nodes = data.get("nodes", [])
     edges = data.get("edges", [])
 
@@ -707,7 +708,7 @@ def verify_html(html_content: str, mode: str) -> bool:
         else:
             try:
                 json.loads(m.group(1))
-                print("VERIFY OK: .fgraph-edge-data is valid JSON")
+                print("VERIFY OK: .fgraph-edge-data is valid JSON", file=sys.stderr)
             except json.JSONDecodeError as e:
                 print(f"VERIFY FAIL: .fgraph-edge-data is invalid JSON: {e}", file=sys.stderr)
                 ok = False
@@ -717,35 +718,64 @@ def verify_html(html_content: str, mode: str) -> bool:
             print("VERIFY FAIL: live mode missing <svg data-coord='px'>", file=sys.stderr)
             ok = False
         else:
-            print("VERIFY OK: <svg class='fgraph-edges' data-coord='px'> present")
+            print("VERIFY OK: <svg class='fgraph-edges' data-coord='px'> present", file=sys.stderr)
 
         # Check data-fgraph="live"
         if 'data-fgraph="live"' not in html_content:
             print("VERIFY FAIL: live mode missing data-fgraph='live' on wrap", file=sys.stderr)
             ok = False
         else:
-            print("VERIFY OK: data-fgraph='live' present on wrap")
+            print("VERIFY OK: data-fgraph='live' present on wrap", file=sys.stderr)
 
     else:  # static
         # Check no edge-data script in static mode
         if 'fgraph-edge-data' in html_content:
             print("VERIFY WARN: static mode contains fgraph-edge-data (unexpected)", file=sys.stderr)
         else:
-            print("VERIFY OK: static mode — no JSON edge-data block (correct)")
+            print("VERIFY OK: static mode — no JSON edge-data block (correct)", file=sys.stderr)
 
         # Check defs block present
         if '<defs>' not in html_content:
             print("VERIFY FAIL: static mode missing SVG <defs>", file=sys.stderr)
             ok = False
         else:
-            print("VERIFY OK: static mode SVG <defs> present")
+            print("VERIFY OK: static mode SVG <defs> present", file=sys.stderr)
 
     # Check node divs exist
     import re as _re2
     nodes_found = len(_re2.findall(r'data-node="[^"]+"', html_content))
-    print(f"VERIFY: {nodes_found} data-node elements found in output")
+    print(f"VERIFY: {nodes_found} data-node elements found in output", file=sys.stderr)
 
     return ok
+
+
+# ── Input validation ─────────────────────────────────────────────────────────────
+
+def validate_schema(data) -> None:
+    """Exit with a clear ERROR on a malformed spec.
+
+    Guards the bare key access in assign_layers / render_* (node["id"], e["f"],
+    e["t"]) so a bad spec yields an actionable message, not a raw traceback.
+    """
+    if not isinstance(data, dict):
+        print(f"ERROR: input JSON root must be an object, got {type(data).__name__}", file=sys.stderr)
+        sys.exit(1)
+    nodes = data.get("nodes")
+    edges = data.get("edges", [])
+    if not isinstance(nodes, list) or not nodes:
+        print("ERROR: input JSON must contain a non-empty 'nodes' array", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(edges, list):
+        print("ERROR: input JSON 'edges' must be an array", file=sys.stderr)
+        sys.exit(1)
+    for i, n in enumerate(nodes):
+        if not isinstance(n, dict) or not isinstance(n.get("id"), str):
+            print(f"ERROR: nodes[{i}] must be an object with a string 'id'", file=sys.stderr)
+            sys.exit(1)
+    for i, e in enumerate(edges):
+        if not isinstance(e, dict) or not isinstance(e.get("f"), str) or not isinstance(e.get("t"), str):
+            print(f"ERROR: edges[{i}] must be an object with string 'f' and 't'", file=sys.stderr)
+            sys.exit(1)
 
 
 # ── Main ────────────────────────────────────────────────────────────────────────
@@ -781,10 +811,16 @@ def main():
         print(f"ERROR: invalid JSON in {in_path}: {e}", file=sys.stderr)
         sys.exit(1)
 
+    validate_schema(data)
+
     rendered = render_document(data, args.mode, args.title)
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(rendered)
+    try:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(rendered)
+    except OSError as e:
+        print(f"ERROR: cannot write output {out_path}: {e}", file=sys.stderr)
+        sys.exit(1)
     print(f"Generated {out_path} ({len(rendered):,} bytes) [mode={args.mode}]")
 
     # Self-verify

@@ -337,7 +337,7 @@ fgraph-radial caps at ~6 satellites before labels collide. For dense graphs (> 8
 Dense architecture (> 8 nodes) that must stay ONE diagram **and** be explorable → `live` mode instead of splitting. Nodes stay declarative (`--x/--y`); a small inlined runtime auto-routes edges from the rendered node rects (no hand-authored `<path>`, resize-safe, no `preserveAspectRatio` stretch) and adds hover-spotlight + tone/group filtering.
 
 **Two modes, one design-system:**
-- **static** (default) — hand-authored, or `gen-fgraph.py --mode static`. Print/PDF/embed-safe. Existing 16 templates unchanged.
+- **static** (default) — hand-authored, or `gen-fgraph.py --mode static`. Print/PDF/embed-safe. Existing 15 templates unchanged.
 - **live** (opt-in) — `gen-fgraph.py --mode live`, or a hand-authored `data-fgraph="live"` wrap. Interactive. **Breaks print/PDF** (needs JS) — never use it for PDF export.
 
 **Data-driven:** `scripts/gen-fgraph.py --in <graph>.json --out <file>.html [--mode live|static]` generalizes `gen-deps.py` to any node/edge graph (DAG-layered rows, R1 even-stride placement). `dep-graph.html` stays the issue-specific generator.
