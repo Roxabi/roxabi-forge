@@ -9,7 +9,8 @@
 #   3. Marker refs          — every url(#id) must have a matching id="id"
 #   4. Path data            — each <path d="..."> has ≥ 2 points
 #   5. Marker units         — fail markerUnits="userSpaceOnUse" on a stretched SVG (giant arrowheads)
-#   6. rsvg-convert smoke   — render to /dev/null (skipped if rsvg-convert absent)
+#   6. Non-scaling stroke   — fail marker edges on a stretched SVG without vector-effect:non-scaling-stroke (giant arrowheads)
+#   7. rsvg-convert smoke   — render to /dev/null (skipped if rsvg-convert absent)
 #
 # Behavior:
 #   - Pass        → exit 0
@@ -78,10 +79,18 @@ check_attrs() {
 
 check_markers() {
   local f=$1
-  local refs ids missing=0
-  refs=$(grep -oE 'url\(#[A-Za-z0-9_-]+\)' "$f" 2>/dev/null | sed -E 's/url\(#(.*)\)/\1/' | sort -u)
+  local refs ids missing=0 src
+  # Strip /* */ and <!-- --> comments first: a url(#id) or id="" living inside a
+  # documentation comment (e.g. an ER-marker usage example) is not a live edge,
+  # and must not trip the dangling-ref check. Falls back to raw text if perl absent.
+  if have perl; then
+    src=$(perl -0777 -pe 's{/\*.*?\*/}{}gs; s{<!--.*?-->}{}gs' "$f" 2>/dev/null)
+  else
+    src=$(cat "$f" 2>/dev/null)
+  fi
+  refs=$(printf '%s' "$src" | grep -oE 'url\(#[A-Za-z0-9_-]+\)' 2>/dev/null | sed -E 's/url\(#(.*)\)/\1/' | sort -u)
   [ -z "$refs" ] && { note_ok "markers ($f): no url() refs"; return 0; }
-  ids=$(grep -oE '\bid="[A-Za-z0-9_-]+"' "$f" 2>/dev/null | sed -E 's/id="(.*)"/\1/' | sort -u)
+  ids=$(printf '%s' "$src" | grep -oE '\bid="[A-Za-z0-9_-]+"' 2>/dev/null | sed -E 's/id="(.*)"/\1/' | sort -u)
   while IFS= read -r r; do
     [ -z "$r" ] && continue
     if ! grep -qxF "$r" <<<"$ids"; then
@@ -126,6 +135,26 @@ check_marker_units() {
   return 0
 }
 
+check_nonscaling_stroke() {
+  local f=$1
+  # GIANT-ARROWHEAD BUG (sibling of marker-units): on a stretched SVG
+  # (preserveAspectRatio="none"), markers default to markerUnits="strokeWidth",
+  # so marker size = markerWidth × stroke-width. Without
+  # vector-effect:non-scaling-stroke the stroke-width is scaled by the non-uniform
+  # viewport (×8+) → strokeWidth-relative markers blow up to giant distorted heads.
+  # The fix that swaps userSpaceOnUse → strokeWidth (check 5) ONLY holds if the
+  # stroke is non-scaling. So: any marker-ended edge on a stretched SVG MUST carry
+  # vector-effect:non-scaling-stroke. (No marker edges → not applicable; pie/gantt.)
+  if grep -q 'preserveAspectRatio="none"' "$f" 2>/dev/null \
+     && grep -qE 'marker-(end|start)=' "$f" 2>/dev/null \
+     && ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null; then
+    note_fail "non-scaling-stroke ($f): marker-ended edges on a preserveAspectRatio=\"none\" SVG but no vector-effect:non-scaling-stroke → giant/distorted arrowheads. Add \`.fg-edge { vector-effect: non-scaling-stroke; }\`."
+    return 1
+  fi
+  note_ok "non-scaling-stroke ($f)"
+  return 0
+}
+
 check_rsvg() {
   local f=$1
   # Only meaningful for pure SVG (HTML with <svg> fragments won't render alone).
@@ -164,6 +193,7 @@ main() {
     check_markers "$f" || overall=1
     check_paths   "$f" || overall=1
     check_marker_units "$f" || overall=1
+    check_nonscaling_stroke "$f" || overall=1
     check_rsvg    "$f" || overall=1
   done
   return "$overall"
