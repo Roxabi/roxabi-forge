@@ -1363,6 +1363,15 @@ Forge directive: inline, never link (Mode A).
 
 ---
 
+## Live mode (JS-routed edges, opt-in)
+
+Static templates hand-author every `<path>` and lean on layout rules R1–R7 to avoid overlap. **Live mode** keeps nodes declarative (`--x`/`--y`) but lets a small inlined runtime route the edges from the rendered node rectangles — anchors land on borders by construction (R4 / arrow-routing / R6 become automatic), it is resize-safe (no `preserveAspectRatio` stretch), and it adds hover-spotlight + tone/group filtering.
+
+- **Runtime:** `fgraph-auto.js` (edge router) + `fgraph-interact.js` (spotlight + legend), inlined into the output `<script>` like `theme-toggle.js`. Live styling ships inside `fgraph-base.css`. The runtime is a strict no-op without a `data-fgraph="live"` wrap, so the static templates are unaffected.
+- **Data-driven:** `scripts/gen-fgraph.py --in <graph>.json --out <file>.html [--mode live|static]` generalizes `gen-deps.py` to any node/edge graph (DAG-layered rows, R1 even-stride). `--mode static` emits Python-routed paths (print/PDF-safe); `--mode live` emits the contract below.
+- **Contract:** wrap carries `data-fgraph="live"`; nodes are `.fgraph-node` with `data-node` (+ optional `data-group`); edges are a `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; the `<svg class="fgraph-edges" data-coord="px">` is left empty for the runtime to fill.
+- **When:** dense architecture (> 8 nodes) that must stay one diagram AND be explorable. For print / PDF / embed, use static mode (live needs JS).
+
 ## Extending the template set
 
 All core topologies are now covered. If you need a new shape:

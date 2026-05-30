@@ -398,8 +398,9 @@
 .fgraph-edges .fg-edge.emphasis { opacity: 1; stroke-width: 2.2; filter: drop-shadow(0 0 4px currentColor); }
 
 /* edge orange tone (added for bus / message-bus flows — pairs with .fg-bus-strip) */
-.fgraph-edges .fg-edge.orange { stroke: #fb923c; }
-.mk-orange                    { fill:   #fb923c; }
+:root { --fg-orange: #fb923c; }  /* single source — base layer has no orange token */
+.fgraph-edges .fg-edge.orange { stroke: var(--fg-orange); }
+.mk-orange                    { fill:   var(--fg-orange); }
 
 /* arrowhead marker fill classes — apply to <path> inside <marker>.
    Declared at SVG root (not scoped under .fgraph-edges) so they also
@@ -1298,3 +1299,144 @@
 .fg-edge-lbl.cyan   { color: var(--cyan); }
 .fg-edge-lbl.purple { color: var(--purple); }
 .fg-edge-lbl.red    { color: var(--red); }
+
+
+/* ════ live-mode hooks (merged from fgraph-live.css — feat/fgraph-live-edges) ════ */
+/* ══════════════════════════════════════════════════════════════════
+   fgraph-live.css — live-mode CSS hooks (partial for fgraph-base.css)
+
+   Activates only for .fgraph-wrap[data-fgraph="live"] + its children.
+   Static wraps are fully unaffected.
+
+   Merge strategy: paste this block at the end of fgraph-base.css,
+   after all existing rules. No existing rule is overridden for
+   static wraps because all selectors here require data-fgraph="live"
+   or the state classes fg-dim / fg-hot emitted by fgraph-interact.js.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── live svg overlay: px coords, no stretch ── */
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  /* viewBox & dimensions are set by fgraph-auto.js at runtime */
+}
+
+/* edge path transitions (generated paths only) */
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges path.fg-edge {
+  transition: opacity 0.18s, stroke-width 0.15s;
+}
+
+/* ── spotlight / dim state ── */
+/* dim non-hot nodes */
+.fgraph-wrap.fg-dim .fgraph-node:not(.fg-hot) {
+  opacity: 0.32;
+  transition: opacity 0.18s;
+}
+/* dim non-hot edges */
+.fgraph-wrap.fg-dim svg.fgraph-edges path.fg-edge:not(.fg-hot) {
+  opacity: 0.08;
+}
+/* hot edges: full opacity boost */
+.fgraph-wrap.fg-dim svg.fgraph-edges path.fg-edge.fg-hot {
+  opacity: 1;
+  stroke-width: 2.4;
+}
+/* hot nodes: subtle lift */
+.fgraph-node.fg-hot {
+  box-shadow: 0 0 18px var(--accent-glow, rgba(34,211,238,0.35));
+  z-index: 4;
+}
+
+/* ── tone hide filters (toggled by legend chip clicks) ── */
+.fg-hide-cyan    svg.fgraph-edges .fg-edge.cyan,
+.fg-hide-cyan    svg.fgraph-edges text.fg-edge-lbl.cyan     { display: none; }
+.fg-hide-orange  svg.fgraph-edges .fg-edge.orange,
+.fg-hide-orange  svg.fgraph-edges text.fg-edge-lbl.orange   { display: none; }
+.fg-hide-purple  svg.fgraph-edges .fg-edge.purple,
+.fg-hide-purple  svg.fgraph-edges text.fg-edge-lbl.purple   { display: none; }
+.fg-hide-green   svg.fgraph-edges .fg-edge.green,
+.fg-hide-green   svg.fgraph-edges text.fg-edge-lbl.green    { display: none; }
+.fg-hide-red     svg.fgraph-edges .fg-edge.red,
+.fg-hide-red     svg.fgraph-edges text.fg-edge-lbl.red      { display: none; }
+.fg-hide-amber   svg.fgraph-edges .fg-edge.amber,
+.fg-hide-amber   svg.fgraph-edges text.fg-edge-lbl.amber    { display: none; }
+.fg-hide-dim     svg.fgraph-edges .fg-edge.dim,
+.fg-hide-dim     svg.fgraph-edges text.fg-edge-lbl.dim      { display: none; }
+
+/* ── generated SVG edge labels ── */
+svg.fgraph-edges text.fg-edge-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: var(--text-muted);
+  pointer-events: none;
+  opacity: 0.82;
+}
+svg.fgraph-edges text.fg-edge-lbl.cyan   { fill: var(--cyan); }
+svg.fgraph-edges text.fg-edge-lbl.orange { fill: var(--fg-orange); }
+svg.fgraph-edges text.fg-edge-lbl.purple { fill: var(--purple); }
+svg.fgraph-edges text.fg-edge-lbl.green  { fill: var(--green); }
+svg.fgraph-edges text.fg-edge-lbl.red    { fill: var(--red); }
+svg.fgraph-edges text.fg-edge-lbl.amber  { fill: var(--amber); }
+svg.fgraph-edges text.fg-edge-lbl.dim    { fill: var(--text-muted); opacity: 0.5; }
+.fgraph-wrap.fg-dim svg.fgraph-edges text.fg-edge-lbl:not(.fg-hot) { opacity: 0.05; }
+.fgraph-wrap.fg-dim svg.fgraph-edges text.fg-edge-lbl.fg-hot       { opacity: 1; }
+
+/* ── generated legend ── */
+.fgraph-legend--live {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fg-legend-chip {
+  pointer-events: all;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+  background: var(--bg-panel, #111);
+  color: var(--text-muted, #8aa0bd);
+  transition: opacity 0.15s, background 0.15s;
+  user-select: none;
+}
+.fg-legend-chip:hover { opacity: 0.85; }
+.fg-legend-chip--off  { opacity: 0.35; text-decoration: line-through; }
+
+/* tone-tinted chips */
+.fg-legend-chip.cyan   { color: var(--cyan); }
+.fg-legend-chip.orange { color: var(--fg-orange); }
+.fg-legend-chip.purple { color: var(--purple); }
+.fg-legend-chip.green  { color: var(--green); }
+.fg-legend-chip.red    { color: var(--red); }
+.fg-legend-chip.amber  { color: var(--amber); }
+.fg-legend-chip.dim    { color: var(--text-muted); }
+
+/* group chips: neutral tint */
+.fg-legend-chip--group {
+  color: var(--text, #e6edf6);
+  border-style: dashed;
+}
+
+/* group-hidden node: used by interact.js group toggle */
+.fgraph-node.fg-group-hidden { display: none; }
+/* edges + labels touching a hidden group (interact.js group toggle) */
+.fgraph-edges .fg-edge-hidden,
+.fgraph-edges text.fg-edge-hidden { display: none; }

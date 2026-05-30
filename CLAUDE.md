@@ -94,6 +94,7 @@ Each `references/` sub-tree has a distribution profile. Skills inline or link it
 |---|---|---|
 | `base/`, `aesthetics/` | **inline** into output `<style>` | generation source, not runtime |
 | `graph-templates/` (fgraph) | **inline** for single-file OR **link** `_shared/fgraph-base.css` for multi-tab docs with ≥ 2 fgraph diagrams | matches gallery-base precedent |
+| `graph-templates/*.js` (fgraph-auto, fgraph-interact) | **inline** into output `<script>` — live mode only | runtime, file://-safe, strict no-op without a `data-fgraph="live"` wrap |
 | `gallery-templates/` | **link** `_shared/gallery-base.{css,js}` | runtime-shared across gallery outputs |
 | `slide-templates/` | **always inline** into single-file `<style>`/`<script type="module">` | `forge-slides` produces `file://`-safe offline decks; no `_shared/slide-templates/` mirror |
 | `plugins/forge/skills/<name>/references/` (per-skill) | **Read on-demand** via `Read ${CLAUDE_PLUGIN_ROOT}/skills/<name>/references/<file>.md before <action>.` directive in the skill body | skill-scoped prose offloaded to cut SKILL.md bulk; not inlined into output, not linked at runtime |

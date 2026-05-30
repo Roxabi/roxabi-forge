@@ -330,7 +330,31 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 - > 8 nodes or a shape no template covers → **split the diagram** into sub-diagrams, or use `layered.html` with hand-assigned `--x/--y`
 - See `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the full decision matrix.
 
-fgraph-radial caps at ~6 satellites before labels collide. For dense graphs (> 8 nodes) split into sub-diagrams rather than cramming.
+fgraph-radial caps at ~6 satellites before labels collide. For dense graphs (> 8 nodes) split into sub-diagrams rather than cramming — **or** use Live mode (below).
+
+### Live mode (opt-in, interactive) — alternative to splitting
+
+Dense architecture (> 8 nodes) that must stay ONE diagram **and** be explorable → `live` mode instead of splitting. Nodes stay declarative (`--x/--y`); a small inlined runtime auto-routes edges from the rendered node rects (no hand-authored `<path>`, resize-safe, no `preserveAspectRatio` stretch) and adds hover-spotlight + tone/group filtering.
+
+**Two modes, one design-system:**
+- **static** (default) — hand-authored, or `gen-fgraph.py --mode static`. Print/PDF/embed-safe. Existing 16 templates unchanged.
+- **live** (opt-in) — `gen-fgraph.py --mode live`, or a hand-authored `data-fgraph="live"` wrap. Interactive. **Breaks print/PDF** (needs JS) — never use it for PDF export.
+
+**Data-driven:** `scripts/gen-fgraph.py --in <graph>.json --out <file>.html [--mode live|static]` generalizes `gen-deps.py` to any node/edge graph (DAG-layered rows, R1 even-stride placement). `dep-graph.html` stays the issue-specific generator.
+
+**Contract** (emit exactly; consumed by `fgraph-auto.js` + `fgraph-interact.js`):
+```html
+<div class="fgraph-wrap {accent}" data-fgraph="live" data-interactive="true">
+  <div class="fgraph-node {shape} {tone}" data-node="id" data-group="g" style="--x:..;--y:..">…</div>
+  <script type="application/json" class="fgraph-edge-data">
+    [{"f":"a","t":"b","tone":"orange","mods":["thick"],"label":"…"}]
+  </script>
+  <svg class="fgraph-edges" data-coord="px"></svg>   <!-- empty; runtime draws -->
+</div>
+```
+- Inline `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fgraph-auto.js` + `fgraph-interact.js` into the output `<script>` block (Mode A, file://-safe) — same directive as `theme-toggle.js`. Live styling ships inside `fgraph-base.css` (no extra file). Runtime injects its own markers (`fg-arr-{tone}--live`) and is a strict no-op on any page without a `data-fgraph="live"` wrap.
+
+**QC delta vs static:** in live mode R4 (straight-arrow), arrow-routing, and R6 (node masking) are **auto-satisfied** — anchors land on node borders by construction → mark N/A. Add instead: runtime no-ops on static pages · edges redraw on resize (`ResizeObserver`) · markers injected · `data-coord="px"` present on the live `<svg>`.
 
 Choose `diagram:category` + `diagram:color` from `${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md`.
 
