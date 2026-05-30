@@ -722,7 +722,7 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | Message flow / request lifecycle crossing N architectural layers over M phases | `lane-swim.html` | clean-arch layer trace, pipeline walkthrough, process with optional steps |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
-All 14 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+All 15 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
 `radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`, `gantt`,
 `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`) share the same
 `fgraph-base.css` primitives — differences live only in layout coordinates
@@ -1369,7 +1369,7 @@ Static templates hand-author every `<path>` and lean on layout rules R1–R7 to 
 
 - **Runtime:** `fgraph-auto.js` (edge router) + `fgraph-interact.js` (spotlight + legend), inlined into the output `<script>` like `theme-toggle.js`. Live styling ships inside `fgraph-base.css`. The runtime is a strict no-op without a `data-fgraph="live"` wrap, so the static templates are unaffected.
 - **Data-driven:** `scripts/gen-fgraph.py --in <graph>.json --out <file>.html [--mode live|static]` generalizes `gen-deps.py` to any node/edge graph (DAG-layered rows, R1 even-stride). `--mode static` emits Python-routed paths (print/PDF-safe); `--mode live` emits the contract below.
-- **Contract:** wrap carries `data-fgraph="live"`; nodes are `.fgraph-node` with `data-node` (+ optional `data-group`); edges are a `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; the `<svg class="fgraph-edges" data-coord="px">` is left empty for the runtime to fill.
+- **Contract:** wrap carries `data-fgraph="live"` and `data-interactive="true"` (interact.js requires it for spotlight/legend); nodes are `.fgraph-node` with `data-node` (+ optional `data-group`); edges are a `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; the `<svg class="fgraph-edges" data-coord="px">` is left empty for the runtime to fill.
 - **When:** dense architecture (> 8 nodes) that must stay one diagram AND be explorable. For print / PDF / embed, use static mode (live needs JS).
 
 ## Extending the template set

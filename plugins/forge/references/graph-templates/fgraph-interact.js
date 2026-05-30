@@ -65,6 +65,11 @@
     try {
       edgeDefs = JSON.parse(edgeScript.textContent)
     } catch (e) {
+      console.warn('[fgraph-interact] invalid edge JSON', e)
+      return
+    }
+    if (!Array.isArray(edgeDefs)) {
+      console.warn('[fgraph-interact] edge data must be a JSON array')
       return
     }
 
@@ -83,11 +88,23 @@
       chip.className = `fg-legend-chip ${tone}`
       chip.textContent = tone
       chip.dataset.tone = tone
+      chip.setAttribute('aria-pressed', 'false')
       chip.addEventListener('click', () => {
         const active = chip.classList.toggle('fg-legend-chip--off')
+        chip.setAttribute('aria-pressed', String(active))
         wrap.classList.toggle(`fg-hide-${tone}`, active)
       })
       legend.appendChild(chip)
+    }
+
+    // track hidden groups for re-apply after redraw
+    if (!wrap.__fgHiddenGroups) wrap.__fgHiddenGroups = new Set()
+
+    wrap.__fgReapplyHidden = () => {
+      wrap.querySelectorAll('svg.fgraph-edges path.fg-edge, svg.fgraph-edges text.fg-edge-lbl').forEach((el) => {
+        const inHiddenGroup = wrap.__fgHiddenGroups.has(el.dataset.f) || wrap.__fgHiddenGroups.has(el.dataset.t)
+        el.classList.toggle('fg-edge-hidden', inHiddenGroup)
+      })
     }
 
     for (const group of groups) {
@@ -96,18 +113,20 @@
       chip.className = 'fg-legend-chip fg-legend-chip--group'
       chip.textContent = group
       chip.dataset.group = group
+      chip.setAttribute('aria-pressed', 'false')
       const groupIds = new Set(nodes.filter((n) => n.dataset.group === group).map((n) => n.dataset.node))
       chip.addEventListener('click', () => {
         const hidden = chip.classList.toggle('fg-legend-chip--off')
+        chip.setAttribute('aria-pressed', String(hidden))
         nodes.forEach((n) => {
           if (groupIds.has(n.dataset.node)) n.classList.toggle('fg-group-hidden', hidden)
         })
-        // also hide edges + labels touching a node in this group
-        wrap.querySelectorAll('svg.fgraph-edges path.fg-edge, svg.fgraph-edges text.fg-edge-lbl').forEach((el) => {
-          if (groupIds.has(el.dataset.f) || groupIds.has(el.dataset.t)) {
-            el.classList.toggle('fg-edge-hidden', hidden)
-          }
+        // update hidden-group tracking set and re-apply
+        groupIds.forEach((id) => {
+          if (hidden) wrap.__fgHiddenGroups.add(id)
+          else wrap.__fgHiddenGroups.delete(id)
         })
+        wrap.__fgReapplyHidden()
       })
       legend.appendChild(chip)
     }

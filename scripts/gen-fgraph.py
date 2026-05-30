@@ -64,12 +64,6 @@ CORRIDOR_WIDTH = 2.0
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def safe_id(node_id: str) -> str:
-    """Return an HTML-id-safe version of a node id."""
-    import re
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", str(node_id))
-
-
 def load_css_file(path: Path) -> str:
     """Read a CSS file, return its content or empty string if missing."""
     if path.exists():
@@ -98,25 +92,38 @@ def assign_layers(nodes: list[dict], edges: list[dict]) -> dict[str, int]:
             parents[t].add(f)
             children[f].add(t)
 
-    # Detect and break cycles: DFS to find back-edges, remove them from parents
-    # (used only for layering, not emitted edges).
+    # Detect and break cycles: iterative DFS to find back-edges, remove them
+    # from parents (used only for layering, not emitted edges).
     visited: set[str] = set()
-    in_stack: set[str] = set()
     cycle_edges: set[tuple[str, str]] = set()
 
-    def dfs_cycle(node: str):
-        visited.add(node)
-        in_stack.add(node)
-        for child in list(children.get(node, [])):
-            if child not in visited:
-                dfs_cycle(child)
-            elif child in in_stack:
-                cycle_edges.add((node, child))
-        in_stack.discard(node)
-
-    for nid in node_ids:
-        if nid not in visited:
-            dfs_cycle(nid)
+    for start in sorted(node_ids):
+        if start in visited:
+            continue
+        # stack entries: (node, iterator-over-children, current-path-set)
+        path: list[str] = []
+        path_set: set[str] = set()
+        stack: list[tuple[str, bool]] = [(start, True)]
+        while stack:
+            nid, entering = stack.pop()
+            if entering:
+                if nid in visited:
+                    continue
+                visited.add(nid)
+                path.append(nid)
+                path_set.add(nid)
+                # push exit marker first, then children
+                stack.append((nid, False))
+                for child in sorted(children.get(nid, [])):
+                    if child not in visited:
+                        stack.append((child, True))
+                    elif child in path_set:
+                        cycle_edges.add((nid, child))
+            else:
+                # leaving nid: pop from current path
+                if path and path[-1] == nid:
+                    path.pop()
+                    path_set.discard(nid)
 
     # Remove back-edges from parents for layering only
     parents_dag: dict[str, set[str]] = {
@@ -161,10 +168,11 @@ def auto_place(nodes: list[dict], edges: list[dict]) -> dict[str, tuple[float, f
 
     - Nodes with explicit x/y in input keep their values.
     - Others: layer-based rows (top→bottom), R1 even-stride within each row.
-    - R2 min-gap check: warn if centers are too close, never overlap.
+    - R2 min-gap check: warns when a row is too tight; the layout is still
+      emitted and may overlap at N>=6 nodes per row.
 
     Returns dict[node_id → (x, y)].
-    Also prints the placement verification table to stdout.
+    Also prints the placement verification table to stderr.
     """
     # Separate explicit vs auto nodes
     explicit: dict[str, tuple[float, float]] = {}
@@ -192,9 +200,9 @@ def auto_place(nodes: list[dict], edges: list[dict]) -> dict[str, tuple[float, f
 
     positions: dict[str, tuple[float, float]] = {}
 
-    print("\n── Placement verification table ─────────────────────────────────────")
-    print(f"{'Layer':>5}  {'N':>3}  {'Node ID':<20}  {'x':>7}  {'y':>7}  {'Gap check'}")
-    print(f"{'─'*5}  {'─'*3}  {'─'*20}  {'─'*7}  {'─'*7}  {'─'*30}")
+    print("\n── Placement verification table ─────────────────────────────────────", file=sys.stderr)
+    print(f"{'Layer':>5}  {'N':>3}  {'Node ID':<20}  {'x':>7}  {'y':>7}  {'Gap check'}", file=sys.stderr)
+    print(f"{'─'*5}  {'─'*3}  {'─'*20}  {'─'*7}  {'─'*7}  {'─'*30}", file=sys.stderr)
 
     for lvl in range(layer_count):
         members = buckets.get(lvl, [])
@@ -230,11 +238,11 @@ def auto_place(nodes: list[dict], edges: list[dict]) -> dict[str, tuple[float, f
                 f"R1 violation: node {node['id']} x={x} expected={expected}"
             )
             row_gap_info = f"inter={inter_center_gap:.1f}% usable={usable_gap:.1f}% {gap_status}" if i == 0 else ""
-            print(f"{lvl:>5}  {n_nodes:>3}  {node['id']:<20}  {x:>7.2f}  {y:>7.2f}  {row_gap_info}")
+            print(f"{lvl:>5}  {n_nodes:>3}  {node['id']:<20}  {x:>7.2f}  {y:>7.2f}  {row_gap_info}", file=sys.stderr)
 
-    print(f"{'─'*80}")
-    print(f"Total auto-placed: {len(positions)} nodes | Explicit: {len(explicit)} nodes")
-    print()
+    print(f"{'─'*80}", file=sys.stderr)
+    print(f"Total auto-placed: {len(positions)} nodes | Explicit: {len(explicit)} nodes", file=sys.stderr)
+    print(file=sys.stderr)
 
     positions.update(explicit)
     return positions
@@ -264,6 +272,7 @@ def route_static_edges(
 
     for edge, (sx, sy), (tx, ty) in valid:
         tone = edge.get("tone", "dim")
+        tone = tone if tone in VALID_TONES else "dim"
         mods = edge.get("mods") or []
         mod_str = " ".join(m for m in mods if m in VALID_MODS)
         cls = f"fg-edge {tone}" + (f" {mod_str}" if mod_str else "")
@@ -402,7 +411,8 @@ def render_node(node: dict, x: float, y: float) -> str:
 
     group_attr = f' data-group="{html.escape(group)}"' if group else ""
 
-    title_tone = f' {html.escape(tone)}' if tone else ""
+    safe_tone = tone if tone in VALID_TONES else ""
+    title_tone = f' {safe_tone}' if safe_tone else ""
     sub_html = f'\n    <div class="fgraph-sub">{sub}</div>' if sub else ""
 
     return (
@@ -442,10 +452,11 @@ def render_live(data: dict, positions: dict, title: str) -> str:
         clean_edges.append(ce)
 
     edge_json = json.dumps(clean_edges, separators=(",", ":"), ensure_ascii=False)
+    edge_json = edge_json.replace("</", "<\\/")
 
     nodes_html = "\n".join(node_divs)
     return f"""\
-<div class="fgraph-wrap fgraph-gen {html.escape(accent)}" data-fgraph="live" data-interactive="true">
+<div class="fgraph-wrap fgraph-gen {html.escape(accent)}" data-fgraph="live" data-interactive="true" role="region" aria-label="{html.escape(title)}">
   <div class="fgraph-frame"></div>
   <div class="fgraph-frame-lbl">{html.escape(title)}</div>
 {nodes_html}
@@ -566,6 +577,22 @@ def render_document(data: dict, mode: str, title_override: str | None) -> str:
     edges = data.get("edges", [])
 
     positions = auto_place(nodes, edges)
+
+    # Warn on duplicate node ids
+    node_ids = [n["id"] for n in nodes]
+    if len(set(node_ids)) < len(node_ids):
+        print(
+            f"WARNING: duplicate node ids detected ({len(node_ids) - len(set(node_ids))} duplicate(s))",
+            file=sys.stderr,
+        )
+
+    # Warn on edges referencing unknown node ids
+    known_ids = set(node_ids)
+    for e in edges:
+        if e.get("f") not in known_ids:
+            print(f"WARNING: edge references unknown source node id '{e.get('f')}'", file=sys.stderr)
+        if e.get("t") not in known_ids:
+            print(f"WARNING: edge references unknown target node id '{e.get('t')}'", file=sys.stderr)
 
     if mode == "live":
         diagram_html = render_live(data, positions, title)
@@ -705,8 +732,8 @@ def main():
                         help="Path to input JSON file (see schema in docstring)")
     parser.add_argument("--out", dest="output", required=True, metavar="HTML",
                         help="Path to output HTML file")
-    parser.add_argument("--mode", choices=("live", "static"), default="live",
-                        help="Output mode: 'live' (JS-routed edges, default) or 'static' (Python-routed SVG)")
+    parser.add_argument("--mode", choices=("live", "static"), default="static",
+                        help="Output mode: 'static' (Python-routed SVG, default) or 'live' (JS-routed edges)")
     parser.add_argument("--title", default=None,
                         help="Override diagram title (default: meta.title from JSON)")
     args = parser.parse_args()
@@ -718,7 +745,11 @@ def main():
         print(f"ERROR: input file not found: {in_path}", file=sys.stderr)
         sys.exit(1)
 
-    data = json.loads(in_path.read_text())
+    try:
+        data = json.loads(in_path.read_text())
+    except json.JSONDecodeError as e:
+        print(f"ERROR: invalid JSON in {in_path}: {e}", file=sys.stderr)
+        sys.exit(1)
 
     rendered = render_document(data, args.mode, args.title)
 

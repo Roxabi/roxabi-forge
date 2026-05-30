@@ -1346,7 +1346,7 @@
   stroke-width: 2.4;
 }
 /* hot nodes: subtle lift */
-.fgraph-node.fg-hot {
+.fgraph-wrap[data-fgraph="live"] .fgraph-node.fg-hot {
   box-shadow: 0 0 18px var(--accent-glow, rgba(34,211,238,0.35));
   z-index: 4;
 }
@@ -1367,8 +1367,8 @@
 .fg-hide-dim     svg.fgraph-edges .fg-edge.dim,
 .fg-hide-dim     svg.fgraph-edges text.fg-edge-lbl.dim      { display: none; }
 
-/* ── generated SVG edge labels ── */
-svg.fgraph-edges text.fg-edge-lbl {
+/* ── generated SVG edge labels (live mode only) ── */
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl {
   font-family: 'Space Mono', monospace;
   font-size: 9.5px;
   font-weight: 700;
@@ -1376,15 +1376,15 @@ svg.fgraph-edges text.fg-edge-lbl {
   pointer-events: none;
   opacity: 0.82;
 }
-svg.fgraph-edges text.fg-edge-lbl.cyan   { fill: var(--cyan); }
-svg.fgraph-edges text.fg-edge-lbl.orange { fill: var(--fg-orange); }
-svg.fgraph-edges text.fg-edge-lbl.purple { fill: var(--purple); }
-svg.fgraph-edges text.fg-edge-lbl.green  { fill: var(--green); }
-svg.fgraph-edges text.fg-edge-lbl.red    { fill: var(--red); }
-svg.fgraph-edges text.fg-edge-lbl.amber  { fill: var(--amber); }
-svg.fgraph-edges text.fg-edge-lbl.dim    { fill: var(--text-muted); opacity: 0.5; }
-.fgraph-wrap.fg-dim svg.fgraph-edges text.fg-edge-lbl:not(.fg-hot) { opacity: 0.05; }
-.fgraph-wrap.fg-dim svg.fgraph-edges text.fg-edge-lbl.fg-hot       { opacity: 1; }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.cyan   { fill: var(--cyan); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.orange { fill: var(--fg-orange); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.purple { fill: var(--purple); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.green  { fill: var(--green); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.red    { fill: var(--red); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.amber  { fill: var(--amber); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.dim    { fill: var(--text-muted); opacity: 0.5; }
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges text.fg-edge-lbl:not(.fg-hot) { opacity: 0.05; }
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges text.fg-edge-lbl.fg-hot       { opacity: 1; }
 
 /* ── generated legend ── */
 .fgraph-legend--live {

@@ -67,6 +67,10 @@
       console.warn('[fgraph-auto] invalid edge JSON', e)
       return
     }
+    if (!Array.isArray(edgeDefs)) {
+      console.warn('[fgraph-auto] edge data must be a JSON array')
+      return
+    }
 
     // size svg to wrap px
     const wrapW = wrap.offsetWidth
@@ -91,6 +95,7 @@
       const fEl = nodeMap[edge.f]
       const tEl = nodeMap[edge.t]
       if (!fEl || !tEl) continue
+      if (edge.f === edge.t) continue
 
       const rf = rect(fEl, wrap)
       const rt = rect(tEl, wrap)
@@ -136,6 +141,8 @@
         svg.appendChild(tx)
       }
     }
+
+    if (typeof wrap.__fgReapplyHidden === 'function') wrap.__fgReapplyHidden()
   }
 
   // collect all live wraps; return early if none
