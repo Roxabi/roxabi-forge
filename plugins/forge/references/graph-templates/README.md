@@ -485,7 +485,7 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
        │                                             ●─ AdapterOut
 ```
 
-Template: [`lane-swim.html`](./lane-swim.html).
+Template: [`lane-swim.html`](./lane-swim.html) · demo: [`examples/lane-swim.html`](./examples/lane-swim.html).
 Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 
 ---
