@@ -769,14 +769,14 @@ def validate_schema(data) -> None:
         print("ERROR: input JSON 'edges' must be an array", file=sys.stderr)
         sys.exit(1)
     for i, n in enumerate(nodes):
-        if not isinstance(n, dict) or not isinstance(n.get("id"), str) or not n.get("id"):
-            print(f"ERROR: nodes[{i}] must be an object with a non-empty string 'id'", file=sys.stderr)
+        if not isinstance(n, dict) or not isinstance(n.get("id"), str) or not n.get("id").strip():
+            print(f"ERROR: nodes[{i}] must be an object with a non-blank string 'id'", file=sys.stderr)
             sys.exit(1)
     for i, e in enumerate(edges):
         if (not isinstance(e, dict)
-                or not isinstance(e.get("f"), str) or not e.get("f")
-                or not isinstance(e.get("t"), str) or not e.get("t")):
-            print(f"ERROR: edges[{i}] must be an object with non-empty string 'f' and 't'", file=sys.stderr)
+                or not isinstance(e.get("f"), str) or not e.get("f").strip()
+                or not isinstance(e.get("t"), str) or not e.get("t").strip()):
+            print(f"ERROR: edges[{i}] must be an object with non-blank string 'f' and 't'", file=sys.stderr)
             sys.exit(1)
 
 
