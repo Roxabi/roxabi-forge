@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="lyra agent topology">
+<meta name="diagram:date"      content="2026-05-30">
+<meta name="diagram:category"  content="lyra">
+<meta name="diagram:cat-label" content="lyra · topology">
+<meta name="diagram:color"     content="cyan">
+<!-- diagram-meta:end -->
+<title>lyra agent topology</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+    --border: #1f252e; --border-bright: #2b3340;
+    --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+    --amber: #fbbf24; --cyan: #22d3ee; --purple: #c084fc; --green: #4ade80; --red: #f87171;
+    --amber-dim: rgba(251,191,36,0.12); --cyan-dim: rgba(34,211,238,0.12);
+    --purple-dim: rgba(192,132,252,0.12); --green-dim: rgba(74,222,128,0.12);
+    --accent-glow: rgba(34,211,238,0.35);
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 32px 24px 40px; max-width: 960px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  .header-eyebrow { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  h1 .accent { color: var(--cyan); }
+  .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  /* fgraph container */
+  .fgraph-wrap { position: relative; width: 100%; max-width: 760px; aspect-ratio: 1/1; margin: 0 auto 20px; background: var(--bg-panel); border: 1px solid rgba(34,211,238,0.35); border-radius: 10px; padding: 14px; font-family: 'Inter', system-ui, sans-serif; }
+  .fgraph-frame { position: absolute; inset: 12px; border: 1px dashed var(--border-bright); border-radius: 14px; pointer-events: none; }
+  .fgraph-frame-lbl { position: absolute; top: 22px; left: 28px; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cyan); }
+  .fgraph-frame-sub { position: absolute; top: 38px; left: 28px; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-muted); }
+
+  /* edges */
+  .fgraph-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+  .fgraph-edges .fg-edge { fill: none; stroke-width: 1.6; opacity: 0.9; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan); }
+  .fgraph-edges .fg-edge.purple { stroke: var(--purple); }
+  .fgraph-edges .fg-edge.amber  { stroke: var(--amber); }
+  .fgraph-edges .fg-edge.green  { stroke: var(--green); }
+  .mk-cyan   { fill: var(--cyan); }
+  .mk-purple { fill: var(--purple); }
+  .mk-amber  { fill: var(--amber); }
+  .mk-green  { fill: var(--green); }
+
+  /* nodes */
+  .fgraph-node { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); width: var(--w,22%); transform: translate(-50%,-50%); background: var(--bg-card); border: 1.5px solid var(--border-bright); border-radius: 12px; padding: 8px 10px 9px; z-index: 2; transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s; }
+  .fgraph-node:hover { border-width: 2px; box-shadow: 0 0 14px var(--accent-glow); transform: translate(-50%,-50%) translateY(-1px); z-index: 3; }
+  .fgraph-node.wide   { --w: 28%; }
+  .fgraph-node.pill   { border-radius: 999px; border-width: 2px; background: var(--bg-panel); text-align: center; padding: 10px 12px; }
+  .fgraph-node.cyan   { border-color: var(--cyan);   background: var(--cyan-dim); }
+  .fgraph-node.purple { border-color: var(--purple); background: var(--purple-dim); }
+  .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
+  .fgraph-node.green  { border-color: var(--green);  background: var(--green-dim); }
+  .fgraph-node.pill.cyan   { background: var(--bg-panel); }
+  .fgraph-node.pill.green  { background: var(--bg-panel); }
+
+  /* title / sub */
+  .fgraph-title { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+  .fgraph-node.wide .fgraph-title, .fgraph-node.pill .fgraph-title { justify-content: center; }
+  .fgraph-title.cyan   { color: var(--cyan); }
+  .fgraph-title.purple { color: var(--purple); }
+  .fgraph-title.amber  { color: var(--amber); }
+  .fgraph-title.green  { color: var(--green); }
+  .fgraph-sub { margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 9.5px; line-height: 1.35; color: var(--text-dim); text-align: center; }
+  .fgraph-sub.muted { color: var(--text-muted); }
+
+  /* pills */
+  .fgraph-pill { display: inline-block; font-family: 'Space Mono', monospace; font-size: 8.5px; line-height: 1.3; padding: 1px 6px; border-radius: 99px; background: var(--bg-panel); border: 1px solid var(--border-bright); color: var(--text-muted); letter-spacing: 0.03em; }
+  .fgraph-pill.cyan   { color: var(--cyan);   border-color: rgba(34,211,238,0.35);  background: rgba(34,211,238,0.08); }
+  .fgraph-pill.purple { color: var(--purple); border-color: rgba(192,132,252,0.35); background: rgba(192,132,252,0.08); }
+  .fgraph-pill.amber  { color: var(--amber);  border-color: rgba(251,191,36,0.35);  background: rgba(251,191,36,0.08); }
+  .fgraph-pill.green  { color: var(--green);  border-color: rgba(74,222,128,0.35);  background: rgba(74,222,128,0.08); }
+
+  /* edge labels */
+  .fgraph-lbl { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); transform: translate(-50%,-50%); font-family: 'Space Mono', monospace; font-size: 9.5px; font-weight: 700; line-height: 1.35; padding: 2px 6px; background: var(--bg-panel); border-radius: 4px; pointer-events: none; white-space: nowrap; text-align: center; z-index: 3; }
+  .fgraph-lbl.cyan   { color: var(--cyan); }
+  .fgraph-lbl.purple { color: var(--purple); }
+  .fgraph-lbl.amber  { color: var(--amber); }
+  .fgraph-lbl.green  { color: var(--green); }
+  .fgraph-lbl .dim   { color: var(--text-muted); font-weight: 400; display: block; font-size: 8.5px; }
+
+  /* legend */
+  .fgraph-legend { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 9.5px; color: var(--text-muted); pointer-events: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">lyra · topology</div>
+  <h1>lyra agent <span class="accent">topology</span></h1>
+  <p class="header-subtitle">lyra-hub orchestrates 5 satellites over NATS — Telegram + Discord, hub-spoke.</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     radial-hub layout — 0..100 coordinate space, square aspect ratio.
+     Hub center: (50, 50). 5 peers at R=33, even 72° stride from top.
+       peer-0 (clipool)   : (50.0, 17.0)  — top        angle -90°
+       peer-1 (discord)   : (81.4, 39.8)  — upper-right angle -18°
+       peer-2 (telegram)  : (69.4, 76.7)  — lower-right angle  54°
+       peer-3 (nats)      : (30.6, 76.7)  — lower-left  angle 126°
+       peer-4 (gh-helper) : (18.6, 39.8)  — upper-left  angle 198°
+     Arrow paths computed via bounding-box formula (hub pill halfW=14 halfH=5,
+     peer card halfW=11 halfH=8).
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fgraph-wrap square"
+     role="img"
+     aria-label="Radial hub-and-spoke diagram of lyra agent topology. lyra-hub NATS orchestrator at center on M1 roxabituwer. Five satellite nodes arranged evenly around it: clipool (Claude pool, 4 workers), discord (gateway bot, 1 worker), telegram (gateway bot, 1 worker), nats (JetStream bus, core), gh-helper (GitHub pod, on-demand). Bidirectional edges connect hub to each satellite labeled with NATS subject prefixes.">
+
+  <div class="fgraph-frame"></div>
+  <div class="fgraph-frame-lbl">M1 · roxabituwer</div>
+  <div class="fgraph-frame-sub">192.168.1.16 · NATS hub</div>
+
+  <!-- ── EDGE LAYER ──────────────────────────────────────────────── -->
+  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="fg-arr-cyan"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+      <marker id="fg-arr-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+      <marker id="fg-arr-amber"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+      <marker id="fg-arr-green"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+    </defs>
+
+    <!-- hub ↔ clipool (top) — chat.* -->
+    <path class="fg-edge cyan" d="M 50.0,45.0 L 50.0,25.0"
+          marker-start="url(#fg-arr-cyan)" marker-end="url(#fg-arr-cyan)"/>
+
+    <!-- hub ↔ discord (upper-right) — chat.discord.* -->
+    <path class="fg-edge purple" d="M 64.0,45.5 L 70.4,43.4"
+          marker-start="url(#fg-arr-purple)" marker-end="url(#fg-arr-purple)"/>
+
+    <!-- hub ↔ telegram (lower-right) — chat.telegram.* -->
+    <path class="fg-edge amber" d="M 53.6,55.0 L 63.6,68.7"
+          marker-start="url(#fg-arr-amber)" marker-end="url(#fg-arr-amber)"/>
+
+    <!-- hub ↔ nats (lower-left) — nats.* -->
+    <path class="fg-edge green" d="M 46.4,55.0 L 36.4,68.7"
+          marker-start="url(#fg-arr-green)" marker-end="url(#fg-arr-green)"/>
+
+    <!-- hub ↔ gh-helper (upper-left) — gh.* -->
+    <path class="fg-edge cyan" d="M 36.0,45.5 L 29.6,43.4"
+          marker-start="url(#fg-arr-cyan)" marker-end="url(#fg-arr-cyan)"/>
+  </svg>
+
+  <!-- ── EDGE LABELS ─────────────────────────────────────────────── -->
+  <div class="fgraph-lbl cyan"   style="--x:50;--y:35;">chat.*</div>
+  <div class="fgraph-lbl purple" style="--x:70;--y:41;">chat.discord.*</div>
+  <div class="fgraph-lbl amber"  style="--x:62;--y:64;">chat.telegram.*</div>
+  <div class="fgraph-lbl green"  style="--x:38;--y:64;">nats.*</div>
+  <div class="fgraph-lbl cyan"   style="--x:30;--y:41;">gh.*</div>
+
+  <!-- ── NODE CARDS ──────────────────────────────────────────────── -->
+
+  <!-- peer-0: clipool (top) -->
+  <div class="fgraph-node cyan" style="--x:50;--y:17;">
+    <div class="fgraph-title cyan">
+      clipool <span class="fgraph-pill cyan">4 workers</span>
+    </div>
+    <div class="fgraph-sub">Claude pool · NATS</div>
+  </div>
+
+  <!-- peer-1: discord (upper-right) -->
+  <div class="fgraph-node purple" style="--x:81;--y:40;">
+    <div class="fgraph-title purple">
+      discord <span class="fgraph-pill purple">×1</span>
+    </div>
+    <div class="fgraph-sub">gateway bot</div>
+  </div>
+
+  <!-- peer-2: telegram (lower-right) -->
+  <div class="fgraph-node amber" style="--x:69;--y:77;">
+    <div class="fgraph-title amber">
+      telegram <span class="fgraph-pill amber">×1</span>
+    </div>
+    <div class="fgraph-sub">gateway bot</div>
+  </div>
+
+  <!-- peer-3: nats (lower-left) -->
+  <div class="fgraph-node green" style="--x:31;--y:77;">
+    <div class="fgraph-title green">
+      nats <span class="fgraph-pill green">core</span>
+    </div>
+    <div class="fgraph-sub">JetStream bus</div>
+  </div>
+
+  <!-- peer-4: gh-helper (upper-left) -->
+  <div class="fgraph-node cyan" style="--x:19;--y:40;">
+    <div class="fgraph-title cyan">
+      gh-helper <span class="fgraph-pill cyan">on-demand</span>
+    </div>
+    <div class="fgraph-sub">GitHub pod</div>
+  </div>
+
+  <!-- hub (center) — pill bus node -->
+  <div class="fgraph-node cyan pill wide" style="--x:50;--y:50;">
+    <div class="fgraph-title cyan">lyra-hub</div>
+    <div class="fgraph-sub">NATS orchestrator</div>
+    <div class="fgraph-sub muted">M1 · roxabituwer</div>
+  </div>
+
+  <div class="fgraph-legend">6 nodes · 5 edges · hub-spoke · NATS subjects on edges</div>
+</div>
+
+</main>
+
+</body>
+</html>

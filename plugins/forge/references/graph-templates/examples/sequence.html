@@ -84,10 +84,11 @@
   .fgraph-edges .mk-cyan  { fill: var(--cyan); }
   .fgraph-edges .mk-purple { fill: var(--purple); }
 
-  .fgraph-edges .fg-edge.amber  { stroke: var(--amber);  stroke-width: 1.5; fill: none; }
-  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan);   stroke-width: 1.5; fill: none; }
-  .fgraph-edges .fg-edge.purple { stroke: var(--purple); stroke-width: 1.5; fill: none; }
-  .fgraph-edges .fg-edge.green  { stroke: var(--green);  stroke-width: 1.5; fill: none; }
+  .fgraph-edges .fg-edge { fill: none; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.amber  { stroke: var(--amber);  stroke-width: 1.5; }
+  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan);   stroke-width: 1.5; }
+  .fgraph-edges .fg-edge.purple { stroke: var(--purple); stroke-width: 1.5; }
+  .fgraph-edges .fg-edge.green  { stroke: var(--green);  stroke-width: 1.5; }
   .fgraph-edges .fg-edge.dashed { stroke-dasharray: 4 3; }
 
   .fgraph-legend { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 9.5px; color: var(--text-muted); pointer-events: none; }

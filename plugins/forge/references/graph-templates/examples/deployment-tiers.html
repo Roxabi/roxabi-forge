@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="Roxabi Quadlet stack">
+<meta name="diagram:date"      content="2026-05-30">
+<meta name="diagram:category"  content="deploy · tiers">
+<meta name="diagram:cat-label" content="deploy · tiers">
+<meta name="diagram:color"     content="green">
+<!-- diagram-meta:end -->
+<title>Roxabi Quadlet stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+    --border: #1f252e; --border-bright: #2b3340;
+    --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+    --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+    --cyan: #22d3ee;  --cyan-dim:  rgba(34,211,238,0.12);
+    --purple: #c084fc; --purple-dim: rgba(192,132,252,0.12);
+    --green: #4ade80;  --green-dim:  rgba(74,222,128,0.12);
+    --red: #f87171;    --red-dim:    rgba(248,113,113,0.12);
+    --accent-glow: rgba(74,222,128,0.35);
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 32px 24px 40px; max-width: 960px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  .header-eyebrow { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  h1 .accent { color: var(--green); }
+  .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  /* ── fgraph container ── */
+  .fgraph-wrap { position: relative; width: 100%; max-width: 680px; aspect-ratio: 4/5; margin: 0 auto 20px; background: var(--bg-panel); border: 1px solid rgba(74,222,128,0.35); border-radius: 10px; padding: 14px; font-family: 'Inter', system-ui, sans-serif; }
+
+  /* ── SVG edge layer ── */
+  .fgraph-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+  .fgraph-edges .fg-edge { fill: none; stroke-width: 1.6; opacity: 0.9; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.amber  { stroke: var(--amber); }
+  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan); }
+  .fgraph-edges .fg-edge.purple { stroke: var(--purple); }
+  .fgraph-edges .fg-edge.green  { stroke: var(--green); }
+  .mk-amber { fill: var(--amber); } .mk-cyan { fill: var(--cyan); }
+  .mk-purple { fill: var(--purple); } .mk-green { fill: var(--green); }
+
+  /* ── node cards ── */
+  .fgraph-node { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); width: var(--w,20%); transform: translate(-50%,-50%); background: var(--bg-card); border: 1.5px solid var(--border-bright); border-radius: 12px; padding: 7px 10px 8px; z-index: 2; transition: border-color .15s, box-shadow .2s, transform .2s; }
+  .fgraph-node:hover { border-width: 2px; box-shadow: 0 0 14px var(--accent-glow); transform: translate(-50%,-50%) translateY(-1px); z-index: 3; }
+  .fgraph-node.narrow { --w: 17%; }
+  .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
+  .fgraph-node.cyan   { border-color: var(--cyan);   background: var(--cyan-dim); }
+  .fgraph-node.purple { border-color: var(--purple); background: var(--purple-dim); }
+  .fgraph-node.green  { border-color: var(--green);  background: var(--green-dim); }
+  .fgraph-title { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-family: 'Outfit', sans-serif; font-size: 11.5px; font-weight: 700; line-height: 1.2; }
+  .fgraph-title.amber  { color: var(--amber); }
+  .fgraph-title.cyan   { color: var(--cyan); }
+  .fgraph-title.purple { color: var(--purple); }
+  .fgraph-title.green  { color: var(--green); }
+  .fgraph-sub { margin-top: 3px; font-family: 'Space Mono', monospace; font-size: 8.5px; line-height: 1.3; color: var(--text-dim); text-align: center; }
+  .fgraph-sub.muted { color: var(--text-muted); }
+
+  /* ── edge labels ── */
+  .fgraph-lbl { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); transform: translate(-50%,-50%); font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; padding: 2px 6px; background: var(--bg-panel); border-radius: 4px; pointer-events: none; white-space: nowrap; z-index: 3; }
+  .fgraph-lbl.amber  { color: var(--amber); }
+  .fgraph-lbl.cyan   { color: var(--cyan); }
+  .fgraph-lbl.purple { color: var(--purple); }
+  .fgraph-lbl.green  { color: var(--green); }
+
+  /* ── tier stripe + label ── */
+  .tier-stripe { position: absolute; left: 5%; width: 90%; border-radius: 8px; pointer-events: none; }
+  .tier-lbl { position: absolute; left: 8%; font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .tier-sub { position: absolute; left: 8%; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-muted); }
+
+  /* ── legend ── */
+  .fgraph-legend { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 9.5px; color: var(--text-muted); pointer-events: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">deploy · tiers</div>
+  <h1>Roxabi Quadlet <span class="accent">stack</span></h1>
+  <p class="header-subtitle">systemd --user → Podman → services → ghcr images — rootless prod.</p>
+</header>
+
+<main>
+
+<div class="fgraph-wrap"
+     role="img"
+     aria-label="Deployment tier diagram of Roxabi Quadlet stack. 4 tiers top to bottom: ORCHESTRATION (systemd --user, amber), RUNTIME (Podman rootless, cyan), SERVICES (lyra-hub · voicecli-stt · voicecli-tts · llmcli, purple), IMAGES (ghcr.io/roxabi/base · ghcr.io/roxabi/ml-base, green). Downward edges: starts, runs, FROM.">
+
+  <!-- ── Tier stripes ── -->
+  <div class="tier-stripe" style="top:6%;height:19%;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);"></div>
+  <div class="tier-lbl"    style="top:8%;color:var(--amber);">Orchestration</div>
+
+  <div class="tier-stripe" style="top:28%;height:19%;background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.25);"></div>
+  <div class="tier-lbl"    style="top:30%;color:var(--cyan);">Runtime</div>
+
+  <div class="tier-stripe" style="top:50%;height:22%;background:rgba(192,132,252,0.08);border:1px solid rgba(192,132,252,0.25);"></div>
+  <div class="tier-lbl"    style="top:52%;color:var(--purple);">Services</div>
+
+  <div class="tier-stripe" style="top:75%;height:19%;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);"></div>
+  <div class="tier-lbl"    style="top:77%;color:var(--green);">Images</div>
+
+  <!-- ── Edges ── -->
+  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="fg-arr-amber-dt"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+      <marker id="fg-arr-cyan-dt"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+      <marker id="fg-arr-purple-dt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+      <marker id="fg-arr-green-dt"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+    </defs>
+
+    <!-- orchestration → runtime "starts" (center x=50, T1 bottom ~24%, T2 top ~30%) -->
+    <path class="fg-edge amber" d="M 50,24 L 50,30" marker-end="url(#fg-arr-amber-dt)"/>
+
+    <!-- runtime → services "runs" (center x=50, T2 bottom ~46%, T3 top ~52%) -->
+    <path class="fg-edge cyan"  d="M 50,46 L 50,52" marker-end="url(#fg-arr-cyan-dt)"/>
+
+    <!-- services → images "FROM" — 4 downward spokes from each service node to image nodes
+         Service nodes: lyra-hub(x=18), voicecli-stt(x=38), voicecli-tts(x=62), llmcli(x=82) — y≈61
+         Image nodes: base(x=32), ml-base(x=68) — y≈84
+         T3 bottom ≈ 71%, T4 top ≈ 76%
+
+         lyra-hub(18,71) → base(32,76)  -->
+    <path class="fg-edge purple" d="M 18,71 Q 18,74 32,76" marker-end="url(#fg-arr-purple-dt)"/>
+    <!-- voicecli-stt(38,71) → ml-base(68,76) -->
+    <path class="fg-edge purple" d="M 38,71 Q 38,74 68,76" marker-end="url(#fg-arr-purple-dt)"/>
+    <!-- voicecli-tts(62,71) → ml-base(68,76) -->
+    <path class="fg-edge purple" d="M 62,71 Q 62,74 68,76" marker-end="url(#fg-arr-purple-dt)"/>
+    <!-- llmcli(82,71) → ml-base(68,76) -->
+    <path class="fg-edge purple" d="M 82,71 Q 82,74 68,76" marker-end="url(#fg-arr-purple-dt)"/>
+  </svg>
+
+  <!-- ── Edge labels ── -->
+  <div class="fgraph-lbl amber"  style="--x:55;--y:27;">starts</div>
+  <div class="fgraph-lbl cyan"   style="--x:55;--y:49;">runs</div>
+  <div class="fgraph-lbl purple" style="--x:27;--y:74;">FROM</div>
+
+  <!-- ── Tier 1: ORCHESTRATION ── -->
+  <div class="fgraph-node amber" style="--x:50;--y:15;--w:28%;">
+    <div class="fgraph-title amber">systemd --user</div>
+    <div class="fgraph-sub">Quadlet units · no root daemon</div>
+  </div>
+
+  <!-- ── Tier 2: RUNTIME ── -->
+  <div class="fgraph-node cyan" style="--x:50;--y:37;--w:22%;">
+    <div class="fgraph-title cyan">Podman</div>
+    <div class="fgraph-sub">rootless · UserNS keep-id</div>
+  </div>
+
+  <!-- ── Tier 3: SERVICES (4 nodes, evenly spread with gaps) ── -->
+  <div class="fgraph-node purple" style="--x:18;--y:61;--w:15%;">
+    <div class="fgraph-title purple">lyra-hub</div>
+    <div class="fgraph-sub">AI agent</div>
+  </div>
+
+  <div class="fgraph-node purple" style="--x:38;--y:61;--w:15%;">
+    <div class="fgraph-title purple">voicecli-stt</div>
+    <div class="fgraph-sub">STT worker</div>
+  </div>
+
+  <div class="fgraph-node purple" style="--x:62;--y:61;--w:15%;">
+    <div class="fgraph-title purple">voicecli-tts</div>
+    <div class="fgraph-sub">TTS worker</div>
+  </div>
+
+  <div class="fgraph-node purple" style="--x:82;--y:61;--w:15%;">
+    <div class="fgraph-title purple">llmcli</div>
+    <div class="fgraph-sub">LiteLLM proxy</div>
+  </div>
+
+  <!-- ── Tier 4: IMAGES ── -->
+  <div class="fgraph-node green" style="--x:32;--y:84;--w:26%;">
+    <div class="fgraph-title green">ghcr.io/roxabi/base</div>
+    <div class="fgraph-sub muted">base image · CI built</div>
+  </div>
+
+  <div class="fgraph-node green" style="--x:68;--y:84;--w:28%;">
+    <div class="fgraph-title green">ghcr.io/roxabi/ml-base</div>
+    <div class="fgraph-sub muted">ml image · GPU layers</div>
+  </div>
+
+  <div class="fgraph-legend">6 nodes · 6 edges · amber=orchestration · cyan=runtime · purple=services · green=images</div>
+</div>
+
+</main>
+
+</body>
+</html>

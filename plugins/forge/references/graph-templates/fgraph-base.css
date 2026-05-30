@@ -1202,10 +1202,16 @@
 .fg-lane-node.infra        { color: var(--green);  box-shadow: 0 0 7px rgba(16,185,129,0.4); }
 
 /* ── Label block (node title + sig) ──
-   Positioned via style="left:calc({x}%+12px); top:{y}%".
+   Positioned via style="--lx:{x}; top:{y}%" (left + clamp derive from --lx).
    transform:translateY(-50%) centres on the same y as the circle. */
 .fg-lane-label {
   position: absolute;
+  /* left + max-width derive from --lx (the lane's x in 0..100). The clamp
+     guarantees the rightmost lane's label can never overflow the frame's
+     right edge — long sigs ellipsize instead (see .fg-lane-sig). */
+  left: calc(var(--lx, 0) * 1% + 12px);
+  max-width: calc((100 - var(--lx, 0)) * 1% - 20px);
+  overflow: hidden;
   transform: translateY(-50%);
   z-index: 4;
   pointer-events: none;
@@ -1225,6 +1231,9 @@
   font-size: 8px;
   color: var(--text-muted);
   margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Inline tag pill (sits on the same baseline as the node title) ── */

@@ -97,6 +97,8 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 
 **Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / swimlane / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph / **system-architecture**). Swimlane for message-flow pipelines, request lifecycles, clean-arch layer traces crossing multiple horizontal domains. **Full-system architecture (≥ 15 components across users → apis → adapters → bus → hub → stores) → `system-architecture.html`** — it composes nested `.fgraph-group` regions + the `.fg-bus-strip` primitive and ships a 3-card info row; prefer this over `radial-hub.html` whenever the reader's mental model is a top-to-bottom request lifecycle rather than "one hub, N peers". If > 8 nodes or complex flow that no other template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
 
+**Visual target — read the golden example first (MANDATORY):** Every fgraph template ships a fully-rendered, placeholder-free golden example. Before filling a template, **`Read ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/<type>.html`** and treat it as the pixel-correct visual target your output must match — node spacing, arrow/marker proportions, label placement, density, the compact inline-CSS subset. The rendered example is a stronger anchor than any prose gate below (a self-check that "looks fine" mentally has passed on visibly broken output before — the example is what "correct" actually looks like). Examples exist for all 15 types: `dep-graph · deployment-tiers · dual-cluster · er · gantt · lane-swim · layered · linear-flow · machine-clusters · pie · radial-hub · radial-ring · sequence · state · system-architecture`.
+
 **Dependency graph exception:** `dep-graph.html` is data-driven and requires `gen-deps.py` for correct topological layout (column widths, corridor routing). For hand-crafted small dependency graphs (≤ 6 nodes), use `layered.html` with hand-assigned `--x/--y` following R1 even-stride — manual fill of dep-graph.html produces irregular layouts because the template's positioning formulas are designed for Python-side injection, not human ad-hoc placement.
 
 **foreignObject rules (MANDATORY when using this type):**
@@ -507,6 +509,7 @@ Use non-straight paths only for **intentional cross-section routes** (e.g., Anth
 | Hard-coded px coords on `.fgraph-node` | Use `--x`/`--y` custom props in 0..100 space |
 | Plain `<h2>` for section titles | Use `.section-title` class |
 | No hero section (multi-section chart) | Add hero with left-border variant |
+| `markerUnits="userSpaceOnUse"` on an arrow `<marker>` | **Remove it.** The `.fgraph-edges` SVG is `preserveAspectRatio="none"` (stretched) — `userSpaceOnUse` sizes the head in the 0..100 user space, which the non-uniform scale blows up to ~60–80px distorted arrowheads. Markers MUST omit `markerUnits` (→ `strokeWidth` default) with `markerWidth="6" markerHeight="6"`; strokes stay crisp via `vector-effect: non-scaling-stroke`. Copy the canonical defs from `fgraph-base.css`, never hand-author. |
 
 ---
 
@@ -540,6 +543,7 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Text escaping:** `&`, `<`, `>`, `"`, `'` escaped in labels/titles rendered inside SVG `<text>` or `<foreignObject>`
 - [ ] **Legend accuracy:** legend lists only node types + edge tones actually present in the diagram — no leftover entries
 - [ ] **Title accuracy:** `<title>` + `diagram:title` meta + hero `<h1>` all state the Frame Signal 2 takeaway consistently
+- [ ] **Marker units:** no `<marker>` uses `markerUnits="userSpaceOnUse"` (giant/distorted heads on the stretched `.fgraph-edges` SVG); every arrow/crow's-foot marker omits `markerUnits` and uses `markerWidth="6" markerHeight="6"`
 - [ ] **Marker refs:** every `url(#id)` arrow marker has a matching `<marker id="id">` in `<defs>` (including `fg-arr-*` arrow markers and, for ER diagrams, `fg-er-one`/`fg-er-many`/`fg-er-zero-one`/`fg-er-one-many`/`fg-er-zero-many` crow's-foot markers)
 - [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
 - [ ] **fgraph inlining:** `fgraph-base.css` is inlined into the output `<style>` (Mode A) — no `<link>` to `_shared/fgraph-base.css`

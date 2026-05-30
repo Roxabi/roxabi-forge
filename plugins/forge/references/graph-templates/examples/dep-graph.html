@@ -74,9 +74,11 @@
 
   .fgraph-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
   .fgraph-edges .mk-amber { fill: var(--amber); } .fgraph-edges .mk-cyan { fill: var(--cyan); } .fgraph-edges .mk-purple { fill: var(--purple); }
-  .fgraph-edges .fg-edge.amber  { stroke: var(--amber);  stroke-width: 1.5; fill: none; }
-  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan);   stroke-width: 1.5; fill: none; }
-  .fgraph-edges .fg-edge.purple { stroke: var(--purple); stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; }
+  /* FIX 1: base rule ensures vector-effect is applied to all edges, preventing marker scaling in stretched viewBox */
+  .fgraph-edges .fg-edge { fill: none; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.amber  { stroke: var(--amber);  stroke-width: 1.5; }
+  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan);   stroke-width: 1.5; }
+  .fgraph-edges .fg-edge.purple { stroke: var(--purple); stroke-width: 1.5; stroke-dasharray: 4 3; }
 </style>
 </head>
 <body>
@@ -112,14 +114,18 @@
     <!-- #24 blocks close-#19 -->
     <path class="fg-edge amber" d="M 76,50 L 83,50 L 83,50 L 86,50" marker-end="url(#fg-arr-amber)"/>
 
-    <!-- parent #21 ghost → all 3 children (dashed purple, 2 segments each) -->
-    <path class="fg-edge purple" d="M 42,20 L 15,20 L 15,42" marker-end="url(#fg-arr-purple)"/>
-    <path class="fg-edge purple" d="M 42,20 L 42,20 L 42,42" marker-end="url(#fg-arr-purple)"/>
-    <path class="fg-edge purple" d="M 42,20 L 69,20 L 69,42" marker-end="url(#fg-arr-purple)"/>
+    <!-- FIX 2: parent #21 ghost → all 3 children (dashed purple).
+         Ghost card center is at y=14 (--y:14). Horizontal bus routed at y=30,
+         below the ghost card's bottom edge, to avoid crossing its text box.
+         Vertical drops rise from y=30 up to the top of each child card (y=42). -->
+    <path class="fg-edge purple" d="M 42,20 L 42,30 L 15,30 L 15,42" marker-end="url(#fg-arr-purple)"/>
+    <path class="fg-edge purple" d="M 42,20 L 42,30 L 42,42" marker-end="url(#fg-arr-purple)"/>
+    <path class="fg-edge purple" d="M 42,20 L 42,30 L 69,30 L 69,42" marker-end="url(#fg-arr-purple)"/>
   </svg>
 
   <!-- ── GHOST PARENT CARD ───────────────────────── -->
-  <div class="fg-dep-card green ghost" style="--x:42; --y:20;">
+  <!-- Shifted up to --y:14 so its bottom clears the y=30 bus line -->
+  <div class="fg-dep-card green ghost" style="--x:42; --y:14;">
     <div class="issue-num green">#21 (parent)</div>
     <div class="issue-title">Purge Mermaid — 4 phases across 2 cycles</div>
   </div>

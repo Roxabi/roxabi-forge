@@ -106,7 +106,7 @@
   Per-node (one pair per row; hand-author, do not use a loop):
     Node circle:   <div class="fg-lane-node {tone} [optional]"
                         style="left:{lane-x}%; top:{row-y}%">
-    Label block:   <div class="fg-lane-label" style="left:calc({lane-x}% + 12px); top:{row-y}%">
+    Label block:   <div class="fg-lane-label" style="--lx:{lane-x}; top:{row-y}%">  (left + width clamp derive from --lx — keeps the rightmost lane inside the frame)
                      <div class="fg-lane-title {tone}">
                        {{NODE_NAME}} <span class="fg-lane-tag [pure|opt]">{{NODE_TAG}}</span>
                      </div>
@@ -257,16 +257,16 @@
        xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
       <!-- One arrowhead marker per lane tone — give each a unique id -->
-      <marker id="arr-{{SLUG}}-teal"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <marker id="arr-{{SLUG}}-teal"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--teal, #06b6d4)"/>
       </marker>
-      <marker id="arr-{{SLUG}}-amber"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <marker id="arr-{{SLUG}}-amber"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--amber, #f59e0b)"/>
       </marker>
-      <marker id="arr-{{SLUG}}-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <marker id="arr-{{SLUG}}-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--accent, #e85d04)"/>
       </marker>
-      <marker id="arr-{{SLUG}}-green"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <marker id="arr-{{SLUG}}-green"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
         <path d="M0,0 L10,5 L0,10 z" fill="var(--green, #10b981)"/>
       </marker>
     </defs>
@@ -307,14 +307,16 @@
 
   <!-- ── NODES AND LABELS (one pair per row) ────────────────────────
        .fg-lane-node   — the circle, positioned via left+top
-       .fg-lane-label  — text block, positioned via left=calc(lane-x% + 12px) + top
+       .fg-lane-label  — text block; set style="--lx:{lane-x}; top:{y}%"
+                         (left + a width clamp derive from --lx, so the
+                         rightmost lane's label never overflows the frame)
        ALWAYS keep node and label top% in sync.
 
        Node circle:
          <div class="fg-lane-node {tone} [optional]" style="left:{x}%; top:{y}%">
 
        Label:
-         <div class="fg-lane-label" style="left:calc({x}% + 12px); top:{y}%">
+         <div class="fg-lane-label" style="--lx:{x}; top:{y}%">
            <div class="fg-lane-title {tone}">
              NodeName <span class="fg-lane-tag [pure|opt]">tag</span>
            </div>
@@ -326,7 +328,7 @@
   <div class="fg-lane-node {{LANE_1_TONE}}"
        style="left:{{LANE_1_X}}%; top:10%;"
        title="{{NODE_A_NAME}}"></div>
-  <div class="fg-lane-label" style="left:calc({{LANE_1_X}}% + 12px); top:10%;">
+  <div class="fg-lane-label" style="--lx:{{LANE_1_X}}; top:10%;">
     <div class="fg-lane-title {{LANE_1_TONE}}">
       {{NODE_A_NAME}} <span class="fg-lane-tag">{{NODE_A_TAG}}</span>
     </div>
@@ -337,7 +339,7 @@
   <div class="fg-lane-node {{LANE_1_TONE}} optional"
        style="left:{{LANE_1_X}}%; top:16%;"
        title="{{NODE_B_NAME}} (optional)"></div>
-  <div class="fg-lane-label" style="left:calc({{LANE_1_X}}% + 12px); top:16%;">
+  <div class="fg-lane-label" style="--lx:{{LANE_1_X}}; top:16%;">
     <div class="fg-lane-title {{LANE_1_TONE}}">
       {{NODE_B_NAME}} <span class="fg-lane-tag opt">{{NODE_B_TAG}}</span>
     </div>
@@ -348,7 +350,7 @@
   <div class="fg-lane-node {{LANE_2_TONE}}"
        style="left:{{LANE_2_X}}%; top:30%;"
        title="{{NODE_C_NAME}}"></div>
-  <div class="fg-lane-label" style="left:calc({{LANE_2_X}}% + 12px); top:30%;">
+  <div class="fg-lane-label" style="--lx:{{LANE_2_X}}; top:30%;">
     <div class="fg-lane-title {{LANE_2_TONE}}">
       {{NODE_C_NAME}} <span class="fg-lane-tag">{{NODE_C_TAG}}</span>
     </div>
@@ -359,7 +361,7 @@
   <div class="fg-lane-node {{LANE_3_TONE}}"
        style="left:{{LANE_3_X}}%; top:50%;"
        title="{{NODE_D_NAME}}"></div>
-  <div class="fg-lane-label" style="left:calc({{LANE_3_X}}% + 12px); top:50%;">
+  <div class="fg-lane-label" style="--lx:{{LANE_3_X}}; top:50%;">
     <div class="fg-lane-title {{LANE_3_TONE}}">
       {{NODE_D_NAME}} <span class="fg-lane-tag pure">{{NODE_D_TAG}}</span>
     </div>
@@ -370,7 +372,7 @@
   <div class="fg-lane-node {{LANE_4_TONE}}"
        style="left:{{LANE_4_X}}%; top:70%;"
        title="{{NODE_E_NAME}}"></div>
-  <div class="fg-lane-label" style="left:calc({{LANE_4_X}}% + 12px); top:70%;">
+  <div class="fg-lane-label" style="--lx:{{LANE_4_X}}; top:70%;">
     <div class="fg-lane-title {{LANE_4_TONE}}">
       {{NODE_E_NAME}} <span class="fg-lane-tag">{{NODE_E_TAG}}</span>
     </div>

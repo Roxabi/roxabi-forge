@@ -49,6 +49,7 @@
 
   .fgraph-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
   .fgraph-edges .mk-amber { fill: var(--amber); } .fgraph-edges .mk-cyan { fill: var(--cyan); } .fgraph-edges .mk-green { fill: var(--green); } .fgraph-edges .mk-red { fill: var(--red); }
+  .fgraph-edges .fg-edge { fill: none; vector-effect: non-scaling-stroke; }
   .fgraph-edges .fg-edge.amber  { stroke: var(--amber);  stroke-width: 1.5; fill: none; }
   .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan);   stroke-width: 1.5; fill: none; }
   .fgraph-edges .fg-edge.green  { stroke: var(--green);  stroke-width: 1.5; fill: none; }
@@ -84,7 +85,7 @@
     <path class="fg-edge amber" d="M 32,50 L 45,50" marker-end="url(#fg-arr-amber)"/>
     <path class="fg-edge cyan"  d="M 55,50 L 68,50" marker-end="url(#fg-arr-cyan)"/>
     <path class="fg-edge cyan"  d="M 78,42 L 78,28" marker-end="url(#fg-arr-cyan)"/>
-    <path class="fg-edge green" d="M 78,16 L 92,16 L 92,50" marker-end="url(#fg-arr-green)" fill="none"/>
+    <path class="fg-edge green" d="M 78,16 L 87,16 L 87,50" marker-end="url(#fg-arr-green)" fill="none"/>
     <path class="fg-edge red"   d="M 70,22 Q 54,22 54,40" marker-end="url(#fg-arr-red)" fill="none"/>
   </svg>
 
@@ -118,7 +119,7 @@
     <div class="fgraph-title amber">in-review</div>
   </div>
 
-  <div class="fgraph-node green circle" style="--x:95;--y:50;--w:6%;">◉</div>
+  <div class="fgraph-node green circle" style="--x:90;--y:50;--w:6%;">◉</div>
 
   <div class="fgraph-legend">6 nodes · 6 transitions · red = rework loop · ● start ◉ end</div>
 </div>

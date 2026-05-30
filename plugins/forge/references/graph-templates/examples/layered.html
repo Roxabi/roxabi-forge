@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="roxabi-live ops cockpit architecture">
+<meta name="diagram:date"      content="2026-05-30">
+<meta name="diagram:category"  content="forge">
+<meta name="diagram:cat-label" content="roxabi-live · architecture">
+<meta name="diagram:color"     content="green">
+<!-- diagram-meta:end -->
+<title>roxabi-live ops cockpit architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+    --border: #1f252e; --border-bright: #2b3340;
+    --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+    --amber: #fbbf24; --cyan: #22d3ee; --purple: #c084fc; --green: #4ade80; --red: #f87171;
+    --amber-dim: rgba(251,191,36,0.12); --cyan-dim: rgba(34,211,238,0.12);
+    --purple-dim: rgba(192,132,252,0.12); --green-dim: rgba(74,222,128,0.12);
+    --accent-glow: rgba(74,222,128,0.3);
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 32px 24px 40px; max-width: 960px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  .header-eyebrow { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  h1 .accent { color: var(--green); }
+  .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  /* ── fgraph container ── */
+  .fgraph-wrap { position: relative; width: 100%; max-width: 760px; aspect-ratio: 4/5; margin: 0 auto 20px; background: var(--bg-panel); border: 1px solid rgba(74,222,128,0.35); border-radius: 10px; padding: 14px; font-family: 'Inter', system-ui, sans-serif; }
+
+  /* ── layer frame + label ── */
+  .layer-frame { position: absolute; left: 10%; width: 80%; border: 1px dashed var(--border-bright); border-radius: 10px; pointer-events: none; background: rgba(148,163,184,0.05); }
+  .layer-lbl { position: absolute; left: 12%; font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+
+  /* ── SVG edge layer ── */
+  .fgraph-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+  .fgraph-edges .fg-edge { fill: none; stroke-width: 1.6; opacity: 0.9; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.amber  { stroke: var(--amber); }
+  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan); }
+  .fgraph-edges .fg-edge.purple { stroke: var(--purple); }
+  .fgraph-edges .fg-edge.green  { stroke: var(--green); }
+  .mk-amber  { fill: var(--amber); }
+  .mk-cyan   { fill: var(--cyan); }
+  .mk-purple { fill: var(--purple); }
+  .mk-green  { fill: var(--green); }
+
+  /* ── nodes ── */
+  .fgraph-node { position: absolute; left: calc(var(--x, 50) * 1%); top: calc(var(--y, 50) * 1%); width: var(--w, 22%); transform: translate(-50%, -50%); background: var(--bg-card); border: 1.5px solid var(--border-bright); border-radius: 12px; padding: 8px 10px 9px; z-index: 2; transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s; }
+  .fgraph-node:hover { border-width: 2px; box-shadow: 0 0 14px var(--accent-glow); transform: translate(-50%, -50%) translateY(-1px); z-index: 3; }
+  .fgraph-node.wide   { --w: 30%; }
+  .fgraph-node.pill   { border-radius: 999px; border-width: 2px; background: var(--bg-panel); text-align: center; padding: 10px 12px; }
+  .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
+  .fgraph-node.cyan   { border-color: var(--cyan);   background: var(--cyan-dim); }
+  .fgraph-node.purple { border-color: var(--purple); background: var(--purple-dim); }
+  .fgraph-node.green  { border-color: var(--green);  background: var(--green-dim); }
+  .fgraph-node.pill.amber, .fgraph-node.pill.cyan, .fgraph-node.pill.purple, .fgraph-node.pill.green { background: var(--bg-panel); }
+
+  /* ── typography ── */
+  .fgraph-title { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+  .fgraph-node.wide .fgraph-title, .fgraph-node.pill .fgraph-title { justify-content: center; }
+  .fgraph-title.amber  { color: var(--amber); }
+  .fgraph-title.cyan   { color: var(--cyan); }
+  .fgraph-title.purple { color: var(--purple); }
+  .fgraph-title.green  { color: var(--green); }
+  .fgraph-sub { margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 9.5px; line-height: 1.35; color: var(--text-dim); text-align: center; }
+  .fgraph-sub.muted { color: var(--text-muted); }
+
+  /* ── edge labels ── */
+  .fgraph-lbl { position: absolute; left: calc(var(--x, 50) * 1%); top: calc(var(--y, 50) * 1%); transform: translate(-50%, -50%); font-family: 'Space Mono', monospace; font-size: 9.5px; font-weight: 700; padding: 2px 6px; background: var(--bg-panel); border-radius: 4px; pointer-events: none; white-space: nowrap; text-align: center; z-index: 1; }
+  .fgraph-lbl.amber  { color: var(--amber); }
+  .fgraph-lbl.cyan   { color: var(--cyan); }
+  .fgraph-lbl.green  { color: var(--green); }
+
+  /* ── legend ── */
+  .fgraph-legend { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 9.5px; color: var(--text-muted); pointer-events: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">roxabi-live · architecture</div>
+  <h1>roxabi-live ops cockpit <span class="accent">architecture</span></h1>
+  <p class="header-subtitle">Ingress → API → Workers → Storage — downward request lifecycle.</p>
+</header>
+
+<main>
+
+<div class="fgraph-wrap tall" role="img"
+     aria-label="4-tier architecture of roxabi-live ops cockpit. Layer 1 INGRESS: Caddy reverse proxy handles TLS on port 443. Layer 2 API: FastAPI app on uvicorn exposes /ops /graph /corpus endpoints. Layer 3 WORKERS: dep-graph builder and corpus-sync daemon process requests in parallel. Layer 4 STORAGE: SQLite and corpus markdown vault persist all data. Downward request flow: route → dispatch → persist.">
+
+  <!-- Layer frames — evenly spaced across the tall container (4/5 aspect) -->
+  <div class="layer-frame" style="top: 6%;  height: 16%;"></div>
+  <div class="layer-lbl"   style="top: 8%;">INGRESS</div>
+
+  <div class="layer-frame" style="top: 26%; height: 18%;"></div>
+  <div class="layer-lbl"   style="top: 28%;">API</div>
+
+  <div class="layer-frame" style="top: 48%; height: 18%;"></div>
+  <div class="layer-lbl"   style="top: 50%;">WORKERS</div>
+
+  <div class="layer-frame" style="top: 72%; height: 20%;"></div>
+  <div class="layer-lbl"   style="top: 74%;">STORAGE</div>
+
+  <!-- Edges SVG -->
+  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="fg-arr-amber-ly"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+      <marker id="fg-arr-cyan-ly"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+      <marker id="fg-arr-purple-ly" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+      <marker id="fg-arr-green-ly"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+    </defs>
+
+    <!-- Layer 1 → Layer 2 (ingress → api): straight down, center -->
+    <path class="fg-edge amber" d="M 50,22 L 50,28"
+          marker-end="url(#fg-arr-amber-ly)"/>
+
+    <!-- Layer 2 → Layer 3 (api → workers): fan-out to left and right -->
+    <path class="fg-edge cyan" d="M 40,42 L 30,50"
+          marker-end="url(#fg-arr-cyan-ly)"/>
+    <path class="fg-edge cyan" d="M 60,42 L 70,50"
+          marker-end="url(#fg-arr-cyan-ly)"/>
+
+    <!-- Layer 3 → Layer 4 (workers → storage): fan-in to center -->
+    <path class="fg-edge green" d="M 30,64 L 40,74"
+          marker-end="url(#fg-arr-green-ly)"/>
+    <path class="fg-edge green" d="M 70,64 L 60,74"
+          marker-end="url(#fg-arr-green-ly)"/>
+  </svg>
+
+  <!-- Edge labels — centred on each path, clear of node bounding boxes -->
+  <div class="fgraph-lbl amber"  style="--x:55;--y:25;">route</div>
+  <div class="fgraph-lbl cyan"   style="--x:33;--y:46;">dispatch</div>
+  <div class="fgraph-lbl green"  style="--x:45;--y:70;">persist</div>
+
+  <!-- Layer 1: INGRESS — wide amber node -->
+  <div class="fgraph-node amber wide" style="--x:50;--y:14;">
+    <div class="fgraph-title amber">Caddy</div>
+    <div class="fgraph-sub">reverse proxy</div>
+    <div class="fgraph-sub muted">TLS :443</div>
+  </div>
+
+  <!-- Layer 2: API — cyan pill -->
+  <div class="fgraph-node cyan pill" style="--x:50;--y:36;">
+    <div class="fgraph-title cyan">FastAPI app</div>
+    <div class="fgraph-sub">uvicorn · /ops /graph /corpus</div>
+  </div>
+
+  <!-- Layer 3: WORKERS — two side-by-side, purple -->
+  <div class="fgraph-node purple" style="--x:30;--y:57;">
+    <div class="fgraph-title purple">dep-graph builder</div>
+    <div class="fgraph-sub">topo layout</div>
+  </div>
+
+  <div class="fgraph-node purple" style="--x:70;--y:57;">
+    <div class="fgraph-title purple">corpus-sync</div>
+    <div class="fgraph-sub">markdown vault daemon</div>
+  </div>
+
+  <!-- Layer 4: STORAGE — wide green node -->
+  <div class="fgraph-node green wide" style="--x:50;--y:82;">
+    <div class="fgraph-title green">SQLite + corpus/</div>
+    <div class="fgraph-sub">ops.db · markdown vault</div>
+  </div>
+
+  <div class="fgraph-legend">5 nodes · 5 edges · amber = ingress · cyan = api · purple = workers · green = storage</div>
+</div>
+
+</main>
+
+</body>
+</html>
