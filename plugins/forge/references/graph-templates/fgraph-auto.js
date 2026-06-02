@@ -95,6 +95,10 @@
       nodeMap[el.dataset.node] = el
     })
 
+    // Pass 1: draw all paths + create all label <text> at naive midpoints.
+    // Labels must be in the DOM before getBBox() is valid (below in Pass 2).
+    const labelEntries = []
+
     for (const edge of edgeDefs) {
       const fEl = nodeMap[edge.f]
       const tEl = nodeMap[edge.t]
@@ -143,7 +147,107 @@
         tx.dataset.t = edge.t
         tx.textContent = edge.label
         svg.appendChild(tx)
+        labelEntries.push({ textEl: tx, x1, y1, x2, y2, lx, ly })
       }
+    }
+
+    // Pass 2: nudge labels that straddle a .fgraph-group border line.
+    // For each label, we check if its bounding box overlaps any group's border band
+    // (the 4 thin edge regions of the group rect). If so, nudge the label along the
+    // border-perpendicular axis (x for left/right borders, y for top/bottom) to the
+    // closer side — either fully inside or fully outside the group.
+    if (labelEntries.length > 0) {
+      const MARGIN = 6 // px clearance applied past the border after a nudge
+      const BAND = 4 // ≈ half the ~9.5px label font-size; defines the straddle half-zone on each side of a border
+      const wb = wrap.getBoundingClientRect()
+      // F2 guard: skip pass-2 entirely when the wrap has no layout yet (zero geometry
+      // from getBoundingClientRect means the DOM hasn't been sized — labels stay at
+      // their naive midpoints, which is correct for an unsized wrap).
+      if (wb.width !== 0 && wb.height !== 0) {
+        // collect group rects in wrap-relative px (same coordinate space as SVG user units)
+        const groupRects = []
+        wrap.querySelectorAll('.fgraph-group').forEach((g) => {
+          const gb = g.getBoundingClientRect()
+          groupRects.push({
+            left: gb.left - wb.left,
+            top: gb.top - wb.top,
+            right: gb.right - wb.left,
+            bottom: gb.bottom - wb.top,
+          })
+        })
+
+        if (groupRects.length > 0) {
+          for (const entry of labelEntries) {
+            const { textEl } = entry
+            let { lx, ly } = entry
+
+            const bb = textEl.getBBox()
+            // F2 guard: skip this label when getBBox() returns zero (text not yet laid out).
+            if (bb.width === 0 && bb.height === 0) continue
+            const lblLeft = bb.x
+            const lblTop = bb.y
+            const lblRight = bb.x + bb.width
+            const lblBottom = bb.y + bb.height
+            const lblCx = (lblLeft + lblRight) / 2
+            const lblCy = (lblTop + lblBottom) / 2
+
+            let nudgeX = 0
+            let nudgeY = 0
+
+            for (const gr of groupRects) {
+              // Quick overlap check: label must overlap the group rect at all
+              if (lblRight < gr.left || lblLeft > gr.right) continue
+              if (lblBottom < gr.top || lblTop > gr.bottom) continue
+
+              // Evaluate BOTH axes independently so corner labels (near two borders of
+              // the same group) get nudged on both axes. Break after this group so we
+              // don't double-nudge from a different group (F3).
+
+              // ── right border ──────────────────────────────────────────────
+              // straddles if label's own half-extent crosses gr.right (F4)
+              if (Math.abs(lblCx - gr.right) < BAND + bb.width / 2) {
+                // Move label center to the side that needs LESS displacement.
+                // Option A: push right (outside group)  → target cx = gr.right + MARGIN + bb.width/2
+                // Option B: push left  (inside group)   → target cx = gr.right - MARGIN - bb.width/2
+                const toRight = gr.right + MARGIN + bb.width / 2 - lblCx
+                const toLeft = gr.right - MARGIN - bb.width / 2 - lblCx
+                nudgeX = Math.abs(toRight) <= Math.abs(toLeft) ? toRight : toLeft
+              }
+
+              // ── left border ───────────────────────────────────────────────
+              if (nudgeX === 0 && Math.abs(lblCx - gr.left) < BAND + bb.width / 2) {
+                const toRight = gr.left + MARGIN + bb.width / 2 - lblCx
+                const toLeft = gr.left - MARGIN - bb.width / 2 - lblCx
+                nudgeX = Math.abs(toRight) <= Math.abs(toLeft) ? toRight : toLeft
+              }
+
+              // ── bottom border ─────────────────────────────────────────────
+              if (Math.abs(lblCy - gr.bottom) < BAND + bb.height / 2) {
+                const toDown = gr.bottom + MARGIN + bb.height / 2 - lblCy
+                const toUp = gr.bottom - MARGIN - bb.height / 2 - lblCy
+                nudgeY = Math.abs(toDown) <= Math.abs(toUp) ? toDown : toUp
+              }
+
+              // ── top border ────────────────────────────────────────────────
+              if (nudgeY === 0 && Math.abs(lblCy - gr.top) < BAND + bb.height / 2) {
+                const toDown = gr.top + MARGIN + bb.height / 2 - lblCy
+                const toUp = gr.top - MARGIN - bb.height / 2 - lblCy
+                nudgeY = Math.abs(toDown) <= Math.abs(toUp) ? toDown : toUp
+              }
+
+              // Break after the first matching group (both axes evaluated — F3).
+              if (nudgeX !== 0 || nudgeY !== 0) break
+            }
+
+            if (nudgeX !== 0 || nudgeY !== 0) {
+              lx += nudgeX
+              ly += nudgeY
+              textEl.setAttribute('x', lx)
+              textEl.setAttribute('y', ly)
+            }
+          }
+        }
+      } // end F2 degenerate-geometry guard (wb.width !== 0 && wb.height !== 0)
     }
 
     if (typeof wrap.__fgReapplyHidden === 'function') wrap.__fgReapplyHidden()

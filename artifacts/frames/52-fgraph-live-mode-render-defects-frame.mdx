@@ -1,0 +1,81 @@
+---
+title: fgraph live-mode render defects — hexagon legibility, edge-label overflow, bus/node overlap
+issue: 52
+status: approved
+tier: F-lite
+date: 2026-06-02
+---
+
+## Problem
+
+Follow-up to #50 (fgraph live mode). A visual comparison of the live-mode engine
+showcase (`fgraph-live-demo.html`) against the bespoke `roxabi-stack.html` surfaced
+3 rendering defects, two of which live in shared engine primitives (so they affect
+*every* fgraph diagram, live or static), one in showcase authoring:
+
+1. **Hexagon labels clipped + low-contrast** — `fgraph-base.css`. The
+   `.fgraph-node.hexagon` clip-path `polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)`
+   clips the left/right 25%; labels wider than ~50% of the box (e.g. "Whisper STT",
+   "Chatterbox TTS") get cut at the slanted edges, and text sits on the `--{tone}-dim`
+   `::before` fill → low contrast / barely readable. Shared primitive → affects any
+   diagram using hexagon nodes.
+2. **Edge label overflows group frame** — `fgraph-auto.js`. Auto-routed edge labels
+   are placed at the bezier midpoint with no avoidance of `.fgraph-group` frame
+   borders; in the showcase "lyra.llm.generate.request" lands on the cluster's top border.
+3. **Node overlaps bus-strip** — showcase authoring + missing engine guard. The
+   showcase places `.fg-bus-strip` at `--y:43 --h:6` (43–49%) and a `lyra-nats` node
+   at `--y:49` (~44–54%) → overlap; bus subject text occluded; NATS is drawn twice
+   (strip + node). The placement engine reserves no band for a bus-strip.
+
+## Who
+
+- **Primary:** Forge users generating fgraph diagrams via `forge-chart` / live mode —
+  hexagon + edge-label defects degrade legibility of any diagram they produce.
+- **Secondary:** Maintainers of the bespoke showcase / golden examples; future
+  diagrams that adopt hexagon nodes or bus-strips inherit the engine bugs.
+
+## Constraints
+
+- Engine fixes (`fgraph-base.css`, `fgraph-auto.js`) are **shared primitives** — must
+  not regress the 15 golden examples or any static diagram.
+- Output must stay `file://`-safe (live mode inlines `fgraph-auto.js` + `fgraph-interact.js`).
+- Engine tree shifted 3× since the issue was filed (c99adaa, bfdc0db, 6b1dcd3 — arrowhead/
+  marker/layout fixes) → spec must re-verify exact clip-path / routing refs against HEAD.
+- Verification is visual → requires headless screenshot QA (per forge-chart QA harness),
+  not mental QA gates.
+
+## Out of Scope
+
+- The engine-level bus-band placement guard (defect 3b) is **optional** — showcase fix
+  (drop redundant node / move clear) satisfies acceptance; engine guard is a stretch goal.
+- Any redesign of the fgraph live engine beyond the 3 cited defects.
+- Changes to non-fgraph chart families.
+
+## Premise Validity
+
+**Success in 6 months:** Re-rendering `fgraph-live-demo.html` shows all 3 acceptance
+criteria met on screenshot — hexagon labels fully visible + readable (live *and* static),
+no edge label sitting on a group-frame border, no node/bus-strip overlap — at visual
+parity with `roxabi-stack.html`, with zero regression across the 15 golden examples.
+
+**Failure in 6 months:** A QA screenshot pass of `fgraph-live-demo.html` still shows
+≥1 of the 3 defects (defect count > 0), OR any of the 15 fgraph-type golden examples
+regresses with a new clip/overlap defect after the engine change.
+
+**Simplest alternative:** Patch only the showcase HTML (defect 3) by hand and leave the
+engine CSS/JS untouched.
+**Why not simplest:** Defects 1 and 2 are engine-level shared primitives — the hexagon
+clip-path affects *any* diagram (live + static), so a showcase-only patch leaves the
+legibility and edge-overflow bugs in every current and future diagram. Acceptance
+criteria explicitly require the fix "live and static" → engine fix is mandatory.
+
+## Complexity
+
+**Tier: F-lite** — clear scope (3 cited defects + acceptance criteria, root causes
+identified), single domain (forge visual engine), ~3–4 files
+(`fgraph-base.css`, `fgraph-auto.js`, showcase HTML, optional engine guard).
+
+Signals observed:
+- Single domain (forge graph engine), no new architecture.
+- 3–4 files, but clip-path geometry + bezier collision-nudge are non-trivial tuning.
+- Visual verification loop required → spec + plan gates anchor the QA pass.
