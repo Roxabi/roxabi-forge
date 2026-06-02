@@ -762,6 +762,40 @@ This is the same pattern galleries already use:
 
 ---
 
+## Edge/marker SSoT and drift gate
+
+### Where the canonical block lives
+
+`fgraph-base.css` is the single source of truth for the edge/marker config.
+It contains two coupled sections:
+
+- The SVG marker `<defs>` (arrow `<marker>` elements, each with
+  `markerWidth="6" markerHeight="6"`, no `markerUnits` override).
+- The `.fgraph-edges .fg-edge` CSS rule, which carries
+  `vector-effect: non-scaling-stroke`.
+
+### The `{{FGRAPH_BASE}}` placeholder contract
+
+Raw templates carry **no inline `non-scaling-stroke`** and **no `<marker>`
+defs** — these are injected at generation time by replacing the
+`{{FGRAPH_BASE}}` placeholder with the full `fgraph-base.css` content.
+The validator is placeholder-aware: a template that contains `{{FGRAPH_BASE}}`
+is exempt from the missing-NSS check; a rendered output HTML is not.
+
+### Enforcement gates
+
+Two gates prevent drift from reaching the runtime artifacts:
+
+1. **lefthook pre-commit** — runs `validate-svg` on every staged file under
+   `graph-templates/**/*.html`. Commit is blocked if a rendered output is
+   missing `vector-effect: non-scaling-stroke` or carries
+   `markerUnits="userSpaceOnUse"`.
+
+2. **CI "Validate fgraph SVG" step** — same check on the full tree, runs on
+   every pull request. Fails the build on any violation.
+
+---
+
 ## Shape picker — which template?
 
 Pick by layout intent, not by domain. Any template can be re-tinted
