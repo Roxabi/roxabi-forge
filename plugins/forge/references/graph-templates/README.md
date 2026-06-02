@@ -488,6 +488,64 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 Template: [`lane-swim.html`](./lane-swim.html) · demo: [`examples/lane-swim.html`](./examples/lane-swim.html).
 Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 
+### Scatter
+
+> Inline SVG data-chart plotting X↔Y pairs as circle marks in a
+> labelled axis box. Each point maps to one observation; axis ticks
+> and grid lines are pre-computed and emitted as `<line>` elements.
+>
+> Use when you need to visualise the correlation (or absence of it)
+> between two continuous variables — e.g. latency vs payload size,
+> score vs tokens, CPU vs memory. Cap at ~200 points before the SVG
+> becomes illegible at normal viewport widths.
+
+Template: [`scatter.html`](./scatter.html) · demo: [`examples/scatter.html`](./examples/scatter.html).
+Native, no CDN, file://-safe.
+
+### Bubble
+
+> Extends scatter with a third dimension encoded as circle radius.
+> Each datum has (x, y, size) — x and y map to the axis space, size
+> maps to `r` on the rendered circle.
+>
+> Use when a third continuous variable (magnitude, volume, weight)
+> needs to be visible alongside the two-axis correlation — e.g.
+> request latency × error-rate × traffic volume. Keep bubbles
+> non-overlapping or use low opacity to prevent occlusion.
+
+Template: [`bubble.html`](./bubble.html) · demo: [`examples/bubble.html`](./examples/bubble.html).
+Native, no CDN, file://-safe.
+
+### Radar
+
+> N-axis spider/radar chart in an inline SVG. Each axis radiates from
+> a shared centre; a dataset is a polygon connecting one value per
+> axis. Multiple datasets overlay as semi-transparent polygons for
+> direct comparison.
+>
+> Use for multi-axis comparison where all metrics share a common
+> scale — e.g. comparing agent capabilities, benchmark profiles,
+> or feature coverage across N dimensions. Cap at 8 axes before
+> label spacing collapses.
+
+Template: [`radar.html`](./radar.html) · demo: [`examples/radar.html`](./examples/radar.html).
+Native, no CDN, file://-safe.
+
+### Funnel
+
+> Decreasing-width horizontal bars stacked vertically, one per
+> conversion stage. Each bar's width encodes the stage value as a
+> proportion of the entry value; a right-hand label shows the absolute
+> count and drop-off percentage.
+>
+> Use for pipeline / stage-conversion visualisation — e.g. marketing
+> funnel (visits → signups → trials → paid), CI stages (triggered →
+> built → tested → deployed), or any sequential process where tracking
+> attrition between steps matters.
+
+Template: [`funnel.html`](./funnel.html) · demo: [`examples/funnel.html`](./examples/funnel.html).
+Native, no CDN, file://-safe.
+
 ---
 
 ## Templates
@@ -509,10 +567,15 @@ Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 | `state.html` | Finite-state machine / lifecycle — ≤ 6 states | ~4K | `.fgraph-node.circle`/`.diamond` shapes, semantic `.fg-edge.control`/`.feedback` classes, start/end circles, no CDN |
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
 | `lane-swim.html` | Message flow / request lifecycle across N architectural lanes, one node per row | ~6K | Lane header strip (`.fg-lane-header`/`.fg-lane-title`), phase separator lines (`.fg-lane-phase-line`/`.fg-lane-phase-lbl`), 18 px circle nodes (`.fg-lane-node`), inline tag pills (`.fg-lane-tag`), S-curve + parallel-bend connectors (`.fg-lane-curve`), chip-on-wire edge labels (`.fg-edge-lbl`), `--fg-lane-min-height` knob |
+| `scatter.html` | Scatter — X↔Y correlation between two continuous variables | ~3K | Inline SVG axis box, pre-computed tick marks and grid lines, labelled axes, circle marks per datum |
+| `bubble.html` | Bubble — X, Y + magnitude encoded as bubble radius (3-variable) | ~3K | Extends Scatter; `r` attribute on circles encodes a third dimension; low-opacity fills prevent occlusion |
+| `radar.html` | Radar — multi-axis comparison (N metrics, spider/spider chart) | ~3K | Inline SVG N-axis radials from shared centre, dataset polygons as semi-transparent overlays, axis labels |
+| `funnel.html` | Funnel — pipeline / stage conversion, sequential attrition | ~3K | Decreasing-width bars per stage, right-hand count + drop-off % labels, single-file inline SVG |
 
-All **15 native fgraph** templates (`radial-hub`, `linear-flow`,
+All **19 native fgraph** templates (`radial-hub`, `linear-flow`,
 `dual-cluster`, `radial-ring`, `layered`, `machine-clusters`,
-`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`, `system-architecture`)
+`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`, `system-architecture`,
+`scatter`, `bubble`, `radar`, `funnel`)
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
 
@@ -720,11 +783,16 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | Finite-state machine / lifecycle — ≤ 6 states | `state.html` | issue lifecycle, review workflow, connection states |
 | Issue dependency graph — phase columns × issue cards | `dep-graph.html` | roadmap backlog, blocks/depends-on visualisation (via `gen-deps.py` in #23) |
 | Message flow / request lifecycle crossing N architectural layers over M phases | `lane-swim.html` | clean-arch layer trace, pipeline walkthrough, process with optional steps |
+| Scatter — X↔Y correlation between two continuous variables | `scatter.html` | latency vs payload, score vs tokens, any 2-var correlation |
+| Bubble — X, Y + third dimension as bubble size | `bubble.html` | traffic × latency × error-rate, 3-axis insight in one chart |
+| Radar — N-axis comparison across entities on a common scale | `radar.html` | benchmark profiles, capability matrix, feature coverage spider |
+| Funnel — sequential pipeline with per-stage conversion / drop-off | `funnel.html` | marketing funnel, CI pipeline attrition, onboarding steps |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
-All 15 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+All 19 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
 `radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`, `gantt`,
-`pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`) share the same
+`pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`, `system-architecture`,
+`scatter`, `bubble`, `radar`, `funnel`) share the same
 `fgraph-base.css` primitives — differences live only in layout coordinates
 and a few shape-specific extensions (`.fg-axis-date`, `.fg-gantt-bar`,
 `.fg-lifeline`, `.fg-er-*` markers, `.fg-lane-*` swimlane primitives), so

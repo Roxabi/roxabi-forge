@@ -1,0 +1,11 @@
+{
+  "skill": "forge-chart",
+  "variant": "scatter",
+  "input": {
+    "prompt": "Scatter plot of model benchmark scores: x-axis = inference latency (ms), y-axis = MMLU accuracy (%). Plot 8 models: GPT-4o (120ms, 88%), Claude 3.5 Sonnet (95ms, 87%), Gemini 1.5 Pro (110ms, 86%), Llama 3.1 70B (40ms, 79%), Mistral Large (55ms, 81%), Qwen2.5 72B (35ms, 80%), DeepSeek-V2 (45ms, 82%), Command R+ (70ms, 78%). Color-code by provider family.",
+    "slug": "model-benchmark-scatter",
+    "project": "roxabi-intel/charts"
+  },
+  "expected_output_hash": null,
+  "notes": "scatter template with 8 data points across 4 provider families; exercises axis scaling, color-coded series legend, and point labeling without overlap."
+}

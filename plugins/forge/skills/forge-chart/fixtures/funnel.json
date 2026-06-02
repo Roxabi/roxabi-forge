@@ -1,0 +1,11 @@
+{
+  "skill": "forge-chart",
+  "variant": "funnel",
+  "input": {
+    "prompt": "Funnel chart for roxabi-boilerplate SaaS signup conversion: Visitors (12400), Signups started (3100), Email verified (2240), Onboarding completed (1580), First paid action (620), Active subscriber (310). Show drop-off percentage between each stage.",
+    "slug": "saas-signup-funnel",
+    "project": "roxabi-boilerplate/analytics"
+  },
+  "expected_output_hash": null,
+  "notes": "funnel template with 6 conversion stages; exercises trapezoid stage geometry, drop-off percentage annotations between stages, and value labels inside each band."
+}

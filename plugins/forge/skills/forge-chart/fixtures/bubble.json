@@ -1,0 +1,11 @@
+{
+  "skill": "forge-chart",
+  "variant": "bubble",
+  "input": {
+    "prompt": "Bubble chart of roxabi services: x-axis = weekly active requests, y-axis = avg response time (ms), bubble size = memory usage (MB). Services: lyra-hub (4200 req, 12ms, 512MB), voiceCLI (800 req, 340ms, 2400MB), llmCLI (3100 req, 2800ms, 180MB), imageCLI (120 req, 8500ms, 6200MB), roxabi-vault (650 req, 8ms, 96MB). Label each bubble.",
+    "slug": "roxabi-services-bubble",
+    "project": "roxabi-live/ops"
+  },
+  "expected_output_hash": null,
+  "notes": "bubble template with 5 services, three quantitative dimensions (x/y/size); exercises bubble radius scaling, label placement inside/outside bubble based on size, and wide dynamic range on both axes."
+}

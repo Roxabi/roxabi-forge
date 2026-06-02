@@ -1,0 +1,11 @@
+{
+  "skill": "forge-chart",
+  "variant": "radar",
+  "input": {
+    "prompt": "Radar chart comparing two LLM models (Claude 3.5 Sonnet vs GPT-4o) across 6 dimensions: Reasoning (92 vs 89), Coding (90 vs 87), Math (85 vs 88), Instruction Following (94 vs 91), Context Handling (95 vs 82), Cost Efficiency (78 vs 65). Score out of 100.",
+    "slug": "llm-model-radar",
+    "project": "roxabi-intel/benchmarks"
+  },
+  "expected_output_hash": null,
+  "notes": "radar template with 2 overlapping series on 6 axes; exercises polygon rendering, fill opacity overlap, axis labels at each spoke tip, and a two-series legend."
+}
