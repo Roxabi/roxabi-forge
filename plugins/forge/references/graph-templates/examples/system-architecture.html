@@ -600,6 +600,14 @@
 .fgraph-node.folded .fgraph-title,
 .fgraph-node.cylinder .fgraph-title { justify-content: center; }
 
+/* ── hexagon title legibility (C1 — mirrored from fgraph-base.css) ── */
+.fgraph-node.hexagon .fgraph-title {
+  max-width: 56%;
+  color: var(--text);
+  font-weight: 800;
+  word-break: break-word;
+}
+
 /* tone modifiers (border color + translucent background tint) */
 .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
 .fgraph-node.cyan   { border-color: var(--cyan);   background: var(--cyan-dim); }
@@ -657,6 +665,13 @@
 .fgraph-node.hexagon.purple::before, .fgraph-node.diamond.purple::before, .fgraph-node.folded.purple::before { background: var(--purple-dim); }
 .fgraph-node.hexagon.green::before,  .fgraph-node.diamond.green::before,  .fgraph-node.folded.green::before  { background: var(--green-dim); }
 .fgraph-node.hexagon.red::before,    .fgraph-node.diamond.red::before,    .fgraph-node.folded.red::before    { background: var(--red-dim); }
+
+/* ── hexagon ::before fill — higher opacity (C2 — mirrored from fgraph-base.css) ── */
+.fgraph-node.hexagon.amber::before  { background: rgba(251,191,36,0.28); }
+.fgraph-node.hexagon.cyan::before   { background: rgba(34,211,238,0.28); }
+.fgraph-node.hexagon.purple::before { background: rgba(192,132,252,0.28); }
+.fgraph-node.hexagon.green::before  { background: rgba(74,222,128,0.28); }
+.fgraph-node.hexagon.red::before    { background: rgba(248,113,113,0.28); }
 
 /* clip-path hover: enlarge border + glow via filter (box-shadow is clipped) */
 .fgraph-node.hexagon:hover::after,
