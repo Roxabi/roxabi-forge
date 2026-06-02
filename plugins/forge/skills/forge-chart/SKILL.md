@@ -3,9 +3,10 @@ name: forge-chart
 description: >-
   Create a quick self-contained single-file HTML visual — native fgraph
   diagram (hub-and-spoke, gantt, pie, ER, sequence, state, dep-graph),
-  architecture layout, or CSS Grid explainer. No server needed, works
-  with file://. Triggers: "draw" | "diagram" | "visualize" | "sketch" | "map"
-  | "show the flow" | "quick visual".
+  architecture layout, CSS Grid explainer, or inline-SVG data-chart (scatter,
+  bubble, radar, funnel). No server needed, works with file://. Triggers:
+  "draw" | "diagram" | "visualize" | "sketch" | "map" | "show the flow" |
+  "quick visual".
 summary: 'single-file native fgraph / CSS visual'
 version: 0.3.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent

@@ -91,25 +91,9 @@ h1 .accent { color: var(--cyan); }
   text-anchor: middle;
 }
 
-/* ── legend ── */
-.fgraph-legend {
-  margin-top: 12px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.fg-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px;
-  color: var(--text-dim);
-}
-.fg-legend-swatch {
-  width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
-}
+/* ── in-SVG legend (SC3: all text inside <svg>) ── */
+.fg-legend-swatch { vector-effect: non-scaling-stroke; }
+.fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -206,7 +190,7 @@ h1 .accent { color: var(--cyan); }
        {{COLOR}}            — accent colour slug
        {{AXES}}             — <line> spokes + <polygon> rings + axis labels
        {{SERIES_N}}         — per-series <polygon> elements
-       {{LEGEND_ITEMS}}     — .fg-legend-item rows
+       {{LEGEND_ITEMS}}     — in-SVG <rect class="fg-legend-swatch"> + <text class="fg-legend-label"> rows
 
      SERIES COLOUR — default palette order:
        series[0] → var(--cyan)
@@ -221,9 +205,9 @@ h1 .accent { color: var(--cyan); }
 
   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg"
-       role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+       role="img" aria-labelledby="rd-title">
 
-    <title>{{TITLE}}</title>
+    <title id="rd-title">{{TITLE}}</title>
 
     <!-- ── SCALE RINGS (N={{SCALE_LEVELS}} concentric polygons) ─────── -->
     <!-- Ring at 25% (level 1 of {{SCALE_LEVELS}}) -->
@@ -268,21 +252,19 @@ h1 .accent { color: var(--cyan); }
     <text class="fg-radar-axis-label" x="{{LABEL_1_X}}" y="{{LABEL_1_Y}}" dominant-baseline="auto">{{AXIS_1_LABEL}}</text>
     <!-- {{AXIS_LABELS_REMAINING}} -->
 
+    <!-- ── IN-SVG LEGEND (SC3: all text inside <svg>; bottom-centre band y≈93..99) ── -->
+    <!-- Series 0 swatch + label -->
+    <rect class="fg-legend-swatch" x="26" y="93" width="3" height="3"
+          fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="30.5" y="94.6" dominant-baseline="middle">{{SERIES_0_NAME}}</text>
+    <!-- Series 1 swatch + label -->
+    <rect class="fg-legend-swatch" x="55" y="93" width="3" height="3"
+          fill="var(--amber)" stroke="var(--amber)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="59.5" y="94.6" dominant-baseline="middle">{{SERIES_1_NAME}}</text>
+    <!-- {{LEGEND_ITEMS_REMAINING}} -->
+
   </svg>
 
-</div>
-
-<!-- ── SERIES LEGEND (below the chart) ── -->
-<div class="fgraph-legend">
-  <div class="fg-legend-item">
-    <div class="fg-legend-swatch" style="background:var(--cyan)"></div>
-    <span>{{SERIES_0_NAME}}</span>
-  </div>
-  <div class="fg-legend-item">
-    <div class="fg-legend-swatch" style="background:var(--amber)"></div>
-    <span>{{SERIES_1_NAME}}</span>
-  </div>
-  <!-- {{LEGEND_ITEMS_REMAINING}} -->
 </div>
 
 </main>

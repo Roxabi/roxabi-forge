@@ -75,10 +75,9 @@
   .fg-radar-axis-label  { font-family: 'Space Mono', monospace; font-size: 4px; fill: var(--text-dim); }
   .fg-radar-scale-label { font-family: 'Space Mono', monospace; font-size: 2.8px; fill: var(--text-muted); text-anchor: start; }
 
-  /* ── legend ── */
-  .fgraph-legend { margin-top: 12px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
-  .fg-legend-item { display: flex; align-items: center; gap: 7px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
-  .fg-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  /* ── in-SVG legend (SC3: all text inside <svg>) ── */
+  .fg-legend-swatch { vector-effect: non-scaling-stroke; }
+  .fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -122,9 +121,9 @@
      Axis labels at radius 41 (36 + 5 clearance):
        Speed       (50.00,  9.00) text-anchor=middle, dominant-baseline=auto
        Reliability (88.99, 37.33) text-anchor=start,  dominant-baseline=auto
-       Scalability (74.10, 83.17) text-anchor=middle, dominant-baseline=hanging
-       Security    (25.90, 83.17) text-anchor=middle, dominant-baseline=hanging
-       Ease of Use (11.01, 37.33) text-anchor=end,    dominant-baseline=hanging
+       Scalability (74.10, 83.17) text-anchor=middle, dominant-baseline=hanging   [50+41*cos(54°), 50+41*sin(54°)]
+       Security    (25.90, 83.17) text-anchor=middle, dominant-baseline=hanging   [50+41*cos(126°), 50+41*sin(126°)]
+       Ease of Use (11.01, 37.33) text-anchor=end,    dominant-baseline=hanging   [50+41*cos(198°), 50+41*sin(198°)]
 
      DEGENERATE NOTE — 2-axis radar: polygon degenerates to a line (both
      ring polygons and series polygons collapse to a 2-vertex back-and-forth
@@ -137,10 +136,9 @@
 
   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg"
-       role="img"
-       aria-label="Radar chart comparing Kong v3 and Envoy 1.29 across 5 dimensions: Speed, Reliability, Scalability, Security, Ease of Use.">
+       role="img" aria-labelledby="rd-title">
 
-    <title>API Gateway performance comparison</title>
+    <title id="rd-title">API Gateway performance comparison</title>
 
     <!-- ── SCALE RINGS (4 concentric polygons at 25/50/75/100%) ─── -->
     <polygon class="fg-radar-ring" points="50.00,41.00 58.56,47.22 55.29,57.28 44.71,57.28 41.44,47.22"/>
@@ -180,30 +178,28 @@
     <!-- Reliability: angle −18° → right side, slightly below centre -->
     <text class="fg-radar-axis-label" x="88.99" y="37.33"
           text-anchor="start" dominant-baseline="auto">Reliability</text>
-    <!-- Scalability: angle 54° → lower right -->
-    <text class="fg-radar-axis-label" x="74.10" y="85.17"
+    <!-- Scalability: angle 54° → lower right; 50+41*cos(54°)=74.10, 50+41*sin(54°)=83.17 -->
+    <text class="fg-radar-axis-label" x="74.10" y="83.17"
           text-anchor="middle" dominant-baseline="hanging">Scalability</text>
-    <!-- Security: angle 126° → lower left -->
-    <text class="fg-radar-axis-label" x="25.90" y="85.17"
+    <!-- Security: angle 126° → lower left; 50+41*cos(126°)=25.90, 50+41*sin(126°)=83.17 -->
+    <text class="fg-radar-axis-label" x="25.90" y="83.17"
           text-anchor="middle" dominant-baseline="hanging">Security</text>
-    <!-- Ease of Use: angle 198° → left side -->
-    <text class="fg-radar-axis-label" x="7.01" y="37.33"
+    <!-- Ease of Use: angle 198° → left side; 50+41*cos(198°)=11.01, 50+41*sin(198°)=37.33 -->
+    <text class="fg-radar-axis-label" x="11.01" y="37.33"
           text-anchor="end" dominant-baseline="hanging">Ease of Use</text>
+
+    <!-- ── IN-SVG LEGEND (SC3: all text inside <svg>; bottom-centre band y≈93..99) ── -->
+    <!-- Series 0 — Kong v3 (cyan) -->
+    <rect class="fg-legend-swatch" x="26" y="93" width="3" height="3"
+          fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="30.5" y="94.6" dominant-baseline="middle">Kong v3</text>
+    <!-- Series 1 — Envoy 1.29 (amber) -->
+    <rect class="fg-legend-swatch" x="55" y="93" width="3" height="3"
+          fill="var(--amber)" stroke="var(--amber)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="59.5" y="94.6" dominant-baseline="middle">Envoy 1.29</text>
 
   </svg>
 
-</div>
-
-<!-- ── SERIES LEGEND ── -->
-<div class="fgraph-legend">
-  <div class="fg-legend-item">
-    <div class="fg-legend-swatch" style="background:var(--cyan)"></div>
-    <span>Kong v3</span>
-  </div>
-  <div class="fg-legend-item">
-    <div class="fg-legend-swatch" style="background:var(--amber)"></div>
-    <span>Envoy 1.29</span>
-  </div>
 </div>
 
 </main>

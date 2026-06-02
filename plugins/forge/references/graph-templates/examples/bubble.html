@@ -44,7 +44,7 @@ h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
 h1 .accent { color: var(--purple); }
 .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
 
-.fg-chart-wrap {
+.fgraph-wrap {
   position: relative;
   width: 100%;
   max-width: 680px;
@@ -54,7 +54,7 @@ h1 .accent { color: var(--purple); }
   border: 1px solid var(--border-bright);
   border-radius: 10px;
 }
-.fg-chart-wrap svg { display: block; width: 100%; height: 100%; }
+.fgraph-wrap svg { display: block; width: 100%; height: 100%; }
 
 .fg-axis-line    { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
 .fg-grid-line    { stroke: var(--border); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
@@ -108,19 +108,19 @@ h1 .accent { color: var(--purple); }
 
   Pre-computed SVG coords:
   Developer Tools (cyan):
-    CI/CD      svg_x=34.0,  svg_y=21.2
-    Editors    svg_x=66.0,  svg_y=8.8  (satisfaction=91 → near top)
-    Monitoring svg_x=39.33, svg_y=27.6
+    CI/CD      svg_x=34.0,  svg_y=36.80
+    Editors    svg_x=66.0,  svg_y=22.40  (satisfaction=91 → near top)
+    Monitoring svg_x=39.33, svg_y=46.40
 
   Collaboration (amber):
-    Team chat  svg_x=83.33, svg_y=30.4
-    Proj mgmt  svg_x=60.67, svg_y=41.6
-    Docs       svg_x=48.67, svg_y=36.4
+    Team chat  svg_x=83.33, svg_y=49.60
+    Proj mgmt  svg_x=60.67, svg_y=59.20
+    Docs       svg_x=48.67, svg_y=54.40
 
   Data & Analytics (purple):
-    BI         svg_x=51.33, svg_y=56.0
-    Pipelines  svg_x=28.67, svg_y=64.0
-    ML         svg_x=20.67, svg_y=59.2
+    BI         svg_x=51.33, svg_y=70.40
+    Pipelines  svg_x=28.67, svg_y=80.00
+    ML         svg_x=20.67, svg_y=67.20
 
   Radius computation:
     minRadius = 1.5, maxRadius = 7.0
@@ -144,7 +144,7 @@ h1 .accent { color: var(--purple); }
     X ticks (svg_x): 0→10, 10→23.33, 20→36.67, 30→50, 40→63.33, 50→76.67, 60→90
 -->
 
-<div class="fg-chart-wrap" role="img"
+<div class="fgraph-wrap bubble" role="img"
      aria-label="Bubble chart with market share on x-axis, customer satisfaction on y-axis, and annual ARR as bubble size. Developer tools (cyan) cluster at moderate share and high satisfaction. Collaboration tools (amber) span wide share with medium satisfaction. Data and analytics (purple) occupy low-to-mid share with moderate satisfaction.">
   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg"
@@ -222,50 +222,50 @@ h1 .accent { color: var(--purple); }
 
     <!-- ── SERIES 1 — Developer Tools (cyan) ── -->
     <g class="fg-bubbles">
-      <!-- CI/CD: x=18, y=82, size=240 → svg(34.0, 21.2), r=4.42 -->
-      <circle class="fg-bubble" cx="34.0" cy="21.2" r="4.42"
+      <!-- CI/CD: x=18, y=82, size=240 → svg(34.0, 36.80), r=4.42 -->
+      <circle class="fg-bubble" cx="34.0" cy="36.80" r="4.42"
               fill="var(--cyan)" fill-opacity="0.2" stroke="var(--cyan)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="34.0" y="22.1">CI/CD</text>
-      <!-- Editors: x=42, y=91, size=180 → svg(66.0, 8.8), r=4.03 -->
-      <circle class="fg-bubble" cx="66.0" cy="8.8" r="4.03"
+      <text class="fg-bubble-label" x="34.0" y="37.70">CI/CD</text>
+      <!-- Editors: x=42, y=91, size=180 → svg(66.0, 22.40), r=4.03 -->
+      <circle class="fg-bubble" cx="66.0" cy="22.40" r="4.03"
               fill="var(--cyan)" fill-opacity="0.2" stroke="var(--cyan)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="66.0" y="9.7">Editors</text>
-      <!-- Monitoring: x=22, y=76, size=120 → svg(39.33, 27.6), r=3.57 -->
-      <circle class="fg-bubble" cx="39.33" cy="27.6" r="3.57"
+      <text class="fg-bubble-label" x="66.0" y="23.30">Editors</text>
+      <!-- Monitoring: x=22, y=76, size=120 → svg(39.33, 46.40), r=3.57 -->
+      <circle class="fg-bubble" cx="39.33" cy="46.40" r="3.57"
               fill="var(--cyan)" fill-opacity="0.2" stroke="var(--cyan)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="39.33" y="28.5">APM</text>
+      <text class="fg-bubble-label" x="39.33" y="47.30">APM</text>
     </g>
 
     <!-- ── SERIES 2 — Collaboration (amber) ── -->
     <g class="fg-bubbles">
-      <!-- Team chat: x=55, y=74, size=850 → svg(83.33, 30.4), r=7.0 -->
-      <circle class="fg-bubble" cx="83.33" cy="30.4" r="7.0"
+      <!-- Team chat: x=55, y=74, size=850 → svg(83.33, 49.60), r=7.0 -->
+      <circle class="fg-bubble" cx="83.33" cy="49.60" r="7.0"
               fill="var(--amber)" fill-opacity="0.2" stroke="var(--amber)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="83.33" y="31.3">Chat</text>
-      <!-- Project mgmt: x=38, y=68, size=620 → svg(60.67, 41.6), r=6.20 -->
-      <circle class="fg-bubble" cx="60.67" cy="41.6" r="6.20"
+      <text class="fg-bubble-label" x="83.33" y="50.50">Chat</text>
+      <!-- Project mgmt: x=38, y=68, size=620 → svg(60.67, 59.20), r=6.20 -->
+      <circle class="fg-bubble" cx="60.67" cy="59.20" r="6.20"
               fill="var(--amber)" fill-opacity="0.2" stroke="var(--amber)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="60.67" y="42.5">Proj Mgmt</text>
-      <!-- Docs: x=29, y=71, size=310 → svg(48.67, 36.4), r=4.82 -->
-      <circle class="fg-bubble" cx="48.67" cy="36.4" r="4.82"
+      <text class="fg-bubble-label" x="60.67" y="60.10">Proj Mgmt</text>
+      <!-- Docs: x=29, y=71, size=310 → svg(48.67, 54.40), r=4.82 -->
+      <circle class="fg-bubble" cx="48.67" cy="54.40" r="4.82"
               fill="var(--amber)" fill-opacity="0.2" stroke="var(--amber)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="48.67" y="37.3">Docs</text>
+      <text class="fg-bubble-label" x="48.67" y="55.30">Docs</text>
     </g>
 
     <!-- ── SERIES 3 — Data & Analytics (purple) ── -->
     <g class="fg-bubbles">
-      <!-- BI platforms: x=31, y=61, size=540 → svg(51.33, 56.0), r=5.89 -->
-      <circle class="fg-bubble" cx="51.33" cy="56.0" r="5.89"
+      <!-- BI platforms: x=31, y=61, size=540 → svg(51.33, 70.40), r=5.89 -->
+      <circle class="fg-bubble" cx="51.33" cy="70.40" r="5.89"
               fill="var(--purple)" fill-opacity="0.2" stroke="var(--purple)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="51.33" y="56.9">BI</text>
-      <!-- Pipelines: x=14, y=55, size=190 → svg(28.67, 64.0), r=4.10 -->
-      <circle class="fg-bubble" cx="28.67" cy="64.0" r="4.10"
+      <text class="fg-bubble-label" x="51.33" y="71.30">BI</text>
+      <!-- Pipelines: x=14, y=55, size=190 → svg(28.67, 80.00), r=4.10 -->
+      <circle class="fg-bubble" cx="28.67" cy="80.00" r="4.10"
               fill="var(--purple)" fill-opacity="0.2" stroke="var(--purple)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="28.67" y="64.9">Pipelines</text>
-      <!-- ML: x=8, y=63, size=95 → svg(20.67, 59.2), r=3.34 -->
-      <circle class="fg-bubble" cx="20.67" cy="59.2" r="3.34"
+      <text class="fg-bubble-label" x="28.67" y="80.90">Pipelines</text>
+      <!-- ML: x=8, y=63, size=95 → svg(20.67, 67.20), r=3.34 -->
+      <circle class="fg-bubble" cx="20.67" cy="67.20" r="3.34"
               fill="var(--purple)" fill-opacity="0.2" stroke="var(--purple)" stroke-width="0.5"/>
-      <text class="fg-bubble-label" x="20.67" y="60.1">ML</text>
+      <text class="fg-bubble-label" x="20.67" y="68.10">ML</text>
     </g>
 
     <!-- ── SERIES LEGEND (3 series — top-left, below size legend which ends y≈35.5) ──

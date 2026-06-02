@@ -45,7 +45,7 @@ h1 .accent { color: var(--purple); }
 .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
 
 /* ── chart container: square aspect so circles stay circular ── */
-.fg-chart-wrap {
+.fgraph-wrap {
   position: relative;
   width: 100%;
   max-width: 680px;
@@ -55,7 +55,7 @@ h1 .accent { color: var(--purple); }
   border: 1px solid var(--border-bright);
   border-radius: 10px;
 }
-.fg-chart-wrap svg { display: block; width: 100%; height: 100%; }
+.fgraph-wrap svg { display: block; width: 100%; height: 100%; }
 
 /* ── bubble-specific ── */
 .fg-axis-line   { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
@@ -173,9 +173,11 @@ h1 .accent { color: var(--purple); }
        Row 3: cy=17.5, label x=86, y=18.3
      Or top-left below the size legend (if size legend ends at y≈37):
        Row 1: cy=39.0, etc.
+
+     ESCAPING: XML-encode & < > " ' in all text tokens (labels/titles/series names) before substitution; numeric tokens (coords, ticks) must be finite numbers, never strings.
      ══════════════════════════════════════════════════════════════════ -->
 
-<div class="fg-chart-wrap" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+<div class="fgraph-wrap bubble" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg"
        role="img" aria-labelledby="bu-title">

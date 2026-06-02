@@ -44,7 +44,7 @@ h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
 h1 .accent { color: var(--cyan); }
 .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
 
-.fg-chart-wrap {
+.fgraph-wrap {
   position: relative;
   width: 100%;
   max-width: 680px;
@@ -54,7 +54,7 @@ h1 .accent { color: var(--cyan); }
   border: 1px solid var(--border-bright);
   border-radius: 10px;
 }
-.fg-chart-wrap svg { display: block; width: 100%; height: 100%; }
+.fgraph-wrap svg { display: block; width: 100%; height: 100%; }
 
 .fg-axis-line   { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
 .fg-grid-line   { stroke: var(--border); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
@@ -121,7 +121,7 @@ h1 .accent { color: var(--cyan); }
     shop-core     cx=68.0,  cy=31.97
     admin-portal  cx=51.0,  cy=51.43
     reporting-svc cx=73.0,  cy=44.57
-    data-exporter cx=55.0,  cy=59.14
+    data-exporter cx=55.0,  cy=58.29
     cms-core      cx=40.0,  cy=63.97
 
   Gridlines (horizontal, per Y-tick; vertical, per X-tick):
@@ -129,7 +129,7 @@ h1 .accent { color: var(--cyan); }
     X ticks → svg_x: 0→10, 20→30, 40→50, 60→70, 80→90
 -->
 
-<div class="fg-chart-wrap" role="img"
+<div class="fgraph-wrap scatter" role="img"
      aria-label="Scatter chart comparing CPU usage vs memory footprint for microservices (cyan circles) and monoliths (amber squares). Microservices cluster at low CPU and low memory; monoliths spread across higher values.">
   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg"
@@ -250,9 +250,9 @@ h1 .accent { color: var(--cyan); }
       <rect class="fg-point" x="71.6" y="43.17" width="2.8" height="2.8"
             fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
       <text class="fg-point-label" x="75.0" y="43.5">reporting</text>
-      <!-- data-exporter: x=45, y=520 → cx=55.0, cy=59.14
+      <!-- data-exporter: x=45, y=520 → cx=55.0, cy=58.29
            Label BELOW: offset down so it doesn't run into search(cx=65,cy=60.57) above-right -->
-      <rect class="fg-point" x="53.6" y="57.74" width="2.8" height="2.8"
+      <rect class="fg-point" x="53.6" y="56.89" width="2.8" height="2.8"
             fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
       <text class="fg-point-label" x="53.6" y="63.0">exporter</text>
       <!-- cms-core: x=30, y=420 → cx=40.0, cy=63.97

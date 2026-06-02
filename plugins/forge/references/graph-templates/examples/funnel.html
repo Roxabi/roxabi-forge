@@ -20,8 +20,11 @@
     --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
     --border: #1f252e; --border-bright: #2b3340;
     --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
-    --amber: #fbbf24; --cyan: #22d3ee; --purple: #c084fc;
-    --green: #4ade80; --red: #f87171;
+    --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+    --cyan:  #22d3ee; --cyan-dim:  rgba(34,211,238,0.12);
+    --purple:#c084fc; --purple-dim:rgba(192,132,252,0.12);
+    --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+    --red:   #f87171; --red-dim:   rgba(248,113,113,0.12);
   }
   body {
     background: var(--bg);
@@ -183,10 +186,9 @@
 
   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg"
-       role="img"
-       aria-label="Funnel chart: Visitors 12400, Sign-ups 3720 (30%), Activated 1488 (40%), Paying 446 (30%).">
+       role="img" aria-labelledby="fn-title">
 
-    <title>SaaS sign-up funnel — Q2 2026</title>
+    <title id="fn-title">SaaS sign-up funnel — Q2 2026</title>
 
     <!-- ── STAGE TRAPEZOIDS ───────────────────────────────────────── -->
     <!-- Stage 0 — Visitors (12,400) -->
