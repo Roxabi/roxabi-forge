@@ -28,3 +28,5 @@ jobs:
             echo "$matches"
             exit 1
           fi
+      - name: Validate fgraph SVG
+        run: bash plugins/forge/scripts/validate-svg.sh plugins/forge/references/graph-templates/*.html plugins/forge/references/graph-templates/examples/*.html plugins/forge/references/graph-templates/fgraph-base.css

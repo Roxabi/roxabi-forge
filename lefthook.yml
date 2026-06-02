@@ -27,6 +27,16 @@ pre-commit:
         fi
       glob:
         - "plugins/forge/references/**/*-base.css"
+    validate-svg:
+      # Blocking guard. Runs the fgraph SVG/marker validator on staged
+      # graph-templates so giant-arrowhead / placeholder drift can't land.
+      run: |
+        staged=$(printf '%s\n' {staged_files} | grep -E 'graph-templates/.*\.html$' || true)
+        if [ -n "$staged" ]; then
+          bash plugins/forge/scripts/validate-svg.sh $staged
+        fi
+      glob:
+        - "plugins/forge/references/graph-templates/**/*.html"
     mermaid-guard:
       # Blocking guard. Fails commit when staged files contain lowercase mermaid.
       # Pattern matches \bmermaid\b only — capitalized "Mermaid" in error prose is exempt.
