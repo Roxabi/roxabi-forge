@@ -94,10 +94,14 @@ Content-driven in both tracks. Brand `structure_defaults` (if present) act as **
 | Architecture layers (text-heavy, stacked, no arrows) | CSS Grid cards | Fallback when no node-to-node connections needed |
 | **Comparison / matrix (≥4 rows or ≥3 cols)** | **HTML `<table>`** | Tabular data is not a graph |
 | Simple timeline | `.steps` timeline component | Shared CSS, no auto-layout needed |
+| **2-variable correlation / X↔Y scatter** | **`graph-templates/scatter.html`** | Inline SVG data-chart; show relationship between two continuous variables |
+| **3-variable data (X, Y + magnitude as size)** | **`graph-templates/bubble.html`** | Extends scatter; bubble radius encodes a third dimension |
+| **Multi-axis comparison (N metrics, same scale)** | **`graph-templates/radar.html`** | Spider/radar chart; compare entities across N axes in one view |
+| **Pipeline / stage conversion (funnel stages)** | **`graph-templates/funnel.html`** | Decreasing-width bars; show drop-off between sequential conversion stages |
 
 **Decision rule:** pick the fgraph template whose shape matches (hub-and-spoke / linear / swimlane / layered / multi-host / ring / gantt / pie / er / sequence / state / dep-graph / **system-architecture**). Swimlane for message-flow pipelines, request lifecycles, clean-arch layer traces crossing multiple horizontal domains. **Full-system architecture (≥ 15 components across users → apis → adapters → bus → hub → stores) → `system-architecture.html`** — it composes nested `.fgraph-group` regions + the `.fg-bus-strip` primitive and ships a 3-card info row; prefer this over `radial-hub.html` whenever the reader's mental model is a top-to-bottom request lifecycle rather than "one hub, N peers". If > 8 nodes or complex flow that no other template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
 
-**Visual target — read the golden example first (MANDATORY):** Every fgraph template ships a fully-rendered, placeholder-free golden example. Before filling a template, **`Read ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/<type>.html`** and treat it as the pixel-correct visual target your output must match — node spacing, arrow/marker proportions, label placement, density, the compact inline-CSS subset. The rendered example is a stronger anchor than any prose gate below (a self-check that "looks fine" mentally has passed on visibly broken output before — the example is what "correct" actually looks like). Examples exist for all 15 types: `dep-graph · deployment-tiers · dual-cluster · er · gantt · lane-swim · layered · linear-flow · machine-clusters · pie · radial-hub · radial-ring · sequence · state · system-architecture`.
+**Visual target — read the golden example first (MANDATORY):** Every fgraph template ships a fully-rendered, placeholder-free golden example. Before filling a template, **`Read ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/<type>.html`** and treat it as the pixel-correct visual target your output must match — node spacing, arrow/marker proportions, label placement, density, the compact inline-CSS subset. The rendered example is a stronger anchor than any prose gate below (a self-check that "looks fine" mentally has passed on visibly broken output before — the example is what "correct" actually looks like). Examples exist for all 19 types: `dep-graph · deployment-tiers · dual-cluster · er · gantt · lane-swim · layered · linear-flow · machine-clusters · pie · radial-hub · radial-ring · scatter · bubble · radar · funnel · sequence · state · system-architecture`.
 
 **Dependency graph exception:** `dep-graph.html` is data-driven and requires `gen-deps.py` for correct topological layout (column widths, corridor routing). For hand-crafted small dependency graphs (≤ 6 nodes), use `layered.html` with hand-assigned `--x/--y` following R1 even-stride — manual fill of dep-graph.html produces irregular layouts because the template's positioning formulas are designed for Python-side injection, not human ad-hoc placement.
 
@@ -320,6 +324,10 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 | Layered architecture (3–4 tiers) | `graph-templates/layered.html` or `deployment-tiers.html` |
 | Multi-host deployment | `graph-templates/machine-clusters.html` |
 | Simple timeline | CSS flex with connectors |
+| 2-variable correlation / X↔Y scatter | `graph-templates/scatter.html` |
+| 3-variable data (X, Y + magnitude as bubble size) | `graph-templates/bubble.html` |
+| Multi-axis comparison (N metrics, radar/spider) | `graph-templates/radar.html` |
+| Pipeline / stage conversion (funnel) | `graph-templates/funnel.html` |
 
 **Decision rule for architecture diagrams:**
 - Linear pipeline (2–3 stages) → `linear-flow.html`

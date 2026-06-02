@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="{{TITLE}}">
+<meta name="diagram:date"      content="{{DATE}}">
+<meta name="diagram:category"  content="{{CATEGORY}}">
+<meta name="diagram:cat-label" content="{{CAT_LABEL}}">
+<meta name="diagram:color"     content="{{COLOR}}">
+<!-- diagram-meta:end -->
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── tokens (subset of fgraph-base.css semantic palette) ── */
+:root {
+  --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+  --border: #1f252e; --border-bright: #2b3340;
+  --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+  --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+  --cyan: #22d3ee;  --cyan-dim:  rgba(34,211,238,0.12);
+  --purple: #c084fc; --purple-dim: rgba(192,132,252,0.12);
+  --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+  --red: #f87171;   --red-dim:   rgba(248,113,113,0.12);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+header { margin-bottom: 20px; }
+.header-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+h1 .accent { color: var(--cyan); }
+.header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+/* ── chart container: square aspect so circles stay circular ── */
+.fg-chart-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+}
+.fg-chart-wrap svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* ── scatter-specific ── */
+.fg-axis-line  { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
+.fg-grid-line  { stroke: var(--border); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+.fg-tick-label { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-muted); }
+.fg-axis-title { font-family: 'Space Mono', monospace; font-size: 3.2px; fill: var(--text-dim); font-weight: 700; letter-spacing: 0.04em; }
+.fg-point      { vector-effect: non-scaling-stroke; }
+.fg-point-label { font-family: 'Space Mono', monospace; font-size: 2.6px; fill: var(--text-dim); }
+.fg-legend-swatch { vector-effect: non-scaling-stroke; }
+.fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 2.8px; fill: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">{{CATEGORY_LABEL}}</div>
+  <h1>{{TITLE_PLAIN}} <span class="accent">{{TITLE_ACCENT}}</span></h1>
+  <p class="header-subtitle">{{SUBTITLE}}</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCATTER CHART TEMPLATE — authoring surface
+     ══════════════════════════════════════════════════════════════════
+
+     ViewBox: 0 0 100 100 (square, xMidYMid meet → circles stay circular)
+     Plot area: x ∈ [10, 90], y ∈ [8, 88]  (margins for axis titles + ticks)
+       left margin  = 10  (y-axis labels + title)
+       right margin = 10
+       top margin   =  8  (breathing room)
+       bottom margin= 12  (x-axis labels + title)
+
+     Coordinate mapping (data value → SVG user units):
+       svg_x = 10 + (data_x - x.minValue) / (x.maxValue - x.minValue) * 80
+       svg_y = 88 - (data_y - y.minValue) / (y.maxValue - y.minValue) * 80
+
+     Note: SVG y increases downward, so data_y max maps to svg_y min (top).
+
+     ── NICE-NUMBER TICK ALGORITHM (pre-compute before authoring) ──
+
+     Given raw data range [lo, hi]:
+     1. range  = hi - lo   (if 0 → set range = 2, lo -= 1, hi += 1  ← flat-range guard)
+     2. step   = niceCeil(range / targetTickCount)   where targetTickCount ≈ 5
+        niceCeil(x): round x UP to nearest of 1·10^k, 2·10^k, 5·10^k
+        e.g. niceCeil(1.4) = 2, niceCeil(3.1) = 5, niceCeil(8) = 10
+     3. niceMin = floor(lo / step) * step
+        niceMax = ceil(hi / step) * step
+     4. ticks[] = niceMin, niceMin+step, …, niceMax  (inclusive both ends)
+
+     VALIDITY GUARD (SVG cannot catch this; Claude must verify before emitting):
+       ticks[0]    ≤ min(axis data)   — no data point clipped on the low end
+       ticks[last] ≥ max(axis data)   — no data point clipped on the high end
+     If violated, expand niceMin/niceMax by one step and regenerate.
+
+     EDGE CASES:
+     • Empty series (zero data points): render axes + gridlines + empty plot.
+       Do NOT emit NaN coords. The <g class="fg-points"> is empty.
+     • Single point (x0, y0): ticks must bracket it. The validity guard above
+       ensures ticks[0] ≤ x0 ≤ ticks[last] and same for y. Point renders at its
+       mapped (svg_x, svg_y) as usual.
+
+     ── POINT SHAPES ──
+     Series 1: circle  <circle cx="..." cy="..." r="1.6">
+     Series 2: square  <rect x="cx-1.4" y="cy-1.4" width="2.8" height="2.8">
+     Series 3: diamond <polygon points="cx,cy-2 cx+2,cy cx,cy+2 cx-2,cy">
+     More series: reuse shapes; differentiate by series color.
+
+     ── DEFAULT SERIES COLOURS (semantic-tone palette) ──
+     Series 1 → var(--cyan)
+     Series 2 → var(--amber)
+     Series 3 → var(--purple)
+     Series 4 → var(--green)
+     Series 5 → var(--red)
+     Override: replace var(--cyan) with a 6-digit hex (#rrggbb) per Series.color.
+
+     ── LEGEND (inside SVG, bottom margin — safe placement rules) ──
+
+     The SVG viewBox runs 0..100 in both axes. The bottom margin is y=88..100:
+       y=88..90  x-tick marks + tick labels (y≈92)
+       y=93..100 x-axis title (y=98) + legend rows
+
+     SAFE layout for up to 5 series:
+       x-axis title:   y=96 (below tick labels at y=92)
+       Legend row 1:   swatch cy=91.5, label y=92.3
+       (rows 2-5 each +3.5 further down — but ≤3 rows fit before y=100)
+
+     For ≤2 series use the bottom margin. For 3+ series use the TOP-LEFT
+     corner of the plot (y=10..18), which is typically empty whitespace:
+       Row 1:  cy=10.5,  label y=11.3
+       Row 2:  cy=14.0,  label y=14.8
+       Row 3:  cy=17.5,  label y=18.3
+       (swatch cx=12.2, label x=15.0; same spacing as bottom placement)
+
+     Each row: swatch (circle r=1.2 for circle-series, rect 2.4×2.4 for square)
+               + text label 3px to the right of swatch.
+
+     COLLISION RULE: if plot data occupies top-left, shift legend to top-right
+     (cx≈83, x≈86) or use a background rect for readability.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fg-chart-wrap" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="sc-title">
+
+    <title id="sc-title">{{TITLE}}</title>
+
+    <!-- ── GRIDLINES (horizontal, one per y-tick; vertical, one per x-tick) ── -->
+    <!--
+      For each y-tick value t (excluding niceMin if it falls below plot):
+        y = 88 - (t - y.minValue) / (y.maxValue - y.minValue) * 80
+        <line class="fg-grid-line" x1="10" y1="{y}" x2="90" y2="{y}"/>
+      For each x-tick value t:
+        x = 10 + (t - x.minValue) / (x.maxValue - x.minValue) * 80
+        <line class="fg-grid-line" x1="{x}" y1="8" x2="{x}" y2="88"/>
+    -->
+    <!-- PLACEHOLDER: gridlines — replace with pre-computed <line> elements -->
+    <!-- {{GRIDLINES}} -->
+
+    <!-- ── AXES ── -->
+    <!-- X-axis: bottom of plot area -->
+    <line class="fg-axis-line" x1="10" y1="88" x2="90" y2="88"/>
+    <!-- Y-axis: left of plot area -->
+    <line class="fg-axis-line" x1="10" y1="8"  x2="10" y2="88"/>
+
+    <!-- ── TICK LABELS ── -->
+    <!--
+      X-ticks (below x-axis):
+        For each tick value t:
+          x = 10 + (t - x.minValue) / (x.maxValue - x.minValue) * 80
+          tick mark: <line class="fg-axis-line" x1="{x}" y1="88" x2="{x}" y2="89.5"/>
+          label:     <text class="fg-tick-label" x="{x}" y="92" text-anchor="middle">{t}</text>
+      Y-ticks (left of y-axis):
+        For each tick value t:
+          y = 88 - (t - y.minValue) / (y.maxValue - y.minValue) * 80
+          tick mark: <line class="fg-axis-line" x1="8.5" y1="{y}" x2="10" y2="{y}"/>
+          label:     <text class="fg-tick-label" x="8" y="{y+0.9}" text-anchor="end">{t}</text>
+    -->
+    <!-- PLACEHOLDER: tick marks + labels — replace with pre-computed elements -->
+    <!-- {{TICK_MARKS}} -->
+
+    <!-- ── AXIS TITLES ── -->
+    <!-- X-axis title: centred below x-tick labels (y=92) with a clear gap -->
+    <text class="fg-axis-title" x="50" y="97" text-anchor="middle">{{X_AXIS_LABEL}}</text>
+    <!-- Y-axis title: rotated -90°; in rotated space x=-48 (SVG y=48) centres
+         vertically in the plot; y=1.8 (SVG x=1.8) clears the tick labels at x≈8.
+         Tick labels for 4-digit numbers (e.g. "1000") end near x=6.5 in SVG space,
+         so y=1.8 gives ~1.5 user-units of breathing room. -->
+    <text class="fg-axis-title" x="-48" y="1.8"
+          text-anchor="middle"
+          transform="rotate(-90)">{{Y_AXIS_LABEL}}</text>
+
+    <!-- ── DATA POINTS ── -->
+    <!--
+      Group per series. class="fg-point" on each shape.
+      Series 1 (circles, var(--cyan)):
+        <g class="fg-points">
+          <circle class="fg-point" cx="{svg_x}" cy="{svg_y}" r="1.6"
+                  fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+          <!-- optional point label (omit if crowded):
+          <text class="fg-point-label" x="{svg_x+2}" y="{svg_y-1.5}">{label}</text>
+          -->
+        </g>
+      Series 2 (squares, var(--amber)):
+        <g class="fg-points">
+          <rect class="fg-point" x="{svg_x-1.4}" y="{svg_y-1.4}" width="2.8" height="2.8"
+                fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+        </g>
+    -->
+    <!-- PLACEHOLDER: data point groups — replace with pre-computed <g> blocks -->
+    <!-- {{SERIES}} -->
+
+    <!-- ── LEGEND ── -->
+    <!--
+      Safe placement — see "LEGEND" section in the authoring comment above.
+
+      ≤2 series: bottom-margin placement (below tick labels, above axis title)
+        <!-- Series 1 -->
+        <circle class="fg-legend-swatch" cx="12.2" cy="91.5" r="1.2"
+                fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.3"/>
+        <text class="fg-legend-label" x="15" y="92.3">{{SERIES_1_NAME}}</text>
+        <!-- Series 2 -->
+        <rect class="fg-legend-swatch" x="11.0" y="93.8" width="2.4" height="2.4"
+              fill="var(--amber)" stroke="var(--amber)" stroke-width="0.3"/>
+        <text class="fg-legend-label" x="15" y="95.4">{{SERIES_2_NAME}}</text>
+
+      3+ series: top-left corner of plot area (rows at cy=10.5, 14.0, 17.5)
+        <circle class="fg-legend-swatch" cx="12.2" cy="10.5" r="1.2"
+                fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.3"/>
+        <text class="fg-legend-label" x="15" y="11.3">{{SERIES_1_NAME}}</text>
+    -->
+    <!-- PLACEHOLDER: legend rows — replace with per-series swatch + label -->
+    <!-- {{LEGEND}} -->
+
+  </svg>
+</div>
+
+</main>
+
+</body>
+</html>

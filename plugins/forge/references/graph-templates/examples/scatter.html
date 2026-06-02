@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="Service architecture — CPU vs memory footprint">
+<meta name="diagram:date"      content="2026-06-02">
+<meta name="diagram:category"  content="forge">
+<meta name="diagram:cat-label" content="Forge · performance">
+<meta name="diagram:color"     content="cyan">
+<!-- diagram-meta:end -->
+<title>Service architecture — CPU vs memory footprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── tokens (subset of fgraph-base.css semantic palette) ── */
+:root {
+  --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+  --border: #1f252e; --border-bright: #2b3340;
+  --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+  --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+  --cyan: #22d3ee;  --cyan-dim:  rgba(34,211,238,0.12);
+  --purple: #c084fc; --purple-dim: rgba(192,132,252,0.12);
+  --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+  --red: #f87171;   --red-dim:   rgba(248,113,113,0.12);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+header { margin-bottom: 20px; }
+.header-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+h1 .accent { color: var(--cyan); }
+.header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+.fg-chart-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+}
+.fg-chart-wrap svg { display: block; width: 100%; height: 100%; }
+
+.fg-axis-line   { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
+.fg-grid-line   { stroke: var(--border); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+.fg-tick-label  { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-muted); }
+.fg-axis-title  { font-family: 'Space Mono', monospace; font-size: 3.2px; fill: var(--text-dim); font-weight: 700; letter-spacing: 0.04em; }
+.fg-point       { vector-effect: non-scaling-stroke; }
+.fg-point-label { font-family: 'Space Mono', monospace; font-size: 2.6px; fill: var(--text-dim); }
+.fg-legend-swatch { vector-effect: non-scaling-stroke; }
+.fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 2.8px; fill: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Forge · performance</div>
+  <h1>Service architecture <span class="accent">CPU vs memory footprint</span></h1>
+  <p class="header-subtitle">Peak CPU (%) and idle memory (MB) for 12 production services across two architecture styles.</p>
+</header>
+
+<main>
+
+<!--
+  DATA (2 series, 6 points each):
+
+  Series 1 — Microservices (cyan, circles):
+    auth-svc      x=12, y=128
+    api-gateway   x=28, y=210
+    user-svc      x=9,  y=96
+    notif-svc     x=6,  y=64
+    billing-svc   x=35, y=310
+    search-svc    x=55, y=480
+
+  Series 2 — Monoliths (amber, squares):
+    legacy-crm    x=72, y=1200
+    shop-core     x=58, y=980
+    admin-portal  x=41, y=640
+    reporting-svc x=63, y=760
+    data-exporter x=45, y=520
+    cms-core      x=30, y=420
+
+  X axis: CPU (%)  — range 0..80, ticks 0,20,40,60,80
+  Y axis: Memory (MB) — range 0..1400, ticks 0,200,400,600,800,1000,1200,1400
+
+  Validity guard:
+    X: ticks[0]=0 ≤ min(6)=6  ✓   ticks[last]=80 ≥ max(72)=72  ✓
+    Y: ticks[0]=0 ≤ min(64)=64 ✓  ticks[last]=1400 ≥ max(1200)=1200 ✓
+
+  Coordinate mapping:
+    Plot area: x ∈ [10,90], y ∈ [8,88]  → 80×80 user units
+    svg_x = 10 + (data_x / 80) * 80  = 10 + data_x
+    svg_y = 88 - (data_y / 1400) * 80
+
+  Pre-computed SVG coords:
+  Microservices (cyan):
+    auth-svc      cx=22.0,  cy=80.69
+    api-gateway   cx=38.0,  cy=75.97
+    user-svc      cx=19.0,  cy=82.51
+    notif-svc     cx=16.0,  cy=84.34
+    billing-svc   cx=45.0,  cy=70.29
+    search-svc    cx=65.0,  cy=60.57
+
+  Monoliths (amber):
+    legacy-crm    cx=82.0,  cy=19.43
+    shop-core     cx=68.0,  cy=31.97
+    admin-portal  cx=51.0,  cy=51.43
+    reporting-svc cx=73.0,  cy=44.57
+    data-exporter cx=55.0,  cy=59.14
+    cms-core      cx=40.0,  cy=63.97
+
+  Gridlines (horizontal, per Y-tick; vertical, per X-tick):
+    Y ticks → svg_y: 0→88, 200→76.57, 400→65.14, 600→53.71, 800→42.29, 1000→30.86, 1200→19.43, 1400→8
+    X ticks → svg_x: 0→10, 20→30, 40→50, 60→70, 80→90
+-->
+
+<div class="fg-chart-wrap" role="img"
+     aria-label="Scatter chart comparing CPU usage vs memory footprint for microservices (cyan circles) and monoliths (amber squares). Microservices cluster at low CPU and low memory; monoliths spread across higher values.">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="sc-title">
+
+    <title id="sc-title">Service architecture — CPU vs memory footprint</title>
+
+    <!-- ── HORIZONTAL GRIDLINES (per Y-tick, excluding y=88 which is the axis) ── -->
+    <line class="fg-grid-line" x1="10" y1="76.57" x2="90" y2="76.57"/>
+    <line class="fg-grid-line" x1="10" y1="65.14" x2="90" y2="65.14"/>
+    <line class="fg-grid-line" x1="10" y1="53.71" x2="90" y2="53.71"/>
+    <line class="fg-grid-line" x1="10" y1="42.29" x2="90" y2="42.29"/>
+    <line class="fg-grid-line" x1="10" y1="30.86" x2="90" y2="30.86"/>
+    <line class="fg-grid-line" x1="10" y1="19.43" x2="90" y2="19.43"/>
+    <line class="fg-grid-line" x1="10" y1="8"     x2="90" y2="8"/>
+
+    <!-- ── VERTICAL GRIDLINES (per X-tick, excluding x=10 which is the axis) ── -->
+    <line class="fg-grid-line" x1="30" y1="8" x2="30" y2="88"/>
+    <line class="fg-grid-line" x1="50" y1="8" x2="50" y2="88"/>
+    <line class="fg-grid-line" x1="70" y1="8" x2="70" y2="88"/>
+    <line class="fg-grid-line" x1="90" y1="8" x2="90" y2="88"/>
+
+    <!-- ── AXES ── -->
+    <line class="fg-axis-line" x1="10" y1="88" x2="90" y2="88"/>
+    <line class="fg-axis-line" x1="10" y1="8"  x2="10" y2="88"/>
+
+    <!-- ── X-TICK MARKS + LABELS (CPU %) ── -->
+    <line class="fg-axis-line" x1="10" y1="88" x2="10" y2="89.5"/>
+    <text class="fg-tick-label" x="10" y="92" text-anchor="middle">0</text>
+    <line class="fg-axis-line" x1="30" y1="88" x2="30" y2="89.5"/>
+    <text class="fg-tick-label" x="30" y="92" text-anchor="middle">20</text>
+    <line class="fg-axis-line" x1="50" y1="88" x2="50" y2="89.5"/>
+    <text class="fg-tick-label" x="50" y="92" text-anchor="middle">40</text>
+    <line class="fg-axis-line" x1="70" y1="88" x2="70" y2="89.5"/>
+    <text class="fg-tick-label" x="70" y="92" text-anchor="middle">60</text>
+    <line class="fg-axis-line" x1="90" y1="88" x2="90" y2="89.5"/>
+    <text class="fg-tick-label" x="90" y="92" text-anchor="middle">80</text>
+
+    <!-- ── Y-TICK MARKS + LABELS (Memory MB) ── -->
+    <line class="fg-axis-line" x1="8.5" y1="88"    x2="10" y2="88"/>
+    <text class="fg-tick-label" x="8" y="88.9"    text-anchor="end">0</text>
+    <line class="fg-axis-line" x1="8.5" y1="76.57" x2="10" y2="76.57"/>
+    <text class="fg-tick-label" x="8" y="77.47"   text-anchor="end">200</text>
+    <line class="fg-axis-line" x1="8.5" y1="65.14" x2="10" y2="65.14"/>
+    <text class="fg-tick-label" x="8" y="66.04"   text-anchor="end">400</text>
+    <line class="fg-axis-line" x1="8.5" y1="53.71" x2="10" y2="53.71"/>
+    <text class="fg-tick-label" x="8" y="54.61"   text-anchor="end">600</text>
+    <line class="fg-axis-line" x1="8.5" y1="42.29" x2="10" y2="42.29"/>
+    <text class="fg-tick-label" x="8" y="43.19"   text-anchor="end">800</text>
+    <line class="fg-axis-line" x1="8.5" y1="30.86" x2="10" y2="30.86"/>
+    <text class="fg-tick-label" x="8" y="31.76"   text-anchor="end">1000</text>
+    <line class="fg-axis-line" x1="8.5" y1="19.43" x2="10" y2="19.43"/>
+    <text class="fg-tick-label" x="8" y="20.33"   text-anchor="end">1200</text>
+    <line class="fg-axis-line" x1="8.5" y1="8"     x2="10" y2="8"/>
+    <text class="fg-tick-label" x="8" y="8.9"     text-anchor="end">1400</text>
+
+    <!-- ── AXIS TITLES ── -->
+    <!-- X-axis title below tick labels (y=92) -->
+    <text class="fg-axis-title" x="50" y="97" text-anchor="middle">CPU PEAK (%)</text>
+    <!-- Y-axis title: rotated -90°; y=1.8 keeps it left of 4-digit tick labels -->
+    <text class="fg-axis-title" x="-48" y="1.8"
+          text-anchor="middle"
+          transform="rotate(-90)">MEMORY (MB)</text>
+
+    <!-- ── SERIES 1 — Microservices (cyan circles) ── -->
+    <g class="fg-points">
+      <!-- auth-svc: x=12, y=128 → cx=22.0, cy=80.69
+           Label ABOVE-RIGHT: clear of user(19,82.51) below-left -->
+      <circle class="fg-point" cx="22.0" cy="80.69" r="1.6"
+              fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="23.8" y="78.8">auth</text>
+      <!-- api-gateway: x=28, y=210 → cx=38.0, cy=75.97
+           Label ABOVE-RIGHT: clear space -->
+      <circle class="fg-point" cx="38.0" cy="75.97" r="1.6"
+              fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="39.8" y="74.2">gateway</text>
+      <!-- user-svc: x=9, y=96 → cx=19.0, cy=82.51
+           Label BELOW-RIGHT: notif is below-left, auth is above-right -->
+      <circle class="fg-point" cx="19.0" cy="82.51" r="1.6"
+              fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="20.8" y="86.0">user</text>
+      <!-- notif-svc: x=6, y=64 → cx=16.0, cy=84.34
+           Label LEFT: placed left of marker to avoid collision with user/auth -->
+      <circle class="fg-point" cx="16.0" cy="84.34" r="1.6"
+              fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="11.5" y="83.6" text-anchor="end">notif</text>
+      <!-- billing-svc: x=35, y=310 → cx=45.0, cy=70.29
+           Label ABOVE-RIGHT: clear space -->
+      <circle class="fg-point" cx="45.0" cy="70.29" r="1.6"
+              fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="46.8" y="68.5">billing</text>
+      <!-- search-svc: x=55, y=480 → cx=65.0, cy=60.57
+           Label ABOVE-RIGHT: clear of exporter(55,59.14) to the left -->
+      <circle class="fg-point" cx="65.0" cy="60.57" r="1.6"
+              fill="var(--cyan)" fill-opacity="0.85" stroke="var(--cyan)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="66.8" y="58.8">search</text>
+    </g>
+
+    <!-- ── SERIES 2 — Monoliths (amber squares) ── -->
+    <g class="fg-points">
+      <!-- legacy-crm: x=72, y=1200 → cx=82.0, cy=19.43
+           Label RIGHT: clear space near top -->
+      <rect class="fg-point" x="80.6" y="18.03" width="2.8" height="2.8"
+            fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="84.0" y="20.2">legacy-crm</text>
+      <!-- shop-core: x=58, y=980 → cx=68.0, cy=31.97
+           Label RIGHT: clear space -->
+      <rect class="fg-point" x="66.6" y="30.57" width="2.8" height="2.8"
+            fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="70.0" y="30.0">shop-core</text>
+      <!-- admin-portal: x=41, y=640 → cx=51.0, cy=51.43
+           Label ABOVE-RIGHT: clear of exporter below-right -->
+      <rect class="fg-point" x="49.6" y="50.03" width="2.8" height="2.8"
+            fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="53.0" y="49.3">admin</text>
+      <!-- reporting-svc: x=63, y=760 → cx=73.0, cy=44.57
+           Label ABOVE-RIGHT: clear space -->
+      <rect class="fg-point" x="71.6" y="43.17" width="2.8" height="2.8"
+            fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="75.0" y="43.5">reporting</text>
+      <!-- data-exporter: x=45, y=520 → cx=55.0, cy=59.14
+           Label BELOW: offset down so it doesn't run into search(cx=65,cy=60.57) above-right -->
+      <rect class="fg-point" x="53.6" y="57.74" width="2.8" height="2.8"
+            fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="53.6" y="63.0">exporter</text>
+      <!-- cms-core: x=30, y=420 → cx=40.0, cy=63.97
+           Label BELOW-LEFT: clear of exporter above-right -->
+      <rect class="fg-point" x="38.6" y="62.57" width="2.8" height="2.8"
+            fill="var(--amber)" fill-opacity="0.85" stroke="var(--amber)" stroke-width="0.4"/>
+      <text class="fg-point-label" x="38.6" y="67.5">cms</text>
+    </g>
+
+    <!-- ── LEGEND (2 series — top-right of plot, above legacy-crm at cy≈19.43) ──
+         No data points in x=62..90, y=9..17.
+         Swatch at cx=63, label at x=66; rows at cy=11, cy=14.5. -->
+    <circle class="fg-legend-swatch" cx="63.2" cy="11.0" r="1.2"
+            fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.3"/>
+    <text class="fg-legend-label" x="66.0" y="11.8">Microservices</text>
+    <rect class="fg-legend-swatch" x="62.0" y="13.3" width="2.4" height="2.4"
+          fill="var(--amber)" stroke="var(--amber)" stroke-width="0.3"/>
+    <text class="fg-legend-label" x="66.0" y="14.9">Monoliths</text>
+
+  </svg>
+</div>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="{{TITLE}}">
+<meta name="diagram:date"      content="{{DATE}}">
+<meta name="diagram:category"  content="{{CATEGORY}}">
+<meta name="diagram:cat-label" content="{{CAT_LABEL}}">
+<meta name="diagram:color"     content="{{COLOR}}">
+<!-- diagram-meta:end -->
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── tokens (subset of fgraph-base.css semantic palette) ── */
+:root {
+  --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+  --border: #1f252e; --border-bright: #2b3340;
+  --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+  --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+  --cyan: #22d3ee;  --cyan-dim:  rgba(34,211,238,0.12);
+  --purple: #c084fc; --purple-dim: rgba(192,132,252,0.12);
+  --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+  --red: #f87171;   --red-dim:   rgba(248,113,113,0.12);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+header { margin-bottom: 20px; }
+.header-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+h1 .accent { color: var(--purple); }
+.header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+/* ── chart container: square aspect so circles stay circular ── */
+.fg-chart-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+}
+.fg-chart-wrap svg { display: block; width: 100%; height: 100%; }
+
+/* ── bubble-specific ── */
+.fg-axis-line   { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
+.fg-grid-line   { stroke: var(--border); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+.fg-tick-label  { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-muted); }
+.fg-axis-title  { font-family: 'Space Mono', monospace; font-size: 3.2px; fill: var(--text-dim); font-weight: 700; letter-spacing: 0.04em; }
+.fg-bubble      { vector-effect: non-scaling-stroke; }
+.fg-bubble-label { font-family: 'Space Mono', monospace; font-size: 2.6px; fill: var(--text-dim); text-anchor: middle; }
+.fg-legend-swatch { vector-effect: non-scaling-stroke; }
+.fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 2.8px; fill: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">{{CATEGORY_LABEL}}</div>
+  <h1>{{TITLE_PLAIN}} <span class="accent">{{TITLE_ACCENT}}</span></h1>
+  <p class="header-subtitle">{{SUBTITLE}}</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     BUBBLE CHART TEMPLATE — authoring surface
+     ══════════════════════════════════════════════════════════════════
+
+     Extends scatter.html. All axis/grid/tick rules from scatter.html apply
+     unchanged. See scatter.html for the full nice-number tick algorithm,
+     validity guard, edge-case handling, and axis/grid computation formulas.
+
+     ViewBox: 0 0 100 100 (square, xMidYMid meet → circles stay circular)
+     Plot area: x ∈ [10, 90], y ∈ [8, 88]  (same margins as scatter)
+
+     Coordinate mapping (data value → SVG user units):
+       svg_x = 10 + (data_x - x.minValue) / (x.maxValue - x.minValue) * 80
+       svg_y = 88 - (data_y - y.minValue) / (y.maxValue - y.minValue) * 80
+
+     ── AREA-PROPORTIONAL RADIUS FORMULA ──
+
+     Each BubblePoint carries a third dimension: `size` (maps to area).
+     Pre-compute r for every point using the formula below.
+
+     Inputs from Bubble schema:
+       minRadius  — smallest circle radius in user units (e.g. 1.5)
+       maxRadius  — largest circle radius in user units (e.g. 7.0)
+       maxSize    — max(size) across ALL series and ALL points
+
+     Formula:
+       r = minRadius + (maxRadius − minRadius) * √(size / maxSize)
+
+     Clamp result to [minRadius, maxRadius]:
+       r = max(minRadius, min(maxRadius, r))
+
+     DISCLOSURE: clamping intentionally overrides strict area-proportionality
+     at the bounds. A size equal to maxSize will give exactly maxRadius;
+     smaller sizes compress toward minRadius following a square-root curve.
+
+     EDGE CASES:
+     • size ≤ 0 or size is missing → r = minRadius (never r < 0)
+       Guard: before applying the formula, set size = max(0, size).
+     • size > maxSize (data inconsistency): clamp keeps r ≤ maxRadius, so
+       the chart degrades gracefully without overflowing the plot area.
+     • Single point: axis ticks still bracket it (see scatter.html validity guard).
+     • Empty series: render axes + gridlines + empty plot (no NaN coords).
+
+     ── BUBBLE LABELLING ──
+     Labels are anchored at the bubble centre (text-anchor="middle").
+     For small bubbles (r < 2.5), place the label above the circle:
+       y = svg_y - r - 0.8
+     For large bubbles (r ≥ 2.5), label can sit inside:
+       y = svg_y + 0.9   (vertical mid of circle)
+
+     ── DEFAULT SERIES COLOURS (semantic-tone palette) ──
+     Series 1 → var(--cyan)
+     Series 2 → var(--amber)
+     Series 3 → var(--purple)
+     Series 4 → var(--green)
+     Series 5 → var(--red)
+     Override: replace var(--purple) with a 6-digit hex per Series.color.
+
+     ── SIZE LEGEND ──
+     Include a small size-reference legend inside the SVG showing what a
+     "small" and "large" bubble represent, to aid interpretation.
+
+     PLACEMENT: top-left corner of plot area at x≈13..22, y starting at 10.
+     This keeps the size legend away from data bubbles that typically occupy
+     the centre-right and away from the ARR/size label that might collide with
+     large bubbles near the top-right.
+
+     Stacking: SIZE header at y=10.5, small circle top at y=13 + label,
+     large circle below with gap = minRadius + 2 + maxRadius:
+       header:        x=17, y=10.5
+       small circle:  cx=17, cy=14,               r=minRadius
+       small label:   x=17, y=14+minRadius+2.0
+       large circle:  cx=17, cy=(14+minRadius+2.0+2.0+maxRadius)
+       large label:   x=17, y=(large_cy+maxRadius+2.0)
+
+     Example for minRadius=1.5, maxRadius=7.0:
+       header at y=10.5
+       small:  cy=14, label y=17.5
+       large:  cy=14+1.5+4.0+7.0=26.5, label y=26.5+7.0+2.0=35.5
+
+     COLLISION RULE: if data occupies top-left, shift the size legend to
+     x≈83 (top-right), but verify the large circle at cy+maxRadius ≤ 37
+     does not overlap data bubbles in that column.
+
+     ── SERIES LEGEND ──
+     3 series → use top-right corner column below the size legend, OR a
+     dedicated right-side strip. The bottom margin (y=88..100) has only
+     12 user units: x-tick labels at y≈92, x-axis title at y≈97, leaving
+     ~4 units for at most 1 legend row. For 3+ series place in the plot
+     margin or a background-rect'd corner, e.g. top-right at x≈83:
+       Row 1: cy=10.5, label x=86, y=11.3
+       Row 2: cy=14.0, label x=86, y=14.8
+       Row 3: cy=17.5, label x=86, y=18.3
+     Or top-left below the size legend (if size legend ends at y≈37):
+       Row 1: cy=39.0, etc.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fg-chart-wrap" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="bu-title">
+
+    <title id="bu-title">{{TITLE}}</title>
+
+    <!-- ── HORIZONTAL GRIDLINES (per Y-tick) ── -->
+    <!--
+      Same formula as scatter: for each y-tick t (excluding the axis tick at y=88):
+        svg_y = 88 - (t - y.minValue) / (y.maxValue - y.minValue) * 80
+        <line class="fg-grid-line" x1="10" y1="{svg_y}" x2="90" y2="{svg_y}"/>
+    -->
+    <!-- PLACEHOLDER: horizontal gridlines — replace with pre-computed <line> elements -->
+    <!-- {{H_GRIDLINES}} -->
+
+    <!-- ── VERTICAL GRIDLINES (per X-tick) ── -->
+    <!--
+      For each x-tick t (excluding the axis tick at x=10):
+        svg_x = 10 + (t - x.minValue) / (x.maxValue - x.minValue) * 80
+        <line class="fg-grid-line" x1="{svg_x}" y1="8" x2="{svg_x}" y2="88"/>
+    -->
+    <!-- PLACEHOLDER: vertical gridlines — replace with pre-computed <line> elements -->
+    <!-- {{V_GRIDLINES}} -->
+
+    <!-- ── AXES ── -->
+    <line class="fg-axis-line" x1="10" y1="88" x2="90" y2="88"/>
+    <line class="fg-axis-line" x1="10" y1="8"  x2="10" y2="88"/>
+
+    <!-- ── X-TICK MARKS + LABELS ── -->
+    <!--
+      For each x-tick t:
+        svg_x = 10 + (t - x.minValue) / (x.maxValue - x.minValue) * 80
+        <line class="fg-axis-line" x1="{svg_x}" y1="88" x2="{svg_x}" y2="89.5"/>
+        <text class="fg-tick-label" x="{svg_x}" y="92" text-anchor="middle">{t}</text>
+    -->
+    <!-- PLACEHOLDER: x-tick marks + labels -->
+    <!-- {{X_TICKS}} -->
+
+    <!-- ── Y-TICK MARKS + LABELS ── -->
+    <!--
+      For each y-tick t:
+        svg_y = 88 - (t - y.minValue) / (y.maxValue - y.minValue) * 80
+        <line class="fg-axis-line" x1="8.5" y1="{svg_y}" x2="10" y2="{svg_y}"/>
+        <text class="fg-tick-label" x="8" y="{svg_y+0.9}" text-anchor="end">{t}</text>
+    -->
+    <!-- PLACEHOLDER: y-tick marks + labels -->
+    <!-- {{Y_TICKS}} -->
+
+    <!-- ── AXIS TITLES ── -->
+    <!-- X-axis title below tick labels (y=92) with clear gap -->
+    <text class="fg-axis-title" x="50" y="97" text-anchor="middle">{{X_AXIS_LABEL}}</text>
+    <!-- Y-axis title: y=1.8 clears 4-digit tick labels ending near x=6.5 -->
+    <text class="fg-axis-title" x="-48" y="1.8"
+          text-anchor="middle"
+          transform="rotate(-90)">{{Y_AXIS_LABEL}}</text>
+
+    <!-- ── SIZE REFERENCE LEGEND (top-left corner, inside plot area) ── -->
+    <!--
+      Two circles showing minRadius (small) and maxRadius (large) + their
+      associated size values. Default placement: top-left at x=17.
+      Stacking formula (minRadius=1.5, maxRadius=7.0):
+        header  y=10.5
+        small:  cy=14,    label y=17.5
+        large:  cy=26.5,  label y=35.5
+
+      If data occupies top-left, shift to top-right (x≈83) and verify
+      large circle bottom (cy+maxRadius) does not overlap data in that column.
+
+        <text class="fg-tick-label" x="17" y="10.5" text-anchor="middle">SIZE</text>
+        <circle cx="17" cy="14" r="{minRadius}" fill="none"
+                stroke="var(--text-muted)" stroke-width="0.4" class="fg-bubble"/>
+        <text class="fg-tick-label" x="17" y="{14+minRadius+2.0}"
+              text-anchor="middle">{{SIZE_MIN_LABEL}}</text>
+        <circle cx="17" cy="{14+minRadius+4.0+maxRadius}" r="{maxRadius}" fill="none"
+                stroke="var(--text-muted)" stroke-width="0.4" class="fg-bubble"/>
+        <text class="fg-tick-label" x="17" y="{large_cy+maxRadius+2.0}"
+              text-anchor="middle">{{SIZE_MAX_LABEL}}</text>
+    -->
+    <!-- PLACEHOLDER: size reference legend -->
+    <!-- {{SIZE_LEGEND}} -->
+
+    <!-- ── DATA BUBBLES ── -->
+    <!--
+      One <g class="fg-bubbles"> per series. Per point:
+        r = clamp(minRadius + (maxRadius - minRadius) * sqrt(size / maxSize), minRadius, maxRadius)
+        (if size <= 0: r = minRadius)
+
+      <g class="fg-bubbles">
+        <circle class="fg-bubble" cx="{svg_x}" cy="{svg_y}" r="{r}"
+                fill="var(--cyan)" fill-opacity="0.25" stroke="var(--cyan)" stroke-width="0.5"/>
+        <text class="fg-bubble-label" x="{svg_x}" y="{svg_y + 0.9}">{label}</text>
+      </g>
+    -->
+    <!-- PLACEHOLDER: bubble groups — replace with pre-computed <g> blocks -->
+    <!-- {{SERIES}} -->
+
+    <!-- ── SERIES LEGEND ── -->
+    <!--
+      For 3+ series: place in top-right corner (below size legend if size legend
+      is top-left) or top-left below size legend. DO NOT place in the bottom
+      margin when series count ≥ 3 — the bottom margin holds only ~4 user-units
+      between tick labels (y≈92) and viewBox edge (y=100), which clips the 3rd row.
+
+      Top-right example (3 series, x≈83):
+        <circle class="fg-legend-swatch" cx="83.8" cy="10.5" r="1.2"
+                fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.3"/>
+        <text class="fg-legend-label" x="86.2" y="11.3">{{SERIES_1_NAME}}</text>
+        <circle class="fg-legend-swatch" cx="83.8" cy="14.0" r="1.2"
+                fill="var(--amber)" stroke="var(--amber)" stroke-width="0.3"/>
+        <text class="fg-legend-label" x="86.2" y="14.8">{{SERIES_2_NAME}}</text>
+        <circle class="fg-legend-swatch" cx="83.8" cy="17.5" r="1.2"
+                fill="var(--purple)" stroke="var(--purple)" stroke-width="0.3"/>
+        <text class="fg-legend-label" x="86.2" y="18.3">{{SERIES_3_NAME}}</text>
+    -->
+    <!-- PLACEHOLDER: series legend -->
+    <!-- {{LEGEND}} -->
+
+  </svg>
+</div>
+
+</main>
+
+</body>
+</html>

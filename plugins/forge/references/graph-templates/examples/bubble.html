@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="SaaS market — share, satisfaction and revenue">
+<meta name="diagram:date"      content="2026-06-02">
+<meta name="diagram:category"  content="forge">
+<meta name="diagram:cat-label" content="Forge · market">
+<meta name="diagram:color"     content="purple">
+<!-- diagram-meta:end -->
+<title>SaaS market — share, satisfaction and revenue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── tokens (subset of fgraph-base.css semantic palette) ── */
+:root {
+  --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+  --border: #1f252e; --border-bright: #2b3340;
+  --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+  --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+  --cyan: #22d3ee;  --cyan-dim:  rgba(34,211,238,0.12);
+  --purple: #c084fc; --purple-dim: rgba(192,132,252,0.12);
+  --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+  --red: #f87171;   --red-dim:   rgba(248,113,113,0.12);
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+header { margin-bottom: 20px; }
+.header-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+h1 .accent { color: var(--purple); }
+.header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+.fg-chart-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+}
+.fg-chart-wrap svg { display: block; width: 100%; height: 100%; }
+
+.fg-axis-line    { stroke: var(--border-bright); stroke-width: 0.6; vector-effect: non-scaling-stroke; }
+.fg-grid-line    { stroke: var(--border); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+.fg-tick-label   { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-muted); }
+.fg-axis-title   { font-family: 'Space Mono', monospace; font-size: 3.2px; fill: var(--text-dim); font-weight: 700; letter-spacing: 0.04em; }
+.fg-bubble       { vector-effect: non-scaling-stroke; }
+.fg-bubble-label { font-family: 'Space Mono', monospace; font-size: 2.6px; fill: var(--text-dim); text-anchor: middle; }
+.fg-legend-swatch { vector-effect: non-scaling-stroke; }
+.fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 2.8px; fill: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Forge · market</div>
+  <h1>SaaS market <span class="accent">share, satisfaction and revenue</span></h1>
+  <p class="header-subtitle">Market share (x) vs customer satisfaction score (y) for 9 SaaS product categories. Bubble size = annual ARR.</p>
+</header>
+
+<main>
+
+<!--
+  DATA (3 series, 3 points each):
+
+  Series 1 — Developer Tools (cyan):
+    CI/CD platforms   x=18, y=82, size=240
+    Code editors      x=42, y=91, size=180
+    Monitoring/APM    x=22, y=76, size=120
+
+  Series 2 — Collaboration (amber):
+    Team chat         x=55, y=74, size=850
+    Project mgmt      x=38, y=68, size=620
+    Docs & wikis      x=29, y=71, size=310
+
+  Series 3 — Data & Analytics (purple):
+    BI platforms      x=31, y=61, size=540
+    Data pipelines    x=14, y=55, size=190
+    ML platforms      x=8,  y=63, size=95
+
+  X axis: Market Share (%) — range 0..60, ticks 0,10,20,30,40,50,60
+  Y axis: Satisfaction Score — range 50..100, ticks 50,60,70,80,90,100
+
+  Validity guard:
+    X: ticks[0]=0 ≤ min(8)=8  ✓   ticks[last]=60 ≥ max(55)=55  ✓
+    Y: ticks[0]=50 ≤ min(55)=55 ✓  ticks[last]=100 ≥ max(91)=91  ✓
+
+  Coordinate mapping:
+    Plot area: x ∈ [10,90], y ∈ [8,88]  → 80×80 user units
+    svg_x = 10 + (data_x / 60) * 80
+    svg_y = 88 - ((data_y - 50) / 50) * 80
+
+  Pre-computed SVG coords:
+  Developer Tools (cyan):
+    CI/CD      svg_x=34.0,  svg_y=21.2
+    Editors    svg_x=66.0,  svg_y=8.8  (satisfaction=91 → near top)
+    Monitoring svg_x=39.33, svg_y=27.6
+
+  Collaboration (amber):
+    Team chat  svg_x=83.33, svg_y=30.4
+    Proj mgmt  svg_x=60.67, svg_y=41.6
+    Docs       svg_x=48.67, svg_y=36.4
+
+  Data & Analytics (purple):
+    BI         svg_x=51.33, svg_y=56.0
+    Pipelines  svg_x=28.67, svg_y=64.0
+    ML         svg_x=20.67, svg_y=59.2
+
+  Radius computation:
+    minRadius = 1.5, maxRadius = 7.0
+    maxSize = max(240,180,120,850,620,310,540,190,95) = 850
+
+    r = 1.5 + (7.0 - 1.5) * sqrt(size / 850)
+      = 1.5 + 5.5 * sqrt(size / 850)
+
+    CI/CD     size=240: sqrt(240/850)=0.5314 → r=1.5+5.5*0.5314=4.42
+    Editors   size=180: sqrt(180/850)=0.4602 → r=1.5+5.5*0.4602=4.03
+    Monitoring size=120: sqrt(120/850)=0.3758 → r=1.5+5.5*0.3758=3.57
+    Team chat size=850: sqrt(850/850)=1.0 → r=1.5+5.5*1.0=7.0  (clamped to maxRadius)
+    Proj mgmt size=620: sqrt(620/850)=0.8539 → r=1.5+5.5*0.8539=6.20
+    Docs      size=310: sqrt(310/850)=0.6038 → r=1.5+5.5*0.6038=4.82
+    BI        size=540: sqrt(540/850)=0.7975 → r=1.5+5.5*0.7975=5.89
+    Pipelines size=190: sqrt(190/850)=0.4728 → r=1.5+5.5*0.4728=4.10
+    ML        size=95:  sqrt(95/850)=0.3342 → r=1.5+5.5*0.3342=3.34
+
+  Gridlines:
+    Y ticks (svg_y): 50→88, 60→72, 70→56, 80→40, 90→24, 100→8
+    X ticks (svg_x): 0→10, 10→23.33, 20→36.67, 30→50, 40→63.33, 50→76.67, 60→90
+-->
+
+<div class="fg-chart-wrap" role="img"
+     aria-label="Bubble chart with market share on x-axis, customer satisfaction on y-axis, and annual ARR as bubble size. Developer tools (cyan) cluster at moderate share and high satisfaction. Collaboration tools (amber) span wide share with medium satisfaction. Data and analytics (purple) occupy low-to-mid share with moderate satisfaction.">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="bu-title">
+
+    <title id="bu-title">SaaS market — share, satisfaction and revenue</title>
+
+    <!-- ── HORIZONTAL GRIDLINES (per Y-tick, excluding y=88 axis) ── -->
+    <line class="fg-grid-line" x1="10" y1="72" x2="90" y2="72"/>
+    <line class="fg-grid-line" x1="10" y1="56" x2="90" y2="56"/>
+    <line class="fg-grid-line" x1="10" y1="40" x2="90" y2="40"/>
+    <line class="fg-grid-line" x1="10" y1="24" x2="90" y2="24"/>
+    <line class="fg-grid-line" x1="10" y1="8"  x2="90" y2="8"/>
+
+    <!-- ── VERTICAL GRIDLINES (per X-tick, excluding x=10 axis) ── -->
+    <line class="fg-grid-line" x1="23.33" y1="8" x2="23.33" y2="88"/>
+    <line class="fg-grid-line" x1="36.67" y1="8" x2="36.67" y2="88"/>
+    <line class="fg-grid-line" x1="50"    y1="8" x2="50"    y2="88"/>
+    <line class="fg-grid-line" x1="63.33" y1="8" x2="63.33" y2="88"/>
+    <line class="fg-grid-line" x1="76.67" y1="8" x2="76.67" y2="88"/>
+    <line class="fg-grid-line" x1="90"    y1="8" x2="90"    y2="88"/>
+
+    <!-- ── AXES ── -->
+    <line class="fg-axis-line" x1="10" y1="88" x2="90" y2="88"/>
+    <line class="fg-axis-line" x1="10" y1="8"  x2="10" y2="88"/>
+
+    <!-- ── X-TICK MARKS + LABELS (Market Share %) ── -->
+    <line class="fg-axis-line" x1="10"    y1="88" x2="10"    y2="89.5"/>
+    <text class="fg-tick-label" x="10"    y="92" text-anchor="middle">0</text>
+    <line class="fg-axis-line" x1="23.33" y1="88" x2="23.33" y2="89.5"/>
+    <text class="fg-tick-label" x="23.33" y="92" text-anchor="middle">10</text>
+    <line class="fg-axis-line" x1="36.67" y1="88" x2="36.67" y2="89.5"/>
+    <text class="fg-tick-label" x="36.67" y="92" text-anchor="middle">20</text>
+    <line class="fg-axis-line" x1="50"    y1="88" x2="50"    y2="89.5"/>
+    <text class="fg-tick-label" x="50"    y="92" text-anchor="middle">30</text>
+    <line class="fg-axis-line" x1="63.33" y1="88" x2="63.33" y2="89.5"/>
+    <text class="fg-tick-label" x="63.33" y="92" text-anchor="middle">40</text>
+    <line class="fg-axis-line" x1="76.67" y1="88" x2="76.67" y2="89.5"/>
+    <text class="fg-tick-label" x="76.67" y="92" text-anchor="middle">50</text>
+    <line class="fg-axis-line" x1="90"    y1="88" x2="90"    y2="89.5"/>
+    <text class="fg-tick-label" x="90"    y="92" text-anchor="middle">60</text>
+
+    <!-- ── Y-TICK MARKS + LABELS (Satisfaction Score) ── -->
+    <line class="fg-axis-line" x1="8.5" y1="88" x2="10" y2="88"/>
+    <text class="fg-tick-label" x="8" y="88.9" text-anchor="end">50</text>
+    <line class="fg-axis-line" x1="8.5" y1="72" x2="10" y2="72"/>
+    <text class="fg-tick-label" x="8" y="72.9" text-anchor="end">60</text>
+    <line class="fg-axis-line" x1="8.5" y1="56" x2="10" y2="56"/>
+    <text class="fg-tick-label" x="8" y="56.9" text-anchor="end">70</text>
+    <line class="fg-axis-line" x1="8.5" y1="40" x2="10" y2="40"/>
+    <text class="fg-tick-label" x="8" y="40.9" text-anchor="end">80</text>
+    <line class="fg-axis-line" x1="8.5" y1="24" x2="10" y2="24"/>
+    <text class="fg-tick-label" x="8" y="24.9" text-anchor="end">90</text>
+    <line class="fg-axis-line" x1="8.5" y1="8"  x2="10" y2="8"/>
+    <text class="fg-tick-label" x="8" y="8.9"  text-anchor="end">100</text>
+
+    <!-- ── AXIS TITLES ── -->
+    <text class="fg-axis-title" x="50" y="97" text-anchor="middle">MARKET SHARE (%)</text>
+    <text class="fg-axis-title" x="-48" y="1.8"
+          text-anchor="middle"
+          transform="rotate(-90)">SATISFACTION SCORE</text>
+
+    <!-- ── SIZE REFERENCE LEGEND (top-left corner, inside plot) ──
+         Placed at x=17 where no data bubble lands (leftmost data is CI/CD at svg_x=34).
+         minRadius=1.5 → cy=14, label y=17.5
+         maxRadius=7.0  → cy=14+1.5+4.0+7.0=26.5, label y=26.5+7.0+2.0=35.5
+    -->
+    <text class="fg-tick-label" x="17" y="10.5" text-anchor="middle" style="fill:var(--text-muted);">ARR</text>
+    <circle cx="17" cy="14" r="1.5" fill="none"
+            stroke="var(--text-muted)" stroke-width="0.4" class="fg-bubble"/>
+    <text class="fg-tick-label" x="17" y="17.5" text-anchor="middle">$95M</text>
+    <circle cx="17" cy="26.5" r="7.0" fill="none"
+            stroke="var(--text-muted)" stroke-width="0.4" class="fg-bubble"/>
+    <text class="fg-tick-label" x="17" y="35.5" text-anchor="middle">$850M</text>
+
+    <!-- ── SERIES 1 — Developer Tools (cyan) ── -->
+    <g class="fg-bubbles">
+      <!-- CI/CD: x=18, y=82, size=240 → svg(34.0, 21.2), r=4.42 -->
+      <circle class="fg-bubble" cx="34.0" cy="21.2" r="4.42"
+              fill="var(--cyan)" fill-opacity="0.2" stroke="var(--cyan)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="34.0" y="22.1">CI/CD</text>
+      <!-- Editors: x=42, y=91, size=180 → svg(66.0, 8.8), r=4.03 -->
+      <circle class="fg-bubble" cx="66.0" cy="8.8" r="4.03"
+              fill="var(--cyan)" fill-opacity="0.2" stroke="var(--cyan)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="66.0" y="9.7">Editors</text>
+      <!-- Monitoring: x=22, y=76, size=120 → svg(39.33, 27.6), r=3.57 -->
+      <circle class="fg-bubble" cx="39.33" cy="27.6" r="3.57"
+              fill="var(--cyan)" fill-opacity="0.2" stroke="var(--cyan)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="39.33" y="28.5">APM</text>
+    </g>
+
+    <!-- ── SERIES 2 — Collaboration (amber) ── -->
+    <g class="fg-bubbles">
+      <!-- Team chat: x=55, y=74, size=850 → svg(83.33, 30.4), r=7.0 -->
+      <circle class="fg-bubble" cx="83.33" cy="30.4" r="7.0"
+              fill="var(--amber)" fill-opacity="0.2" stroke="var(--amber)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="83.33" y="31.3">Chat</text>
+      <!-- Project mgmt: x=38, y=68, size=620 → svg(60.67, 41.6), r=6.20 -->
+      <circle class="fg-bubble" cx="60.67" cy="41.6" r="6.20"
+              fill="var(--amber)" fill-opacity="0.2" stroke="var(--amber)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="60.67" y="42.5">Proj Mgmt</text>
+      <!-- Docs: x=29, y=71, size=310 → svg(48.67, 36.4), r=4.82 -->
+      <circle class="fg-bubble" cx="48.67" cy="36.4" r="4.82"
+              fill="var(--amber)" fill-opacity="0.2" stroke="var(--amber)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="48.67" y="37.3">Docs</text>
+    </g>
+
+    <!-- ── SERIES 3 — Data & Analytics (purple) ── -->
+    <g class="fg-bubbles">
+      <!-- BI platforms: x=31, y=61, size=540 → svg(51.33, 56.0), r=5.89 -->
+      <circle class="fg-bubble" cx="51.33" cy="56.0" r="5.89"
+              fill="var(--purple)" fill-opacity="0.2" stroke="var(--purple)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="51.33" y="56.9">BI</text>
+      <!-- Pipelines: x=14, y=55, size=190 → svg(28.67, 64.0), r=4.10 -->
+      <circle class="fg-bubble" cx="28.67" cy="64.0" r="4.10"
+              fill="var(--purple)" fill-opacity="0.2" stroke="var(--purple)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="28.67" y="64.9">Pipelines</text>
+      <!-- ML: x=8, y=63, size=95 → svg(20.67, 59.2), r=3.34 -->
+      <circle class="fg-bubble" cx="20.67" cy="59.2" r="3.34"
+              fill="var(--purple)" fill-opacity="0.2" stroke="var(--purple)" stroke-width="0.5"/>
+      <text class="fg-bubble-label" x="20.67" y="60.1">ML</text>
+    </g>
+
+    <!-- ── SERIES LEGEND (3 series — top-left, below size legend which ends y≈35.5) ──
+         Size legend large circle bottom: cy=26.5+7.0=33.5, label y=35.5.
+         Start series legend at cy=39 to leave a clear gap.
+         x=12.2 (swatch), x=15.0 (label) — well within viewBox right (100).
+    -->
+    <circle class="fg-legend-swatch" cx="12.2" cy="39.0" r="1.2"
+            fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.3"/>
+    <text class="fg-legend-label" x="15.0" y="39.8">Dev Tools</text>
+    <circle class="fg-legend-swatch" cx="12.2" cy="42.5" r="1.2"
+            fill="var(--amber)" stroke="var(--amber)" stroke-width="0.3"/>
+    <text class="fg-legend-label" x="15.0" y="43.3">Collab</text>
+    <circle class="fg-legend-swatch" cx="12.2" cy="46.0" r="1.2"
+            fill="var(--purple)" stroke="var(--purple)" stroke-width="0.3"/>
+    <text class="fg-legend-label" x="15.0" y="46.8">Data &amp; AI</text>
+
+  </svg>
+</div>
+
+</main>
+
+</body>
+</html>

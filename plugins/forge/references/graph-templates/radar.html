@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="{{TITLE}}">
+<meta name="diagram:date"      content="{{DATE}}">
+<meta name="diagram:category"  content="{{CATEGORY}}">
+<meta name="diagram:cat-label" content="{{CAT_LABEL}}">
+<meta name="diagram:color"     content="{{COLOR}}">
+<!-- diagram-meta:end -->
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── design tokens (subset of fgraph palette — no @import needed) ── */
+:root {
+  --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+  --border: #1f252e; --border-bright: #2b3340;
+  --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+  --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+  --cyan:  #22d3ee; --cyan-dim:  rgba(34,211,238,0.12);
+  --purple:#c084fc; --purple-dim:rgba(192,132,252,0.12);
+  --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+  --red:   #f87171; --red-dim:   rgba(248,113,113,0.12);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+header { margin-bottom: 20px; }
+.header-eyebrow {
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+h1 .accent { color: var(--cyan); }
+.header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+/* ── chart wrap ── */
+.fgraph-wrap.radar {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* ── SVG fills the wrap ── */
+.fgraph-wrap.radar svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* ── series polygons ── */
+.fg-radar-series {
+  vector-effect: non-scaling-stroke;
+  transition: opacity 0.15s;
+}
+.fg-radar-series:hover { opacity: 0.75; }
+
+/* ── grid rings and axes ── */
+.fg-radar-ring  { fill: none; stroke: var(--border-bright); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+.fg-radar-axis  { stroke: var(--border-bright); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
+.fg-radar-spoke { stroke: var(--border); stroke-width: 0.3; stroke-dasharray: 1.5 1.5; vector-effect: non-scaling-stroke; }
+
+/* ── text ── */
+.fg-radar-axis-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 4px;
+  fill: var(--text-dim);
+  text-anchor: middle;
+}
+.fg-radar-scale-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 2.8px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+}
+
+/* ── legend ── */
+.fgraph-legend {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.fg-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.fg-legend-swatch {
+  width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">{{CATEGORY_LABEL}}</div>
+  <h1>{{TITLE_PLAIN}} <span class="accent">{{TITLE_ACCENT}}</span></h1>
+  <p class="header-subtitle">{{SUBTITLE}}</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     RADAR CHART — authoring surface.
+
+     DATA CONTRACT (fields from the Radar / AxisItem / RadarSeries spec):
+
+       Radar {
+         title:       string
+         axes: [      // N axes, N ≥ 2
+           { label: string, maxValue?: number }   // AxisItem
+         ]
+         series: [    // M series
+           {
+             name:        string
+             color:       "amber" | "cyan" | "purple" | "green" | "red" | "#rrggbb"
+             fillOpacity: 0..1   (e.g. 0.15 for subtle fill)
+             data:        number[]   // len MUST == axes.len
+           }
+         ]
+         scaleLevels: number   // concentric ring count (e.g. 4 = 25/50/75/100%)
+       }
+
+     GEOMETRY RULES (pre-compute; zero JS at runtime):
+
+       Centre = (50, 50)  in the 0..100 viewBox.
+       Ring radius (outermost) = 36 user units — leaves ~14 u margin for labels.
+
+       Per-axis maxValue: use axes[i].maxValue if set, else derive a shared
+       axisMax from max(series[*].data[i]) rounded up to a nice number.
+
+       Axis angle for axis i  (0-indexed, N total):
+         angleDeg[i] = -90 + i * (360 / N)        // −90 so axis 0 points UP (12 o'clock)
+         angleRad[i] = angleDeg[i] * π / 180
+
+       Outer perimeter point for axis i:
+         x = 50 + 36 * cos(angleRad[i])
+         y = 50 + 36 * sin(angleRad[i])
+
+       Ring polygon vertex for axis i at fraction f  (f = level/scaleLevels):
+         x = 50 + 36 * f * cos(angleRad[i])
+         y = 50 + 36 * f * sin(angleRad[i])
+       Ring = closed <polygon> through all N vertices at the same f.
+
+       Scale labels (0.5 on each ring, along axis 0 direction):
+         labelValue = axisMax * (level / scaleLevels)
+         x = 50 + 36 * (level/scaleLevels) * cos(angleRad[0]) + small_offset
+         y = 50 + 36 * (level/scaleLevels) * sin(angleRad[0])
+
+       Series vertex for axis i at value v:
+         fraction = v / axisMax[i]       // axisMax[i] = per-axis or shared max
+         x = 50 + 36 * fraction * cos(angleRad[i])
+         y = 50 + 36 * fraction * sin(angleRad[i])
+       Series = closed <polygon> / <path> through all N vertices.
+
+       Axis label position (just outside the ring, add 5–6 u along the axis):
+         x = 50 + (36 + 5) * cos(angleRad[i])
+         y = 50 + (36 + 5) * sin(angleRad[i])
+       Adjust dominant-baseline and text-anchor based on angle quadrant so
+       labels don't overlap the ring:
+         left quadrant  (|angleDeg| > 135)  → text-anchor: end
+         right quadrant (|angleDeg| <  45)  → text-anchor: start
+         else                               → text-anchor: middle
+         top quadrant   (angleDeg < 0)      → dominant-baseline: auto
+         bottom quadrant                    → dominant-baseline: hanging
+
+       DEGENERATE — 2-axis radar:
+         Ring polygon degenerates to a line (2 vertices = a back-and-forth
+         segment). Grid still draws correctly. Series polygon is a thin sliver.
+         Document in a comment; do not special-case in the SVG.
+
+       COLOUR SHORTHAND:
+         color = "amber"  → fill/stroke: var(--amber)
+         color = "#rrggbb" → fill/stroke: #rrggbb  (use inline style)
+
+     PLACEHOLDER TOKENS TO FILL:
+       {{TITLE}}            — page <title> and header h1
+       {{TITLE_PLAIN}}      — text before accent word
+       {{TITLE_ACCENT}}     — accent word (styled with var(--cyan))
+       {{SUBTITLE}}         — one-line description
+       {{CATEGORY_LABEL}}   — eyebrow text (e.g. "Performance · benchmark")
+       {{DATE}}             — ISO date
+       {{CATEGORY}}         — slug
+       {{COLOR}}            — accent colour slug
+       {{AXES}}             — <line> spokes + <polygon> rings + axis labels
+       {{SERIES_N}}         — per-series <polygon> elements
+       {{LEGEND_ITEMS}}     — .fg-legend-item rows
+
+     SERIES COLOUR — default palette order:
+       series[0] → var(--cyan)
+       series[1] → var(--amber)
+       series[2] → var(--purple)
+       series[3] → var(--green)
+       series[4] → var(--red)
+     Override per-series with color: "#rrggbb" and inline style="fill:#rrggbb;stroke:#rrggbb"
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fgraph-wrap radar" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">
+
+    <title>{{TITLE}}</title>
+
+    <!-- ── SCALE RINGS (N={{SCALE_LEVELS}} concentric polygons) ─────── -->
+    <!-- Ring at 25% (level 1 of {{SCALE_LEVELS}}) -->
+    <polygon class="fg-radar-ring" points="{{RING_1_POINTS}}"/>
+    <!-- Ring at 50% (level 2) -->
+    <polygon class="fg-radar-ring" points="{{RING_2_POINTS}}"/>
+    <!-- Ring at 75% (level 3) -->
+    <polygon class="fg-radar-ring" points="{{RING_3_POINTS}}"/>
+    <!-- Ring at 100% (level 4 = outer boundary) -->
+    <polygon class="fg-radar-ring" points="{{RING_4_POINTS}}"/>
+
+    <!-- ── AXIS SPOKES (one per axis, from centre to perimeter) ─────── -->
+    <!-- Spoke axis 0 -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="{{AXIS_0_X}}" y2="{{AXIS_0_Y}}"/>
+    <!-- Spoke axis 1 … (one <line> per axis) -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="{{AXIS_1_X}}" y2="{{AXIS_1_Y}}"/>
+    <!-- {{AXES_REMAINING}} -->
+
+    <!-- ── SCALE LABELS (one per ring, positioned along axis 0) ──────── -->
+    <text class="fg-radar-scale-label" x="{{SCALE_LABEL_1_X}}" y="{{SCALE_LABEL_1_Y}}">{{SCALE_VALUE_1}}</text>
+    <text class="fg-radar-scale-label" x="{{SCALE_LABEL_2_X}}" y="{{SCALE_LABEL_2_Y}}">{{SCALE_VALUE_2}}</text>
+    <text class="fg-radar-scale-label" x="{{SCALE_LABEL_3_X}}" y="{{SCALE_LABEL_3_Y}}">{{SCALE_VALUE_3}}</text>
+    <text class="fg-radar-scale-label" x="{{SCALE_LABEL_4_X}}" y="{{SCALE_LABEL_4_Y}}">{{SCALE_VALUE_4}}</text>
+
+    <!-- ── SERIES POLYGONS (back to front; lower fillOpacity series first) -->
+    <!-- Series 0 — {{SERIES_0_NAME}} — color: {{SERIES_0_COLOR}} -->
+    <polygon class="fg-radar-series"
+             fill="var(--cyan)" fill-opacity="{{SERIES_0_FILL_OPACITY}}"
+             stroke="var(--cyan)" stroke-width="0.7"
+             points="{{SERIES_0_POINTS}}"/>
+
+    <!-- Series 1 — {{SERIES_1_NAME}} — color: {{SERIES_1_COLOR}} -->
+    <polygon class="fg-radar-series"
+             fill="var(--amber)" fill-opacity="{{SERIES_1_FILL_OPACITY}}"
+             stroke="var(--amber)" stroke-width="0.7"
+             points="{{SERIES_1_POINTS}}"/>
+
+    <!-- ── AXIS LABELS (just outside perimeter, in user-unit coords) ── -->
+    <!-- axis 0: x = 50 + 41*cos(angleRad[0]), y = 50 + 41*sin(angleRad[0]) -->
+    <text class="fg-radar-axis-label" x="{{LABEL_0_X}}" y="{{LABEL_0_Y}}" dominant-baseline="auto">{{AXIS_0_LABEL}}</text>
+    <!-- axis 1 … (one <text> per axis; adjust text-anchor + dominant-baseline per quadrant) -->
+    <text class="fg-radar-axis-label" x="{{LABEL_1_X}}" y="{{LABEL_1_Y}}" dominant-baseline="auto">{{AXIS_1_LABEL}}</text>
+    <!-- {{AXIS_LABELS_REMAINING}} -->
+
+  </svg>
+
+</div>
+
+<!-- ── SERIES LEGEND (below the chart) ── -->
+<div class="fgraph-legend">
+  <div class="fg-legend-item">
+    <div class="fg-legend-swatch" style="background:var(--cyan)"></div>
+    <span>{{SERIES_0_NAME}}</span>
+  </div>
+  <div class="fg-legend-item">
+    <div class="fg-legend-swatch" style="background:var(--amber)"></div>
+    <span>{{SERIES_1_NAME}}</span>
+  </div>
+  <!-- {{LEGEND_ITEMS_REMAINING}} -->
+</div>
+
+</main>
+
+</body>
+</html>
