@@ -107,6 +107,7 @@ check_paths() {
   local bad=0
   # A path d="" must contain at least 2 coordinate pairs (min M+one more op).
   while IFS= read -r d; do
+    case "$d" in *'{{'*'}}'*) continue ;; esac
     local coords
     coords=$(printf '%s' "$d" | grep -oE '[-0-9.]+' | wc -l)
     if [ "$coords" -lt 4 ]; then
@@ -147,12 +148,27 @@ check_nonscaling_stroke() {
   # vector-effect:non-scaling-stroke. (No marker edges → not applicable; pie/gantt.)
   if grep -q 'preserveAspectRatio="none"' "$f" 2>/dev/null \
      && grep -qE 'marker-(end|start)=' "$f" 2>/dev/null \
-     && ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null; then
+     && ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null \
+     && ! grep -q '{{FGRAPH_BASE}}' "$f" 2>/dev/null; then
     note_fail "non-scaling-stroke ($f): marker-ended edges on a preserveAspectRatio=\"none\" SVG but no vector-effect:non-scaling-stroke → giant/distorted arrowheads. Add \`.fg-edge { vector-effect: non-scaling-stroke; }\`."
     return 1
   fi
   note_ok "non-scaling-stroke ($f)"
   return 0
+}
+
+check_base_contract() {
+  local f=$1
+  case "$(basename "$f")" in
+    fgraph-base*.css)
+      if ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null; then
+        note_fail "base-contract ($f): fgraph-base.css is the SSoT for edge strokes but contains no 'non-scaling-stroke' — restore vector-effect:non-scaling-stroke on .fg-edge."
+        return 1
+      fi
+      note_ok "base-contract ($f)"
+      ;;
+    *) return 0 ;;
+  esac
 }
 
 check_rsvg() {
@@ -194,6 +210,7 @@ main() {
     check_paths   "$f" || overall=1
     check_marker_units "$f" || overall=1
     check_nonscaling_stroke "$f" || overall=1
+    check_base_contract "$f" || overall=1
     check_rsvg    "$f" || overall=1
   done
   return "$overall"
