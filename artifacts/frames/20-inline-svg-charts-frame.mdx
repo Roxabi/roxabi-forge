@@ -1,0 +1,80 @@
+---
+title: forge-chart inline-SVG data-charts — radar, funnel, bubble, scatter
+issue: 20
+status: approved
+tier: F-lite
+date: 2026-06-02
+---
+
+## Problem
+
+`forge-chart` natively covers 15 fgraph diagram types (hub-spoke, gantt, pie, er,
+sequence, state, dep-graph, …) but has **no quantitative data-chart primitives**.
+When a user needs a radar (multi-axis comparison), funnel (pipeline conversion),
+bubble (3-var scatter), or scatter (2-var correlation), the LLM hand-authors inline
+SVG from scratch each time — reproducing the exact geometry bugs (giant arrowheads,
+non-scaling-stroke, coordinate drift) that the 7 critical layout rules + 14-item
+visual checklist exist to prevent. There is no reusable template, no fixture, no
+regression anchor for these shapes.
+
+These four are a **single rendering family**: pure data→SVG math in a 0..100 space,
+no layout engine required. They are explicitly *out of scope* for the `forge-mermaid`
+epic (#40), which carved them out as "different architectural family." This issue is
+their only home.
+
+## Who
+
+- **Primary:** Claude (via `/forge-chart`) generating a data-viz artifact — gets a
+  vetted template to fill instead of hand-rolling SVG geometry.
+- **Secondary:** Mickael / artifact consumers — receive consistent, offline,
+  `file://`-safe charts that match the forge visual identity (same palette, tokens,
+  non-scaling-stroke conventions as `fgraph-base.css`).
+
+## Constraints
+
+- **Self-contained, `file://`-safe, zero CDN / zero JS-runtime dependency** (forge invariant).
+- **0..100 coordinate space + `vector-effect: non-scaling-stroke`** — match `fgraph-base.css` conventions.
+- **Distribution profile** must be declared per CLAUDE.md table (inline vs `_shared` link).
+- **Sub-tree decision** (spec-time): extend `references/graph-templates/` OR create a new
+  `references/data-chart-templates/` — these are *data charts*, semantically distinct from
+  the *relational diagrams* in graph-templates. If a new sub-tree is added, the CLAUDE.md
+  distribution-profile table must gain a row.
+- **Quality gates available:** SVG validator (#12 task 5, merged) + fixtures pattern (#10, merged).
+- **Source schemas:** `external_repos/gmdiagram/gm-data-chart/skills/gm-data-chart/assets/schema-*.json`.
+
+## Out of Scope
+
+- **UML class** — absorbed into `forge-mermaid` epic #40 (P4) as a Python-rendered Mermaid `classDiagram`.
+- **Any Mermaid / layout-engine work** (#40 territory).
+- **fgraph live-mode defects** (#52 — hexagon/edge-label/bus-strip bugs).
+- **Live/interactive mode** for these charts — static-first; `data-fgraph="live"` JS routing is fgraph-only.
+- The `forge-mermaid` package itself.
+
+## Premise Validity
+
+**Success in 6 months:** `/forge-chart` renders radar, funnel, bubble, and scatter
+from data into self-contained HTML; all 4 templates are wired into the skill's
+visual-type selection + `graph-templates/README.md` (Showcase + Templates + Shape
+picker); each ships a fixture + regression snapshot and passes the SVG validator.
+
+**Failure in 6 months:** the templates exist but are **dead reference code** — measurably:
+zero forge outputs reference any of the 4 types AND/OR no passing snapshot test exists
+for them after one quarter, i.e. they shipped as inventory nobody routes to.
+
+**Simplest alternative:** keep hand-authoring inline SVG per chart (status quo), or
+pull a charting lib (Chart.js/D3) from CDN at runtime.
+**Why not simplest:** hand-authoring reproduces the geometry bugs the layout rules
+exist to kill and gives no regression anchor; a CDN lib breaks the non-negotiable
+`file://`-safe / offline / zero-runtime forge invariant. A reusable 0..100-space
+template (the established fgraph pattern) is the only option that satisfies both.
+
+## Complexity
+
+**Tier: F-lite** — clear scope, single rendering family, no new architecture beyond a
+minor spec-time sub-tree placement call.
+
+Signals observed:
+- 4 templates, one inline-SVG/data-math family (no Mermaid, no layout engine).
+- Touches >3 files (4 templates + README + SKILL.md + fixtures + maybe CLAUDE.md) → above S.
+- No multi-domain / no unknown-heavy exploration → below F-full (analyze skipped).
+- Established precedents to mirror: `fgraph-base.css` conventions, #10 fixtures, #12 validator.
