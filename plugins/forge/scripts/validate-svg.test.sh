@@ -122,6 +122,122 @@ else
   fail "D: base self-guard fires on stripped fgraph-base.css (rc=$rc, expected non-zero — check_base_contract not yet implemented)"
 fi
 
+# ═════════════════════════════════════════════════════════════════════════════
+# T8 — Negative drift-vector tests (gates live)
+#
+# Each test:
+#   1. Creates a tmp copy of a real template (dep-graph.html)
+#   2. Corrupts it with a specific drift vector
+#   3. Asserts the validator fires (rc≠0) — PASS if gate works
+#   4. Asserts the clean (unmodified) copy still passes (rc=0) — sanity
+#   5. Simulates the lefthook guard glob match
+#
+# These tests are GREEN from the start (gates already fire).
+# Never mutates the real corpus.
+# ═════════════════════════════════════════════════════════════════════════════
+
+REAL_TPL="$TPL/dep-graph.html"
+if [ ! -f "$REAL_TPL" ]; then
+  fail "T8-setup: dep-graph.html not found at $REAL_TPL — cannot run drift tests"
+  printf '\n%d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
+  exit 1
+fi
+
+# All drift fixtures go under a path containing 'graph-templates/' so the
+# lefthook guard regex  grep -E 'graph-templates/.*\.html$'  matches them.
+DRIFT_DIR="$TMP/graph-templates"
+mkdir -p "$DRIFT_DIR"
+
+# Sanity: clean copy must pass
+CLEAN="$DRIFT_DIR/clean.html"
+cp "$REAL_TPL" "$CLEAN"
+bash "$VALIDATOR" "$CLEAN" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
+  pass "T8-sanity: unmodified dep-graph.html copy exits 0 (rc=$rc)"
+else
+  fail "T8-sanity: unmodified dep-graph.html copy exits 0 (rc=$rc, expected 0)"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# T8-a) nss drift: delete {{FGRAPH_BASE}} AND any literal non-scaling-stroke
+#        check_nonscaling_stroke must fire → rc≠0
+# ─────────────────────────────────────────────────────────────────────────────
+NSS_DRIFT="$DRIFT_DIR/nss-drift.html"
+grep -v 'FGRAPH_BASE\|non-scaling-stroke' "$REAL_TPL" > "$NSS_DRIFT"
+
+bash "$VALIDATOR" "$NSS_DRIFT" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  pass "T8-a: nss drift fires check_nonscaling_stroke (rc=$rc, expected non-zero)"
+else
+  fail "T8-a: nss drift fires check_nonscaling_stroke (rc=$rc, expected non-zero — gate did not fire)"
+fi
+
+# guard simulation for T8-a
+staged=$(printf '%s\n' "$NSS_DRIFT" | grep -E 'graph-templates/.*\.html$' || true)
+if [ -n "$staged" ]; then
+  bash "$VALIDATOR" "$staged" >/dev/null 2>&1
+  guard_rc=$?
+  if [ "$guard_rc" -ne 0 ]; then
+    pass "T8-a-guard: lefthook guard blocks nss-drift commit (guard_rc=$guard_rc, expected non-zero)"
+  else
+    fail "T8-a-guard: lefthook guard blocks nss-drift commit (guard_rc=$guard_rc, expected non-zero)"
+  fi
+else
+  fail "T8-a-guard: drift fixture path did not match graph-templates glob (path: $NSS_DRIFT)"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# T8-b) marker-units drift: inject markerUnits="userSpaceOnUse" on edge markers
+#        check_marker_units must fire → rc≠0
+# ─────────────────────────────────────────────────────────────────────────────
+MU_DRIFT="$DRIFT_DIR/mu-drift.html"
+sed 's/markerWidth="6" markerHeight="6" orient/markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" orient/' \
+  "$REAL_TPL" > "$MU_DRIFT"
+
+bash "$VALIDATOR" "$MU_DRIFT" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  pass "T8-b: marker-units drift fires check_marker_units (rc=$rc, expected non-zero)"
+else
+  fail "T8-b: marker-units drift fires check_marker_units (rc=$rc, expected non-zero — gate did not fire)"
+fi
+
+# revert sanity: clean copy still passes
+bash "$VALIDATOR" "$CLEAN" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
+  pass "T8-b-revert: clean copy still passes after mu drift fixture created (rc=$rc)"
+else
+  fail "T8-b-revert: clean copy still passes after mu drift fixture created (rc=$rc, expected 0)"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# T8-c) dangling marker ref: inject marker-end="url(#fg-arr-does-not-exist)"
+#        check_markers must fire → rc≠0
+# ─────────────────────────────────────────────────────────────────────────────
+DANGLING_DRIFT="$DRIFT_DIR/dangling-drift.html"
+sed 's/marker-end="url(#fg-arr-amber)"/marker-end="url(#fg-arr-does-not-exist)"/g' \
+  "$REAL_TPL" > "$DANGLING_DRIFT"
+
+bash "$VALIDATOR" "$DANGLING_DRIFT" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  pass "T8-c: dangling-ref drift fires check_markers (rc=$rc, expected non-zero)"
+else
+  fail "T8-c: dangling-ref drift fires check_markers (rc=$rc, expected non-zero — gate did not fire)"
+fi
+
+# revert sanity: clean copy still passes
+bash "$VALIDATOR" "$CLEAN" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
+  pass "T8-c-revert: clean copy still passes after dangling-ref drift fixture created (rc=$rc)"
+else
+  fail "T8-c-revert: clean copy still passes after dangling-ref drift fixture created (rc=$rc, expected 0)"
+fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Summary
 # ─────────────────────────────────────────────────────────────────────────────
