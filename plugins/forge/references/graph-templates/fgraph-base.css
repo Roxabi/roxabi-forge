@@ -1403,13 +1403,12 @@
 
 /* ── generated SVG edge labels (live mode only) ── */
 /* SVG <text> elements share the .fg-edge-lbl class with HTML overlay divs.
-   The base .fg-edge-lbl rule sets `position:absolute; transform:translate(-50%,-50%)`
-   for the HTML case. Reset both here so SVG text uses its x/y attributes only. */
+   The base .fg-edge-lbl rule applies `transform:translate(-50%,-50%)` for HTML-overlay
+   label divs; SVG <text> is positioned by its x/y attributes, so only the transform
+   must be cancelled here. (`position`, `left`, `top` are HTML box-model only — inert
+   on SVG elements.) */
 .fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl {
-  position: static;
   transform: none;
-  left: auto;
-  top: auto;
   font-family: 'Space Mono', monospace;
   font-size: 9.5px;
   font-weight: 700;
