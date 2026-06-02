@@ -291,6 +291,19 @@
 .fgraph-group.cluster        > .fgraph-group__label { color: var(--cyan); }
 .fgraph-group.security-group > .fgraph-group__label { color: var(--red); }
 
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  SSoT — CANONICAL EDGE / MARKER BLOCK                           ║
+   ║  Do not hand-trim; templates inject this block via the          ║
+   ║  {{FGRAPH_BASE}} placeholder; the validate-svg gate enforces it.║
+   ║  Three locked props that prevent the giant-arrowhead bug class: ║
+   ║    1. vector-effect: non-scaling-stroke  on .fg-edge            ║
+   ║    2. markerUnits omitted (default strokeWidth — never override) ║
+   ║    3. markerWidth="6" markerHeight="6"   on all arrow <marker>s ║
+   ║  TODO(#58): this none+non-scaling-stroke model is the           ║
+   ║  pre-migration state; revise when the JS edge-engine migration   ║
+   ║  (#58) lands.                                                    ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
 /* ══════════════════════════════════════════════════════════════════
    ARROW SYSTEM (v2) — shared defs + mask rects + semantic edges
    ─────────────────────────────────────────────────────────────────

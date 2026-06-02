@@ -171,6 +171,7 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 **Always** (both tracks):
 - Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
 - fgraph templates: inline `fgraph-base.css` into the output `<style>` block per the Mode A distribution rule (`graph-templates/README.md § Distribution rule`).
+- **Inline VERBATIM** — copy the entire canonical edge/marker block from `fgraph-base.css` (marker `<defs>` + `.fg-edge` rule) without trimming or partial-copying. Hand-trimming the edge CSS or marker defs is the root cause of giant-arrowhead regressions; see the anti-pattern entry at the bottom of this skill for the enforcement rule.
 - SVG sizing: `.fgraph-edges` gets `viewBox="0 0 100 100" preserveAspectRatio="none"` + `vector-effect: non-scaling-stroke` on path children.
 - No ASCII art, no emoji in section headers.
 - Interactive controls (zoom, theme) are `<button>` with visible `:focus-visible` styling.

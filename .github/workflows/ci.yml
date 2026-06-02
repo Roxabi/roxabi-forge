@@ -28,3 +28,9 @@ jobs:
             echo "$matches"
             exit 1
           fi
+      - name: Validate fgraph SVG
+        # Auto-discovers all graph-template HTML (mirrors the lefthook **/*.html glob)
+        # so new subdirs can't slip past CI; fgraph-base.css passed explicitly (not *.html).
+        run: |
+          find plugins/forge/references/graph-templates -name '*.html' -print0 \
+            | xargs -0 bash plugins/forge/scripts/validate-svg.sh plugins/forge/references/graph-templates/fgraph-base.css
