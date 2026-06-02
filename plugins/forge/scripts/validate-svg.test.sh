@@ -100,26 +100,35 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# D) base self-guard: stripped fgraph-base.css must fail
-#    Copy fgraph-base.css, remove every line containing non-scaling-stroke.
-#    Also remove lines that would trip the *existing* check_nonscaling_stroke
-#    via comment-embedded SVG snippets (preserveAspectRatio="none" + marker-end=
-#    without nss) so the ONLY reason to fail is the new check_base_contract.
+# D) base self-guard: stripped fgraph-base.css must fail with base-contract
+#    Place the stripped file in a subdir so its basename is exactly
+#    "fgraph-base.css" (matching the exact-name gate in check_base_contract).
+#    Only strip non-scaling-stroke; fgraph-base.css has no preserveAspectRatio="none"
+#    so check_nonscaling_stroke cannot fire — no marker-end stripping needed.
+#    Sub-assertion: the failure message must mention "base-contract" and must NOT
+#    mention "non-scaling-stroke" as a check_nonscaling_stroke violation.
 #    Pre-impl: no check_base_contract → stripped file exits 0 → assertion FAILs (RED).
 #    Post-impl: check_base_contract fires → exit 1 → assertion PASSes.
 # ─────────────────────────────────────────────────────────────────────────────
-STRIPPED="$TMP/fgraph-base-stripped.css"
-grep -v 'non-scaling-stroke' "$TPL/fgraph-base.css" \
-  | grep -v 'marker-end=' \
-  | grep -v 'marker-start=' \
-  > "$STRIPPED"
+REAL_BASE="$TPL/fgraph-base.css"
+mkdir -p "$TMP/based"
+grep -v 'non-scaling-stroke' "$REAL_BASE" > "$TMP/based/fgraph-base.css"
 
-bash "$VALIDATOR" "$STRIPPED" >/dev/null 2>&1
+bash "$VALIDATOR" "$TMP/based/fgraph-base.css" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -ne 0 ]; then
   pass "D: base self-guard fires on stripped fgraph-base.css (rc=$rc, expected non-zero)"
 else
   fail "D: base self-guard fires on stripped fgraph-base.css (rc=$rc, expected non-zero — check_base_contract not yet implemented)"
+fi
+
+# D-sub: failure must be base-contract only, NOT a non-scaling-stroke check
+d_out=$(bash "$VALIDATOR" "$TMP/based/fgraph-base.css" 2>&1 || true)
+if printf '%s' "$d_out" | grep -q 'base-contract' \
+   && ! printf '%s' "$d_out" | grep -q '✗ non-scaling-stroke'; then
+  pass "D-sub: base-contract isolated — output mentions base-contract and no non-scaling-stroke failure"
+else
+  fail "D-sub: isolation broken — expected base-contract in output without ✗ non-scaling-stroke. Output: $d_out"
 fi
 
 # ═════════════════════════════════════════════════════════════════════════════

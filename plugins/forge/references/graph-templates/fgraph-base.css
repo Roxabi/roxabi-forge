@@ -299,6 +299,9 @@
    ║    1. vector-effect: non-scaling-stroke  on .fg-edge            ║
    ║    2. markerUnits omitted (default strokeWidth — never override) ║
    ║    3. markerWidth="6" markerHeight="6"   on all arrow <marker>s ║
+   ║  TODO(#58): this none+non-scaling-stroke model is the           ║
+   ║  pre-migration state; revise when the JS edge-engine migration   ║
+   ║  (#58) lands.                                                    ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 /* ══════════════════════════════════════════════════════════════════

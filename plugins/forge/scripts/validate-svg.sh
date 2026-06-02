@@ -146,6 +146,9 @@ check_nonscaling_stroke() {
   # The fix that swaps userSpaceOnUse → strokeWidth (check 5) ONLY holds if the
   # stroke is non-scaling. So: any marker-ended edge on a stretched SVG MUST carry
   # vector-effect:non-scaling-stroke. (No marker edges → not applicable; pie/gantt.)
+  # {{FGRAPH_BASE}} is a generation-time placeholder: the real non-scaling-stroke
+  # CSS is injected when fgraph-base.css is inlined (convention shared with the
+  # authoring comment `/* {{FGRAPH_BASE}} — inline fgraph-base.css here */`).
   if grep -q 'preserveAspectRatio="none"' "$f" 2>/dev/null \
      && grep -qE 'marker-(end|start)=' "$f" 2>/dev/null \
      && ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null \
@@ -160,7 +163,7 @@ check_nonscaling_stroke() {
 check_base_contract() {
   local f=$1
   case "$(basename "$f")" in
-    fgraph-base*.css)
+    fgraph-base.css)
       if ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null; then
         note_fail "base-contract ($f): fgraph-base.css is the SSoT for edge strokes but contains no 'non-scaling-stroke' — restore vector-effect:non-scaling-stroke on .fg-edge."
         return 1

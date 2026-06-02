@@ -31,10 +31,7 @@ pre-commit:
       # Blocking guard. Runs the fgraph SVG/marker validator on staged
       # graph-templates so giant-arrowhead / placeholder drift can't land.
       run: |
-        staged=$(printf '%s\n' {staged_files} | grep -E 'graph-templates/.*\.html$' || true)
-        if [ -n "$staged" ]; then
-          bash plugins/forge/scripts/validate-svg.sh $staged
-        fi
+        printf '%s\n' {staged_files} | grep -E 'graph-templates/.*\.html$' | xargs -d '\n' -r bash plugins/forge/scripts/validate-svg.sh
       glob:
         - "plugins/forge/references/graph-templates/**/*.html"
     mermaid-guard:
