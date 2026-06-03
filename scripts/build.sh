@@ -49,6 +49,15 @@ rsync -aL --delete --delete-excluded \
   --exclude='.git/' \
   --exclude='.stversions/' \
   --exclude='lyra/brand/prompts/' \
+  --exclude='lyra/avatar/prompts/' \
+  --exclude='lyra/avatar/embeddings*/' \
+  --exclude='lyra/avatar/lora-training-set/' \
+  --exclude='lyra/avatar/generated/' \
+  --exclude='lyra/avatar/workflows/' \
+  --exclude='lyra/avatar/scripts/' \
+  --exclude='*.safetensors' \
+  --exclude='*.pt' \
+  --exclude='*.npz' \
   --exclude='*.mp4' \
   "$FORGE_DIR/" "$DIST/" || {
     RC=$?
