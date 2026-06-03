@@ -12,15 +12,9 @@ const HUB_SPOKE_CARD_DEFAULT = 'premium' // RD-3: hub-spoke default is premium
 
 // ── init ──────────────────────────────────────────────────────────────
 // Called by the fd-engine bootstrap after parsing fd-data.
-// Delegates to the same placeZones declared in architecture.js
-// (architecture.js must be bundled before hub-spoke.js when used together,
-// but hub-spoke.js is the type module — architecture.js is NOT included in
-// a hub-spoke bundle; placeZones is defined here to be self-contained).
-//
-// For zones placement in hub-spoke descriptors, placeZones is referenced
-// from the shared scope; if architecture.js is also bundled as a peer
-// dependency, its placeZones wins. In the typical single-type bundle,
-// hub-spoke.js IS architecture.js with a different TYPE constant.
+// hub-spoke.js is the sole type module in a hub-spoke bundle (RD-4 disjoint
+// footprints — architecture.js is NOT included). placeZones is defined here
+// at the top level so edges.js `typeof placeZones === 'function'` resolves.
 function hubSpokeInit(descriptor) {
   const t = descriptor.type
   if (t !== 'hub-spoke') {
@@ -28,15 +22,15 @@ function hubSpokeInit(descriptor) {
   }
   return {
     typeDefault: HUB_SPOKE_CARD_DEFAULT,
-    // placeZones is defined inline here as a copy of the architecture implementation
-    // to keep hub-spoke.js self-contained (bundler loads only one type module)
-    placeZones: hubSpokePlaceZones,
+    placeZones,
   }
 }
 
-// ── placeZones (copy of architecture placeZones) ──────────────────────
+// ── placeZones ────────────────────────────────────────────────────────
+// Top-level name required by the edges.js seam contract:
+//   if (typeof placeZones === 'function') placeZones(DESCRIPTOR)
 // Zone descriptor id == HTML element id: zone.id = "zone-hub" → getElementById("zone-hub").
-function hubSpokePlaceZones(descriptor) {
+function placeZones(descriptor) {
   const zones = descriptor.zones
   if (!zones || zones.length === 0) return
 
@@ -90,6 +84,6 @@ function hubSpokePlaceZones(descriptor) {
 window.__fdTypes = window.__fdTypes || {}
 window.__fdTypes[HUB_SPOKE_TYPE] = {
   CARD_DEFAULT: HUB_SPOKE_CARD_DEFAULT,
-  placeZones: hubSpokePlaceZones,
+  placeZones,
   init: hubSpokeInit,
 }

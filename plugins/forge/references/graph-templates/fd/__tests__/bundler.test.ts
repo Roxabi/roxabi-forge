@@ -211,14 +211,113 @@ describe('optional modules (absent)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Suite: placeZones seam — edges.js calls placeZones(DESCRIPTOR) not placeZones()
+// Suite: placeZones seam — edges.js guard: typeof check + correct call site
 // ---------------------------------------------------------------------------
 
 describe('edges.js placeZones seam', () => {
-  it('edges.js passes DESCRIPTOR argument to placeZones call', () => {
+  it('edges.js typeof guard is present and calls placeZones(DESCRIPTOR)', () => {
     const edgesSrc = readFileSync(join(FD_DIR, 'edges.js'), 'utf-8')
-    // The call must be placeZones(DESCRIPTOR), not placeZones()
+    // Guard must check typeof before calling — not just a bare call
+    expect(edgesSrc).toMatch(/typeof\s+placeZones\s*===\s*['"]function['"]/)
+    // The guarded call must pass DESCRIPTOR, not empty args
     expect(edgesSrc).toContain('placeZones(DESCRIPTOR)')
     expect(edgesSrc).not.toMatch(/placeZones\(\s*\)/)
+  })
+
+  it('hub-spoke.js declares a top-level placeZones function (satisfies edges.js seam)', () => {
+    const hubSpokeSrc = readFileSync(join(FD_DIR, 'types', 'hub-spoke.js'), 'utf-8')
+    // Must export top-scope `function placeZones(` — not hubSpokePlaceZones
+    expect(hubSpokeSrc).toMatch(/^function placeZones\s*\(/m)
+    // Old mismatched name must be gone
+    expect(hubSpokeSrc).not.toContain('hubSpokePlaceZones')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Suite: AC-10 — no preserveAspectRatio / viewBox in SVG overlay (regression guard)
+// ---------------------------------------------------------------------------
+
+describe('AC-10: SVG overlay uses pixel canvas (no viewBox stretch)', () => {
+  it('edges.js must NOT setAttribute("preserveAspectRatio") on any element', () => {
+    const edgesSrc = readFileSync(join(FD_DIR, 'edges.js'), 'utf-8')
+    // The attribute must not be set — the comment mentioning the word is allowed
+    expect(edgesSrc).not.toMatch(/setAttribute\s*\(\s*['"]preserveAspectRatio['"]/)
+  })
+
+  it('edges.js must NOT set viewBox on the SVG overlay', () => {
+    const edgesSrc = readFileSync(join(FD_DIR, 'edges.js'), 'utf-8')
+    // viewBox on the overlay element is banned (giant-arrowhead bug class, #57)
+    expect(edgesSrc).not.toMatch(/setAttribute\s*\(\s*['"]viewBox['"]/)
+  })
+
+  it('architecture bundle must NOT setAttribute("preserveAspectRatio")', () => {
+    const bundle = buildEngine(FD_DIR, 'architecture')
+    expect(bundle).not.toMatch(/setAttribute\s*\(\s*['"]preserveAspectRatio['"]/)
+  })
+
+  it('hub-spoke bundle must NOT setAttribute("preserveAspectRatio")', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    expect(bundle).not.toMatch(/setAttribute\s*\(\s*['"]preserveAspectRatio['"]/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Suite: faceFor — srcFace / dstFace descriptor override guards
+// ---------------------------------------------------------------------------
+
+describe('faceFor srcFace/dstFace override guards', () => {
+  it('core.js contains isSource && edge.srcFace early-return guard', () => {
+    const coreSrc = readFileSync(join(FD_DIR, 'core.js'), 'utf-8')
+    // Guard: if (isSource && edge.srcFace) return edge.srcFace
+    expect(coreSrc).toMatch(/isSource\s*&&\s*edge\.srcFace/)
+    expect(coreSrc).toMatch(/return\s+edge\.srcFace/)
+  })
+
+  it('core.js contains !isSource && edge.dstFace early-return guard', () => {
+    const coreSrc = readFileSync(join(FD_DIR, 'core.js'), 'utf-8')
+    // Guard: if (!isSource && edge.dstFace) return edge.dstFace
+    expect(coreSrc).toMatch(/!\s*isSource\s*&&\s*edge\.dstFace/)
+    expect(coreSrc).toMatch(/return\s+edge\.dstFace/)
+  })
+
+  it('faceFor returns edge.srcFace when isSource=true and edge.srcFace is set', () => {
+    // Inline faceFor logic from core.js (source-level contract test, no DOM needed)
+    function faceFor(dx: number, dy: number, isSource: boolean, edge: { srcFace?: string; dstFace?: string } | null): string {
+      if (edge) {
+        if (isSource && edge.srcFace) return edge.srcFace
+        if (!isSource && edge.dstFace) return edge.dstFace
+      }
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        if (isSource) return dy > 0 ? 'bottom' : 'top'
+        else return dy > 0 ? 'top' : 'bottom'
+      } else {
+        if (isSource) return dx > 0 ? 'right' : 'left'
+        else return dx > 0 ? 'left' : 'right'
+      }
+    }
+    // srcFace override: returns descriptor value regardless of geometry
+    expect(faceFor(100, 0, true, { srcFace: 'top' })).toBe('top')
+    // Without override: geometry takes over (dx>0, isSource → 'right')
+    expect(faceFor(100, 0, true, {})).toBe('right')
+  })
+
+  it('faceFor returns edge.dstFace when isSource=false and edge.dstFace is set', () => {
+    function faceFor(dx: number, dy: number, isSource: boolean, edge: { srcFace?: string; dstFace?: string } | null): string {
+      if (edge) {
+        if (isSource && edge.srcFace) return edge.srcFace
+        if (!isSource && edge.dstFace) return edge.dstFace
+      }
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        if (isSource) return dy > 0 ? 'bottom' : 'top'
+        else return dy > 0 ? 'top' : 'bottom'
+      } else {
+        if (isSource) return dx > 0 ? 'right' : 'left'
+        else return dx > 0 ? 'left' : 'right'
+      }
+    }
+    // dstFace override: returns descriptor value regardless of geometry
+    expect(faceFor(100, 0, false, { dstFace: 'bottom' })).toBe('bottom')
+    // Without override: geometry takes over (dx>0, !isSource → 'left')
+    expect(faceFor(100, 0, false, {})).toBe('left')
   })
 })

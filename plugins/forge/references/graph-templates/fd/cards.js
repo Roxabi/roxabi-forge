@@ -53,24 +53,25 @@ function hostLabel(raw) {
 // ── premium card HTML ──────────────────────────────────────────────────
 // .fd-card-premium structure:
 //   .fd-accent  — left accent bar (color via --fd-plane-{plane} or --fd-tone-{kind})
-//   .fd-title   — node.n
+//   .fd-nh      — flex header row: .fd-title + .fd-tag (plane-coloured badge)
 //   .fd-sub     — node.d  (subtitle / description, optional)
-//   .fd-tag     — node.img (image path / tag badge, optional)
-//   .fd-host    — node.h  (host badge, optional)
+//   .fd-host    — node.h  (host badge, optional; 'EX' = external, no badge per SKILL.md)
 function buildPremiumCard(node) {
   const accentVar = node.plane
     ? `var(--fd-plane-${node.plane}, var(--fd-tone-${node.kind || 'default'}, var(--text-dim)))`
     : `var(--fd-tone-${node.kind || 'default'}, var(--text-dim))`
 
+  const tagPlane = node.plane || 'control'
+  // node.img holds the tag badge text; emits fd-tag-{plane} for colour variant
+  const tag = node.img ? `<div class="fd-tag fd-tag-${tagPlane}">${node.img}</div>` : ''
   const sub = node.d ? `<div class="fd-sub">${node.d}</div>` : ''
-  const tag = node.img ? `<div class="fd-tag">${node.img}</div>` : ''
-  const hb = node.h ? `<div class="fd-host ${node.h}">${hostLabel(node.h)}</div>` : ''
+  // h='EX' = external, no badge (SKILL.md spec)
+  const hb = node.h && node.h !== 'EX' ? `<div class="fd-host ${node.h}">${hostLabel(node.h)}</div>` : ''
 
   return (
     `<span class="fd-accent" style="background:${accentVar}"></span>` +
-    `<div class="fd-title">${node.n}</div>` +
+    `<div class="fd-nh"><div class="fd-title">${node.n}</div>${tag}</div>` +
     sub +
-    tag +
     hb
   )
 }
