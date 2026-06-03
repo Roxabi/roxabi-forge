@@ -165,11 +165,11 @@ If source content includes architecture description, dependency list, or flow de
 - ≤ 6 radial peers, rich nodes → `diagram` slide with inline `radial-hub.html` / `radial-ring.html` + inline `fgraph-base.css`
 - Linear 2–3 stage pipeline → `diagram` slide with `linear-flow.html`
 - Layered architecture → `diagram` slide with `layered.html` or `deployment-tiers.html`
-- Timeline / gantt → `diagram` slide with `gantt.html`
-- Proportion / share → `diagram` slide with `pie.html`
-- ER schema → `diagram` slide with `er.html`
-- API sequence → `diagram` slide with `sequence.html`
-- State machine → `diagram` slide with `state.html`
+- Timeline / gantt → `diagram` slide with fd-engine descriptor `type:"gantt"`
+- Proportion / share → `diagram` slide with fd-engine descriptor `type:"pie"`
+- ER schema → `diagram` slide with fd-engine descriptor `type:"er"` + bun elk step
+- API sequence → `diagram` slide with fd-engine descriptor `type:"sequence"` + bun elk step
+- State machine → `diagram` slide with fd-engine descriptor `type:"state"` + bun elk step
 - Issue dependency graph → `diagram` slide with `dep-graph.html`
 - > 8 nodes or a shape no template covers → **split** across two diagram slides, or use `layered.html` with hand-assigned `--x/--y`
 

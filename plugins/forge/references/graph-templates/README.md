@@ -287,138 +287,23 @@ Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-two-machine-deploym
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html`
 (lyra dev → staging → prod promotion flow via `make deploy` + pytest gate).
 
-### Gantt
+### Retired legacy types → fd-engine
 
-> Timeline / schedule rendered natively with pre-computed bar positions.
-> Each bar is a `.fg-gantt-bar` positioned via `--x` / `--w` / `--y` in the
-> 0..100 % space; dates map to `--x` via a date → % formula documented in the
-> template header. Sections group bars by project / team / phase.
->
-> Use for roadmaps, release schedules, and multi-workstream plans that need
-> offline-safe rendering (no CDN dependency). Cap at ~12 bars per diagram.
+The following five types have been removed as static fgraph templates and are now
+implemented via the **fd-engine descriptor path** (see `forge-chart/SKILL.md §
+fd-engine diagram types`). Use `fd-engine descriptor type:"<t>"` instead.
 
-```
-┌─────────── Mermaid purge · 4 phases ────────────┐
-│ Cycle 1 · P1                                     │
-│   V1 primitives  █░░░░░░░░░░░░░░░░░░░░░░░░       │
-│   V2 native x 3     ██░░░░░░░░░░░░░░░░░░░░       │
-│   V3 new shapes        █░░░░░░░░░░░░░░░░░░       │
-│ Cycle 2 · P2                                     │
-│   SKILL.md migr       ░░░██░░░░░░░░░░░░░░       │
-│   gen-deps.py         ░░░░███░░░░░░░░░░░░       │
-│ Cycle 2 · P3+P4                                  │
-│   delete + guard           ░░░░░█████░░░░       │
-│  Apr 15    Apr 22    Apr 29    May 06    May 13  │
-└──────────────────────────────────────────────────┘
-```
+| Former template | fd-engine type | bun elk step? | Example |
+|---|---|---|---|
+| `gantt.html` (deleted) | `type:"gantt"` | NO | `examples/fd-gantt.html` |
+| `pie.html` (deleted) | `type:"pie"` | NO | `examples/fd-pie.html` |
+| `er.html` (deleted) | `type:"er"` | YES | `examples/fd-er.html` |
+| `sequence.html` (deleted) | `type:"sequence"` | YES | `examples/fd-sequence.html` |
+| `state.html` (deleted) | `type:"state"` | YES | `examples/fd-state.html` |
 
-Template: [`gantt.html`](./gantt.html) · demo: [`examples/gantt.html`](./examples/gantt.html).
-Native, no CDN, file://-safe.
-
-### Pie
-
-> Proportion / share rendered as an inline SVG pie in a `0 0 100 100`
-> viewBox. Author pre-computes each slice's `<path d="M 50,50 L x1,y1
-> A 40 40 0 large sweep x2,y2 Z">` — formula in the template header.
-> Legend lives in a right-hand column with swatch + label + value rows.
->
-> Use for cost / traffic / storage breakdowns and before/after pairs.
-> Aim for 3–7 slices.
-
-```
-         ╭─────────────╮       references/  38%
-     ╱───┤ references  ├───╲   skills/      27%
-    ╱    ╰─────────────╯    ╲  scripts/     18%
-   │  ╭──────────╮            │ runtime/    11%
-   │  │  skills  │            │ supervisor/  6%
-   │  ╰──────────╯            │
-    ╲    ╭──────╮           ╱
-     ╲───┤scripts├──────────╱
-         ╰──────╯
-```
-
-Template: [`pie.html`](./pie.html) · demo: [`examples/pie.html`](./examples/pie.html).
-Native, no CDN, file://-safe.
-
-### ER
-
-> Entity-relationship schema as HTML entity boxes with attribute rows
-> connected by SVG relationship paths ending in crow's-foot markers
-> (`fg-er-one`, `fg-er-zero-one`, `fg-er-many`, `fg-er-one-many`,
-> `fg-er-zero-many`). Endpoint-offset lookup (attrs → anchor offset)
-> documented in the template header.
->
-> Use for DB schemas, domain models, and aggregate references. Keep
-> entities ≤ 8 per diagram — hand-positioned cards get crowded faster beyond that.
-
-```
-┌─────────┐         ┌─────────┐         ┌───────────┐
-│  LABEL  │ ⪪────⪫ │  ISSUE  │ ──1:N──▶│ PullRequest│
-│  id PK  │   M:N   │  num PK │          │  num PK   │
-│  name   │         │author_id│          │issue_num  │
-└─────────┘         │  state  │          │  state    │
-                    └────┬────┘          └───────────┘
-                         │ 0,N:1
-                         ▼
-                    ┌─────────┐
-                    │  USER   │
-                    │  id PK  │
-                    └─────────┘
-```
-
-Template: [`er.html`](./er.html) · demo: [`examples/er.html`](./examples/er.html).
-Native, no CDN, file://-safe.
-
-### Sequence
-
-> Actors along the top, lifelines dropping vertically, horizontal
-> message arrows between lifelines. `.fg-lifeline` for the dashed
-> vertical rule; `.fg-lifeline-activation` overlays a solid rectangle
-> to show "this participant is processing a message during this span".
-> Height adapts to message count via `--msg-count` custom prop.
->
-> Use for protocol exchanges, pipeline flows, request/response
-> interactions. Cap at 15 messages — denser sequences become illegible.
-
-```
-  User        /dev        /plan       /implement→/pr
-   │           │            │               │
-   │──/dev────▶│            │               │
-   │           │──plan─────▶│               │
-   │           │◀──approved─│               │
-   │           │───implement + open PR ────▶│
-   │◀──────────────────── PR URL ───────────│
-   │           │            │               │
-```
-
-Template: [`sequence.html`](./sequence.html) · demo: [`examples/sequence.html`](./examples/sequence.html).
-Native, no CDN, file://-safe.
-
-### State
-
-> Finite-state machine: state nodes (circles for start/end, pills or
-> cards for named states, diamonds for decisions) connected by transition
-> arrows with event / guard labels. Semantic edge classes
-> (`.fg-edge.control` for normal transitions, `.feedback` for rework
-> loops, `.async` for timer-driven) carry meaning.
->
-> Use for lifecycle diagrams, protocol states, review workflows.
-> Cap at 6 states per diagram.
-
-```
-   ●──new──▶ backlog ──triage──▶ todo ──/dev──▶ in-progress
-                                                  │
-                                            open-PR
-                                                  ▼
-   ◉◀──merge── [in-review] ◀──────────────────────┘
-                  │
-              changes
-                  ▼
-              in-progress  (loop back)
-```
-
-Template: [`state.html`](./state.html) · demo: [`examples/state.html`](./examples/state.html).
-Native, no CDN, file://-safe.
+The `fgraph-base.css` rules for `.fg-gantt-bar`, `.fg-lifeline`, `.fg-lifeline-activation`,
+and `.mk-er-stroke` are retained — they are consumed by the fd-engine output HTML at runtime
+via the inlined `fgraph-base.css` block.
 
 ### Dep-Graph
 
@@ -560,11 +445,11 @@ Native, no CDN, file://-safe.
 | `layered.html` | 3–4 horizontal layers (ingress → hub → workers → storage) | ~5K | 4 stacked layers with dashed frames, vertical fan-out/fan-in arrows, tall aspect (3/4), optional 3-layer variant |
 | `machine-clusters.html` | Multi-host deployment / distributed services across machines | ~5K | 3 machine frames side-by-side, cross-machine edge routing, wide aspect (16/9), per-machine labels |
 | `deployment-tiers.html` | CI/CD pipeline / dev → staging → prod promotion | ~5K | 3 colored tier stripes, promotion arrows upward, data sync arrows, tall aspect (4/5), tier-specific tones |
-| `gantt.html` | Timeline / schedule / roadmap — dated tasks grouped by section | ~5K | Native fgraph, `.fg-axis-date` + `.fg-gantt-bar`, pre-computed bar positions in 0..100 %, 5 tone variants, no CDN |
-| `pie.html` | Proportion / share / composition snapshot — 3–7 slices | ~4K | Inline SVG pie (`viewBox 0 0 100 100`), pre-computed arc paths, right-column legend with swatches, hover highlight, no CDN |
-| `er.html` | Entity-relationship schema — DB tables or domain model — ≤ 8 entities | ~5K | HTML entity boxes + SVG relationship paths, 5 inline `<marker id="fg-er-*">` defs (crow's-foot), PK/FK attribute markers, no CDN |
-| `sequence.html` | Protocol exchange / request-response / pipeline message flow — ≤ 15 messages | ~4K | Participant pill row + `.fg-lifeline` verticals + `.fg-lifeline-activation` box, aspect-ratio override via `--msg-count`, 5 tone variants |
-| `state.html` | Finite-state machine / lifecycle — ≤ 6 states | ~4K | `.fgraph-node.circle`/`.diamond` shapes, semantic `.fg-edge.control`/`.feedback` classes, start/end circles, no CDN |
+| *(deleted)* `gantt.html` | → fd-engine descriptor `type:"gantt"` | — | Replaced by fd-engine; see `examples/fd-gantt.html` |
+| *(deleted)* `pie.html` | → fd-engine descriptor `type:"pie"` | — | Replaced by fd-engine; see `examples/fd-pie.html` |
+| *(deleted)* `er.html` | → fd-engine descriptor `type:"er"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-er.html` |
+| *(deleted)* `sequence.html` | → fd-engine descriptor `type:"sequence"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-sequence.html` |
+| *(deleted)* `state.html` | → fd-engine descriptor `type:"state"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-state.html` |
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
 | `lane-swim.html` | Message flow / request lifecycle across N architectural lanes, one node per row | ~6K | Lane header strip (`.fg-lane-header`/`.fg-lane-title`), phase separator lines (`.fg-lane-phase-line`/`.fg-lane-phase-lbl`), 18 px circle nodes (`.fg-lane-node`), inline tag pills (`.fg-lane-tag`), S-curve + parallel-bend connectors (`.fg-lane-curve`), chip-on-wire edge labels (`.fg-edge-lbl`), `--fg-lane-min-height` knob |
 | `scatter.html` | Scatter — X↔Y correlation between two continuous variables | ~3K | Inline SVG axis box, pre-computed tick marks and grid lines, labelled axes, circle marks per datum |
@@ -572,12 +457,14 @@ Native, no CDN, file://-safe.
 | `radar.html` | Radar — multi-axis comparison (N metrics, spider/spider chart) | ~3K | Inline SVG N-axis radials from shared centre, dataset polygons as semi-transparent overlays, axis labels |
 | `funnel.html` | Funnel — pipeline / stage conversion, sequential attrition | ~3K | Decreasing-width bars per stage, right-hand count + drop-off % labels, single-file inline SVG |
 
-All **19 native fgraph** templates (`radial-hub`, `linear-flow`,
+All **14 native fgraph** templates (`radial-hub`, `linear-flow`,
 `dual-cluster`, `radial-ring`, `layered`, `machine-clusters`,
-`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`, `system-architecture`,
+`deployment-tiers`, `dep-graph`, `lane-swim`, `system-architecture`,
 `scatter`, `bubble`, `radar`, `funnel`)
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
+
+`gantt`, `pie`, `er`, `sequence`, `state` are retired — use the fd-engine path.
 
 ### Primitives (`fgraph-base.css`)
 
@@ -810,11 +697,11 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | 3–4 horizontal layers stacked vertically | `layered.html` | service architecture |
 | 2–3 machine frames side-by-side | `machine-clusters.html` | distributed deployment |
 | Dev / staging / prod tiers stacked | `deployment-tiers.html` | CI/CD pipeline |
-| Timeline / schedule / roadmap with dated tasks | `gantt.html` | release plan, multi-workstream project |
-| Proportion / share / composition — 3–7 slices | `pie.html` | cost or traffic breakdown |
-| Entity-relationship schema — tables + FK/cardinality | `er.html` | DB schema, domain model |
-| Protocol exchange / message flow / pipeline — ≤ 15 messages | `sequence.html` | `/dev` pipeline interaction, API handshake |
-| Finite-state machine / lifecycle — ≤ 6 states | `state.html` | issue lifecycle, review workflow, connection states |
+| Timeline / schedule / roadmap with dated tasks | fd-engine descriptor `type:"gantt"` → `examples/fd-gantt.html` | release plan, multi-workstream project |
+| Proportion / share / composition — 3–7 slices | fd-engine descriptor `type:"pie"` → `examples/fd-pie.html` | cost or traffic breakdown |
+| Entity-relationship schema — tables + FK/cardinality | fd-engine descriptor `type:"er"` + bun elk step → `examples/fd-er.html` | DB schema, domain model |
+| Protocol exchange / message flow / pipeline — ≤ 15 messages | fd-engine descriptor `type:"sequence"` + bun elk step → `examples/fd-sequence.html` | `/dev` pipeline interaction, API handshake |
+| Finite-state machine / lifecycle — ≤ 6 states | fd-engine descriptor `type:"state"` + bun elk step → `examples/fd-state.html` | issue lifecycle, review workflow, connection states |
 | Issue dependency graph — phase columns × issue cards | `dep-graph.html` | roadmap backlog, blocks/depends-on visualisation (via `gen-deps.py` in #23) |
 | Message flow / request lifecycle crossing N architectural layers over M phases | `lane-swim.html` | clean-arch layer trace, pipeline walkthrough, process with optional steps |
 | Scatter — X↔Y correlation between two continuous variables | `scatter.html` | latency vs payload, score vs tokens, any 2-var correlation |
@@ -823,15 +710,18 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | Funnel — sequential pipeline with per-stage conversion / drop-off | `funnel.html` | marketing funnel, CI pipeline attrition, onboarding steps |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
-All 19 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
-`radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`, `gantt`,
-`pie`, `er`, `sequence`, `state`, `dep-graph`, `lane-swim`, `system-architecture`,
+All 14 remaining native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+`radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`,
+`dep-graph`, `lane-swim`, `system-architecture`,
 `scatter`, `bubble`, `radar`, `funnel`) share the same
 `fgraph-base.css` primitives — differences live only in layout coordinates
 and a few shape-specific extensions (`.fg-axis-date`, `.fg-gantt-bar`,
 `.fg-lifeline`, `.fg-er-*` markers, `.fg-lane-*` swimlane primitives), so
 mixing features (e.g. a linear-flow with a dashed machine frame borrowed from
 radial-hub) is just copy-paste.
+
+Note: `gantt`, `pie`, `er`, `sequence`, `state` have moved to the fd-engine path — see
+the "Retired legacy types → fd-engine" section above.
 
 ---
 
@@ -1262,8 +1152,8 @@ Remove the dev tier for a staging → prod view:
 | If your diagram is… | Use instead |
 |--------------------|-------------|
 | Linear flow / pipeline | `linear-flow.html` — 3-stage horizontal |
-| Sequence / message exchange | `sequence.html` — participant lifelines |
-| State machine | `state.html` — state nodes + transitions |
+| Sequence / message exchange | fd-engine descriptor `type:"sequence"` — participant strips + DOM-measured arrows |
+| State machine | fd-engine descriptor `type:"state"` — circle/diamond shapes + bezier edges |
 | Dependency graph > 8 nodes | `dep-graph.html` — phase columns + issue cards (via `gen-deps.py`) |
 | Tree / hierarchy | Start from `layered.html` and adapt |
 | Rich cards stacked vertically (no hub) | `architecture.html` pattern from visual-explainer — CSS Grid cards + tiny inline SVG connectors |

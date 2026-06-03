@@ -75,11 +75,11 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 | Hub-and-spoke ≤ 6 peers with rich cards | fgraph `radial-hub.html` — center pill + satellites |
 | Peer ring (no center hub) | fgraph `radial-ring.html` — N nodes in a circle |
 | Multi-host / distributed deployment | fgraph `machine-clusters.html` — side-by-side frames |
-| Timeline / gantt | fgraph `gantt.html` — date axis + horizontal bars |
-| API sequence | fgraph `sequence.html` — participant lifelines + message arrows |
-| State machine | fgraph `state.html` — state nodes + transitions |
-| ER schema | fgraph `er.html` — entity boxes + crow's-foot markers |
-| Proportion / share | fgraph `pie.html` — pre-computed SVG arc paths |
+| Timeline / gantt | fd-engine descriptor `type:"gantt"` — declarative bars from `descriptor.bars[]`; no CDN |
+| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step — participant strips, lifelines, DOM-measured arrows |
+| State machine | fd-engine descriptor `type:"state"` + bun elk step — circle/diamond shapes, bezier edges |
+| ER schema | fd-engine descriptor `type:"er"` + bun elk step — entity rows, PK/FK markers, crow's-foot edges |
+| Proportion / share | fd-engine descriptor `type:"pie"` — SVG arc paths from `descriptor.slices[]`; no CDN |
 | Issue dependency graph | fgraph `dep-graph.html` — fed by `scripts/gen-deps.py` |
 | > 8 nodes or a shape no template covers | Split the diagram, or use `layered.html` with hand-assigned `--x/--y` |
 | Stacked **text-heavy** pipelines (paragraphs per stage) | CSS Grid cards |

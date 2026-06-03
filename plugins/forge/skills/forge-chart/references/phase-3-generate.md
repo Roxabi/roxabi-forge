@@ -68,11 +68,11 @@ Template picker — see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README
 | Two peers sharing resources | `dual-cluster.html` |
 | Layered architecture (3–4 tiers) | `layered.html` / `deployment-tiers.html` |
 | Multi-host deployment | `machine-clusters.html` |
-| Timeline / gantt | `gantt.html` |
-| Proportion / share | `pie.html` |
-| ER schema | `er.html` |
-| API sequence | `sequence.html` |
-| State machine | `state.html` |
+| Timeline / gantt | fd-engine descriptor `type:"gantt"` |
+| Proportion / share | fd-engine descriptor `type:"pie"` |
+| ER schema | fd-engine descriptor `type:"er"` + bun elk step |
+| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step |
+| State machine | fd-engine descriptor `type:"state"` + bun elk step |
 | Issue dependency graph | `dep-graph.html` |
 
 ### Phase Cards (when applicable)
