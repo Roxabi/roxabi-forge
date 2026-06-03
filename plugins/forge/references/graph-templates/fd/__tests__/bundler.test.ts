@@ -118,6 +118,46 @@ describe('buildEngine(fdDir, "architecture")', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Suite: buildEngine — hub-spoke type (S1 alias)
+// ---------------------------------------------------------------------------
+
+describe('buildEngine(fdDir, "hub-spoke")', () => {
+  it('returns a non-empty string (hub-spoke type module exists)', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    expect(typeof bundle).toBe('string')
+    expect(bundle.length).toBeGreaterThan(100)
+  })
+
+  it('wraps hub-spoke output in IIFE', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    const trimmed = bundle.trim()
+    expect(trimmed).toMatch(/^\(function\(\)/)
+    expect(trimmed).toMatch(/\}\)\(\)$/)
+  })
+
+  it('includes hub-spoke.js type module section comment', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    expect(bundle).toContain('/* ── fd/hub-spoke.js ── */')
+  })
+
+  it('includes core.js in hub-spoke bundle', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    expect(bundle).toContain('/* ── fd/core.js ── */')
+  })
+
+  it('GUARD: hub-spoke output must NOT contain the banned lowercase token', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    expect(hasBannedToken(bundle)).toBe(false)
+  })
+
+  it('does NOT include architecture.js when type is hub-spoke', () => {
+    const bundle = buildEngine(FD_DIR, 'hub-spoke')
+    // bundler loads only the requested type module — architecture.js is not included
+    expect(bundle).not.toContain('/* ── fd/architecture.js ── */')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Suite: buildEngine — missing type → throws
 // ---------------------------------------------------------------------------
 
@@ -157,8 +197,14 @@ describe('optional modules (absent)', () => {
   })
 
   it('bundle does not contain particles.js comment when file absent', () => {
+    // Guard removed: assertion must always run regardless of particles.js presence.
+    // When particles.js is absent the bundler's existsSync guard skips it,
+    // so its section comment must never appear.
+    // When particles.js is present the comment WILL appear — test remains truthful.
     const bundle = buildEngine(FD_DIR, 'architecture')
-    if (!existsSync(join(FD_DIR, 'particles.js'))) {
+    if (existsSync(join(FD_DIR, 'particles.js'))) {
+      expect(bundle).toContain('/* ── fd/particles.js ── */')
+    } else {
       expect(bundle).not.toContain('/* ── fd/particles.js ── */')
     }
   })

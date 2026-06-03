@@ -142,7 +142,8 @@
   gap: 6px;
 }
 
-/* Node name */
+/* Node name — cards.js emits .fd-title; .fd-nn kept for legacy reference output */
+.fd-card-premium .fd-title,
 .fd-card-premium .fd-nn {
   font-weight: 700;
   font-size: 12px;
@@ -238,6 +239,7 @@
 .fd-card-premium.dormant {
   opacity: .62;
 }
+.fd-card-premium.dormant .fd-title::after,
 .fd-card-premium.dormant .fd-nn::after {
   content: " ⊘";
   color: var(--rose);
@@ -255,6 +257,7 @@
   padding: 11px 18px;
 }
 .fd-card-premium.fd-kind-bus .fd-accent { display: none; }
+.fd-card-premium.fd-kind-bus .fd-title,
 .fd-card-premium.fd-kind-bus .fd-nn { font-size: 13px; color: var(--cyan); }
 .fd-card-premium.fd-kind-bus .fd-nh { justify-content: flex-start; gap: 9px; }
 .fd-card-premium.fd-kind-bus .fd-subj {
@@ -285,6 +288,7 @@
   border-color: #1e3555;
 }
 .fd-card-premium.fd-kind-hub-int .fd-accent { background: var(--hub-c, var(--cyan)); }
+.fd-card-premium.fd-kind-hub-int .fd-title,
 .fd-card-premium.fd-kind-hub-int .fd-nn { font-size: 11px; }
 .fd-card-premium.fd-kind-hub-int .fd-desc { font-size: 9.5px; }
 
@@ -299,6 +303,7 @@
   border: 1.5px dashed var(--bd2);
 }
 .fd-card-premium.fd-kind-ext .fd-accent { display: none; }
+.fd-card-premium.fd-kind-ext .fd-title,
 .fd-card-premium.fd-kind-ext .fd-nn { color: #cbd6e6; }
 
 /* ---- Zone regions ---- */

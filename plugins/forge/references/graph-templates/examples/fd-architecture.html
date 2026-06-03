@@ -120,8 +120,9 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content
 .fd-edges path.feedback{stroke:var(--accent)}
 .fd-edges path.hot{opacity:1;stroke-width:2.8}
 .dimmed .fd-edges path:not(.hot){opacity:.06}
-.fd-edges .elabel{font-family:var(--mono);font-size:9px;fill:var(--text-muted);opacity:0}
-.fd-edges .elabel.hot{opacity:1}
+/* edge label class aligned to modular source edges.js: fd-elabel (not elabel) */
+.fd-edges .fd-elabel{font-family:var(--mono);font-size:9px;fill:var(--text-muted);opacity:0}
+.fd-edges .fd-elabel.hot{opacity:1}
 /* uc edge states */
 .fd-edges path.uc-active{opacity:1!important;stroke-width:2.8!important}
 .fd-edges path.uc-done{opacity:.45!important;stroke-width:1.8!important}
@@ -283,12 +284,21 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content
         <!-- SVG overlay: pixel-space bezier edges (AC-10: no preserveAspectRatio) -->
         <svg class="fd-edges" id="fd-edges" aria-hidden="true">
           <defs>
-            <marker id="fd-arr-control" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#22d3ee"/></marker>
-            <marker id="fd-arr-write"   markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#10b981"/></marker>
-            <marker id="fd-arr-read"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#c084fc"/></marker>
-            <marker id="fd-arr-data"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#a855f7"/></marker>
-            <marker id="fd-arr-async"   markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#f59e0b"/></marker>
-            <marker id="fd-arr-feedback" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#e85d04"/></marker>
+            <!-- AC-6: marker fill colors bound via CSS vars (theme-aware, matches edges.js initMarkers pattern) -->
+            <style>
+              #fd-arr-control path { fill: var(--fd-plane-control, #38bdf8); }
+              #fd-arr-write   path { fill: var(--fd-plane-write,   #34d399); }
+              #fd-arr-read    path { fill: var(--fd-plane-read,    #64748b); }
+              #fd-arr-data    path { fill: var(--fd-plane-data,    #a78bfa); }
+              #fd-arr-async   path { fill: var(--fd-plane-async,   #fb923c); }
+              #fd-arr-feedback path { fill: var(--fd-plane-feedback, #fb7185); }
+            </style>
+            <marker id="fd-arr-control"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-write"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-read"     markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-data"     markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-async"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-feedback" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
           </defs>
         </svg>
       </div>
@@ -400,7 +410,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content
     },
     {
       "id": "fd-engine",
-      "x": 15, "y": 57,
+      "x": 50, "y": 57,
       "kind": "bus",
       "n": "fd-engine",
       "img": "references/graph-templates/fd/",
@@ -783,7 +793,7 @@ function draw(edges){
       tx.setAttribute('x', mx.toFixed(1))
       tx.setAttribute('y', (my - 4).toFixed(1))
       tx.setAttribute('text-anchor', 'middle')
-      tx.setAttribute('class', 'elabel')
+      tx.setAttribute('class', 'fd-elabel')
       tx.dataset.pk = pairKey(f, t)
       tx.textContent = lab
       svgEl.appendChild(tx)

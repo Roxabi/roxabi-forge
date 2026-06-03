@@ -13,6 +13,7 @@ const KIND_SHAPE = {
   event: 'circle',
   database: 'cylinder',
   storage: 'cylinder',
+  store: 'cylinder',
   queue: 'cylinder',
   decision: 'diamond',
   gate: 'diamond',
@@ -32,6 +33,7 @@ const KIND_TONE = {
   event: 'green',
   database: 'purple',
   storage: 'purple',
+  store: 'purple',
   queue: 'purple',
   decision: 'red',
   gate: 'red',
@@ -60,7 +62,7 @@ function buildPremiumCard(node) {
 
   const sub = node.d ? `<div class="fd-sub">${node.d}</div>` : ''
   const tag = node.img ? `<div class="fd-tag">${node.img}</div>` : ''
-  const hb = node.h ? `<div class="fd-host">${hostLabel(node.h)}</div>` : ''
+  const hb = node.h ? `<div class="fd-host ${node.h}">${hostLabel(node.h)}</div>` : ''
 
   return (
     `<span class="fd-accent" style="background:${accentVar}"></span>` +
@@ -86,6 +88,9 @@ function renderNode(node, typeDefault) {
 
   // base classes
   let cls = 'fgraph-node fd-node'
+
+  // fd-kind-{kind} class — used by fd-engine.css kind-variant rules
+  if (node.kind) cls += ` fd-kind-${node.kind}`
 
   // shape class from kind
   const shape = KIND_SHAPE[node.kind]

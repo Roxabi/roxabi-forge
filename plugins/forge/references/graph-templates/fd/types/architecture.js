@@ -12,20 +12,21 @@ const CARD_DEFAULT = 'premium' // RD-3: architecture/hub-spoke default is premiu
 // For each zone:
 //   1. Collect rect() measurements for all member nodes.
 //   2. Compute union bounding box (min/max of cx±w/2, cy±h/2) + padding.
-//   3. Apply left/top/width/height to zone div#fd-zone-{zone.id}.
+//   3. Apply left/top/width/height to zone div#{zone.id} (bare id — no prefix added).
 //   4. Create the zone div if absent (class: fd-zone + zone.class).
 //
+// Zone descriptor id == HTML element id: zone.id = "zone-forge" → getElementById("zone-forge").
 // rect() is declared in core.js scope (concat order: core.js, cards.js, architecture.js).
 function placeZones(descriptor) {
   const zones = descriptor.zones
   if (!zones || zones.length === 0) return
 
   for (const zone of zones) {
-    // resolve or create zone div
-    let zEl = document.getElementById(`fd-zone-${zone.id}`)
+    // resolve or create zone div — bare zone.id, no prefix added
+    let zEl = document.getElementById(zone.id)
     if (!zEl) {
       zEl = document.createElement('div')
-      zEl.id = `fd-zone-${zone.id}`
+      zEl.id = zone.id
       let cls = 'fd-zone'
       if (zone.class) cls += ` ${zone.class}`
       zEl.className = cls
@@ -41,11 +42,11 @@ function placeZones(descriptor) {
       canvas.insertBefore(zEl, canvas.firstChild)
     }
 
-    // measure member nodes
+    // measure member nodes — guard against unknown ids (node not yet rendered or missing)
     const memberIds = zone.nodes || []
     if (memberIds.length === 0) continue
 
-    const rects = memberIds.map((id) => rect(id)).filter(Boolean)
+    const rects = memberIds.map((id) => (nodeEl[id] ? rect(id) : null)).filter(Boolean)
     if (rects.length === 0) continue
 
     // union bounding box
