@@ -339,39 +339,48 @@ async function devIssue(n) {
   }
   if (!impl || impl.status !== 'pr-opened') return { issue: n, status: 'failed', stage: 'impl', impl }
 
-  let diff = impl.diff
-  if (!diff || diff.length < 40) {
-    const df = await tryAgent(diffPrompt(n, impl.branch), { label: `diff:${n}`, phase: 'Implement', agentType: 'dev-core:frontend-dev', schema: DIFF_SCHEMA })
-    diff = (df && df.diff) || ''
-  }
-
-  const lensKeys = lensesFor(n)
+  // Post-PR review/validate/fix/defer is BEST-EFFORT. The PR is ALREADY OPEN, so a thrown agent
+  // step (StructuredOutput refusal after retries, etc.) must NEVER discard it. On throw → fall back
+  // to manual review (orchestrator reads the PNG/CI). Fixes the W2 #61 class: PR fine, review threw.
   let residual = []
-  for (let round = 1; round <= 2; round++) {
-    const reviews = await parallel(lensKeys.map((key) => () =>
-      tryAgent(reviewPrompt(n, key, LENS[key], diff), { label: `review:${n}:${key}:r${round}`, phase: 'Review', agentType: LENS[key].agent, schema: FINDINGS_SCHEMA })))
-    const findings = reviews.filter(Boolean).flatMap((r) => (r.findings || []).map((f, i) => ({ ...f, id: `${r.lens}-${f.id || i}` })))
-      .filter((f) => f.severity === 'blocking' || f.severity === 'major')
-    if (!findings.length) { residual = []; break }
-
-    const verdicts = await parallel(findings.map((f) => () =>
-      parallel([1, 2].map((k) => () => tryAgent(validatePrompt(n, f, diff, k), { label: `validate:${n}:${f.id}:${k}`, phase: 'Validate', schema: VERDICT_SCHEMA })))
-        .then((votes) => ({ f, real: votes.filter(Boolean).some((v) => v.real) }))))
-    const confirmed = verdicts.filter((v) => v.real).map((v) => v.f)
-    if (!confirmed.length) { residual = []; break }
-
-    log(`#${n} round ${round}: ${confirmed.length} confirmed finding(s) → fix`)
-    const fix = await tryAgent(fixPrompt(n, impl.branch, confirmed, round), { label: `fix:${n}:r${round}`, phase: 'Fix', isolation: 'worktree', agentType: 'dev-core:fixer', schema: FIX_SCHEMA })
-    diff = (fix && fix.diff) || diff
-    residual = (fix && fix.residual) || confirmed.map((f) => ({ title: f.title, detail: f.detail }))
-    if (!residual.length) break
-  }
-
   let deferred = null
-  if (residual.length) {
-    deferred = await tryAgent(deferPrompt(n, residual), { label: `defer:${n}`, phase: 'Fix', agentType: 'dev-core:frontend-dev', schema: DEFER_SCHEMA })
+  let reviewIncomplete = false
+  try {
+    let diff = impl.diff
+    if (!diff || diff.length < 40) {
+      const df = await tryAgent(diffPrompt(n, impl.branch), { label: `diff:${n}`, phase: 'Implement', agentType: 'dev-core:frontend-dev', schema: DIFF_SCHEMA })
+      diff = (df && df.diff) || ''
+    }
+
+    const lensKeys = lensesFor(n)
+    for (let round = 1; round <= 2; round++) {
+      const reviews = await parallel(lensKeys.map((key) => () =>
+        tryAgent(reviewPrompt(n, key, LENS[key], diff), { label: `review:${n}:${key}:r${round}`, phase: 'Review', agentType: LENS[key].agent, schema: FINDINGS_SCHEMA })))
+      const findings = reviews.filter(Boolean).flatMap((r) => (r.findings || []).map((f, i) => ({ ...f, id: `${r.lens}-${f.id || i}` })))
+        .filter((f) => f.severity === 'blocking' || f.severity === 'major')
+      if (!findings.length) { residual = []; break }
+
+      const verdicts = await parallel(findings.map((f) => () =>
+        parallel([1, 2].map((k) => () => tryAgent(validatePrompt(n, f, diff, k), { label: `validate:${n}:${f.id}:${k}`, phase: 'Validate', schema: VERDICT_SCHEMA })))
+          .then((votes) => ({ f, real: votes.filter(Boolean).some((v) => v.real) }))))
+      const confirmed = verdicts.filter((v) => v.real).map((v) => v.f)
+      if (!confirmed.length) { residual = []; break }
+
+      log(`#${n} round ${round}: ${confirmed.length} confirmed finding(s) → fix`)
+      const fix = await tryAgent(fixPrompt(n, impl.branch, confirmed, round), { label: `fix:${n}:r${round}`, phase: 'Fix', isolation: 'worktree', agentType: 'dev-core:fixer', schema: FIX_SCHEMA })
+      diff = (fix && fix.diff) || diff
+      residual = (fix && fix.residual) || confirmed.map((f) => ({ title: f.title, detail: f.detail }))
+      if (!residual.length) break
+    }
+
+    if (residual.length) {
+      deferred = await tryAgent(deferPrompt(n, residual), { label: `defer:${n}`, phase: 'Fix', agentType: 'dev-core:frontend-dev', schema: DEFER_SCHEMA })
+    }
+  } catch (e) {
+    reviewIncomplete = true
+    log(`⚠ #${n}: PR ${impl.prUrl} is OPEN but post-PR review threw (${String((e && e.message) || e).slice(0, 120)}) → manual review required`)
   }
-  return { issue: n, status: 'pr-opened', prUrl: impl.prUrl, classification: impl.classification, rootCause: impl.rootCause, gates: impl.gates, residual, deferred }
+  return { issue: n, status: 'pr-opened', prUrl: impl.prUrl, classification: impl.classification, rootCause: impl.rootCause, gates: impl.gates, residual, deferred, reviewIncomplete }
 }
 
 // ---------- failure policy: ISOLATE-DEFER-CONTINUE ----------
@@ -409,5 +418,6 @@ return {
   results: out.map((r) => ({
     issue: r.issue, status: r.status, stage: r.stage, prUrl: r.prUrl, classification: r.classification,
     residualCount: (r.residual || []).length, deferredUrl: r.deferred && r.deferred.issueUrl,
+    reviewIncomplete: r.reviewIncomplete || false,
   })),
 }
