@@ -13,7 +13,7 @@
       "description": "Forge HTML visuals for ~/.roxabi/forge/ — forge-chart (single-file native fgraph / CSS visual), forge-epic (issue-linked visual analysis), forge-gallery (image / audio gallery), forge-guide (split-file multi-tab doc), forge-init (initialize ~/.roxabi/forge/ environment), forge-md (render .md as-is to themed HTML), forge-presentation (long-form scroll presentation), forge-slides (scroll-snap presentation deck). Brand-aware, manifest-indexed, Cloudflare Pages ready.",
       "source": "./plugins/forge",
       "category": "productivity",
-      "version": "0.9.0"
+      "version": "0.9.1"
     }
   ]
 }

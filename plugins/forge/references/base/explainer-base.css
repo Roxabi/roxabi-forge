@@ -88,7 +88,6 @@ body::before {
 .hero.left-border {
   border-left: 3px solid var(--accent);
   padding-left: 1.5rem;
-  background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 50%);
 }
 
 /* ── Hero Variant: Top Border (elegant/slides) ── */
