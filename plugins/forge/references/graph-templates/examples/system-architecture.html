@@ -913,7 +913,7 @@
 }
 
 /* ── date axis ──
-   Consumed by: gantt.html
+   Consumed by: fd-engine type:"gantt" (gantt.html deleted — replaced by fd-engine path)
    Shape: a horizontal baseline near the bottom of the container with evenly
    spaced tick marks + labels. The axis coordinate space is the same 0–100
    percentage as --x on nodes, so gantt bars can position directly in sync.
@@ -976,7 +976,7 @@
 }
 
 /* ── gantt bars (horizontal time bars) ──
-   Consumed by: gantt.html. Positioned in the same 0–100 % space as the
+   Consumed by: fd-engine type:"gantt" (gantt.html deleted — replaced by fd-engine path). Positioned in the same 0–100 % space as the
    date axis so bar start / end align visibly with ticks.
 
      <div class="fg-gantt-bar amber" style="--x:10; --w:28; --y:22">Task name</div>
@@ -1014,7 +1014,7 @@
 .fg-gantt-bar.red    { border-color: rgba(248,113,113,0.55); background: rgba(248,113,113,0.10); color: var(--red); }
 
 /* ── lifelines (sequence-diagram vertical rules) ──
-   Consumed by: sequence.html. Pairs with a top participant pill
+   Consumed by: fd-engine type:"sequence" (sequence.html deleted — replaced by fd-engine path). Pairs with a top participant pill
    (authored as .fgraph-node.pill) that sits at --y:6 or similar.
    The lifeline drops from just below the participant down to the bottom
    of the wrap, visualising the participant's existence over time.
@@ -1049,8 +1049,8 @@
 }
 
 /* ── ER markers (crow's-foot relationship endpoints) ──
-   Consumed by: er.html. SVG <marker> defs themselves live inside each
-   er.html's inline <defs> block — <marker> is an SVG element, so it
+   Consumed by: fd-engine type:"er" (er.html deleted — replaced by fd-engine path). SVG <marker> defs live inside each
+   fd-er output's inline <defs> block — <marker> is an SVG element, so it
    cannot be shipped purely from CSS. This block styles the marker
    stroke / fill via the .mk-er-stroke class referenced inside the
    <marker>'s path.
