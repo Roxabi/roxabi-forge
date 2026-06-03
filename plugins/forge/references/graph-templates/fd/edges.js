@@ -170,7 +170,7 @@ function draw() {
 function redraw() {
   draw()
   // If a placeZones function is defined (by architecture.js type module), call it
-  if (typeof placeZones === 'function') placeZones()
+  if (typeof placeZones === 'function') placeZones(DESCRIPTOR)
 }
 
 // ---- ResizeObserver wiring ----
