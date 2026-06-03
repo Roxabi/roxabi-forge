@@ -60,6 +60,147 @@ Full track-by-track behavior: `${CLAUDE_PLUGIN_ROOT}/references/design-phase-two
 
 Report the loaded brand book (or its absence) before starting Frame. Track is fixed at Phase 1 and does not change.
 
+---
+
+## fd-engine diagram types
+
+The **fd-engine** (forge-diagram JS engine, S1) is the generation path for architecture diagrams and hub-spoke topologies. It replaces the static fgraph coordinate approach with DOM-measured bezier edges, providing lyra-stack-grade visual quality at any container size.
+
+### Routing rule
+
+When the user requests an **architecture diagram** or **hub-spoke topology** (rich cards, multi-node, edge annotations, zones, use-case walkthroughs):
+
+1. Generate an **fd-engine descriptor JSON** (see schema below)
+2. Embed it as `<script type="application/json" id="fd-data">` in the output HTML
+3. Inline the **fd-engine bundle** via `buildEngine(fdDir, type)` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd/bundler.js`
+4. Inline `fd-engine.css` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd-engine.css`
+5. Inline `fgraph-base.css` (Mode A — single file)
+6. Inline forge base CSS + selected aesthetic CSS
+
+**Supported declarative types (S1):** `architecture`, `hub-spoke`
+
+Auto-layout types (flowchart, state, class, er, sequence) are added in later slices (S2–S4). Do not route those types to fd-engine yet.
+
+### Descriptor JSON schema (normative)
+
+```json
+{
+  "type": "architecture",
+  "title": "Diagram title",
+  "theme": "lyra-v2",
+  "layout": "declarative",
+  "canvas": { "height": 1040 },
+  "options": {
+    "particles": false,
+    "spotlight": true,
+    "sidebar": true
+  },
+  "nodes": [
+    {
+      "id": "hub",
+      "x": 50, "y": 55,
+      "kind": "bus",
+      "n": "NATS Bus",
+      "img": "nats:alpine",
+      "d": "JetStream · 4222/4223",
+      "plane": "message",
+      "h": "M1",
+      "cardStyle": "premium"
+    }
+  ],
+  "edges": [
+    {
+      "f": "telegram", "t": "hub",
+      "plane": "message",
+      "label": "lyra.inbound.*"
+    }
+  ],
+  "zones": [
+    {
+      "id": "zoneM2",
+      "nodes": ["llmw", "img"],
+      "class": "zone-m2",
+      "label": "M₂ · GPU on-demand"
+    }
+  ],
+  "useCases": [
+    {
+      "title": "① text message",
+      "desc": "Telegram → hub → clipool → turn-writer",
+      "steps": [
+        { "nodes": ["telegram"], "edge": ["telegram", "hub"], "label": "1. inbound" }
+      ]
+    }
+  ]
+}
+```
+
+### Field reference
+
+| Field | Type | Notes |
+|---|---|---|
+| `type` | string | `"architecture"` or `"hub-spoke"` for S1 declarative path |
+| `title` | string | Diagram title (used in `<title>` + hero) |
+| `theme` | string | Aesthetic name — matches `references/aesthetics/*.css` filename stem |
+| `layout` | string | `"declarative"` — LLM encodes `x`/`y` in 0..100 % space |
+| `canvas.height` | number | Canvas height in px (default 800) |
+| `options.particles` | bool \| "loop" | `false` (default) — particles OFF; `true` = one-shot on trigger; `"loop"` = continuous |
+| `options.spotlight` | bool | Hover isolation + sidebar panel |
+| `options.sidebar` | bool | Show sidebar panel |
+| **nodes[].id** | string | Unique node ID (used in edges, zones, useCases) |
+| **nodes[].x / y** | number | Position in 0..100 % coordinate space (declarative types only) |
+| **nodes[].kind** | string | `"default"` \| `"bus"` \| `"store"` \| `"ext"` \| `"hub-int"` |
+| **nodes[].n** | string | Display name |
+| **nodes[].img** | string | Image/package label (mono subtitle) |
+| **nodes[].d** | string | Description / role (short, one line) |
+| **nodes[].plane** | string | Semantic plane: `control` \| `write` \| `read` \| `data` \| `async` \| `feedback` \| `message` \| `llm` |
+| **nodes[].h** | string | Host badge: `"M1"` \| `"M2"` \| `"EX"` (external, no badge) |
+| **nodes[].cardStyle** | string | Optional override: `"premium"` (default for architecture/hub-spoke) \| `"simple"` |
+| **edges[].f / t** | string | From / to node IDs |
+| **edges[].plane** | string | Semantic plane (determines edge color from aesthetic tokens) |
+| **edges[].label** | string | Optional edge label (shown at bezier midpoint on hover) |
+| **edges[].srcFace / dstFace** | string | Optional face override: `"top"` \| `"bottom"` \| `"left"` \| `"right"` |
+| **zones[].id** | string | Must match the HTML element `id` for the zone div |
+| **zones[].nodes** | string[] | Node IDs whose bounding rect defines the zone |
+| **zones[].class** | string | CSS class on the zone div |
+| **zones[].label** | string | Zone label text |
+| **useCases[].title** | string | Use-case button label |
+| **useCases[].desc** | string | HTML description (shown in sidebar) |
+| **useCases[].steps[].nodes** | string[] | Nodes to highlight in this step |
+| **useCases[].steps[].edge** | [f, t] \| null | Edge to activate + animate particle (if particles enabled) |
+| **useCases[].steps[].label** | string | Step label in sidebar step list |
+
+### Semantic planes
+
+| Plane | Color token | Semantic |
+|---|---|---|
+| `control` | `--cyan` | dispatch, invoke, route |
+| `write` | `--green` | writes to a store or file |
+| `read` | `--purple` | reads from a store |
+| `data` | `--plum` | payload, query result, token stream |
+| `async` | `--amber` | pub/sub, queue, event, SSE |
+| `feedback` | `--accent` | loss signal, correction, eval result |
+| `message` | `--cyan` | NATS / message-bus (alias for control in lyra topology) |
+| `llm` | `--purple` | LLM inference request/response |
+
+### AC-10 guard (mandatory)
+
+The fd-engine SVG overlay MUST use pixel-space positioning, NOT a viewBox stretch:
+
+```html
+<!-- CORRECT (AC-10) -->
+<svg class="fd-edges" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible">
+
+<!-- FORBIDDEN — causes giant arrowhead bug (#57 root cause) -->
+<svg viewBox="0 0 100 100" preserveAspectRatio="none">
+```
+
+### Guard — fd-engine output purity
+
+This section documents fd-engine. The output descriptor JSON uses `type:"architecture"`, `type:"hub-spoke"`. The guard contract (`grep -rn '\bmermaid\b' plugins/forge/` must be empty) applies to all fd-engine output files and to this SKILL.md. Do not embed any guarded token in generated HTML or descriptor JSON.
+
+---
+
 ### Frame — What's this visual for?
 
 Full reference: `${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md` — three Frame signals, reader-action matrix, tone dimensions, example trace.
