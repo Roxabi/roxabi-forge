@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="diagram:title" content="Roxabi Forge — Plugin LOC Distribution">
+<meta name="diagram:category" content="metrics">
+<meta name="diagram:color" content="#22d3ee">
+<meta name="diagram:engine" content="fd-engine">
+<meta name="diagram:type" content="pie">
+<title>Roxabi Forge — Plugin LOC Distribution (Pie)</title>
+<!-- Google Fonts — degrades gracefully offline -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ forge base reset ══ */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+ul,ol{list-style:none;margin:0;padding:0}
+
+/* ══ lyra-v2 aesthetic tokens ══ */
+:root{
+  --bg:#0d1117;
+  --bg-cell:#0f141a;
+  --bg-panel:#13191f;
+  --bg-card:#161b22;
+  --border:#21262d;
+  --border-hi:#30363d;
+  --text:#fafafa;
+  --text-muted:#8b93a1;
+  --text-dim:#6b7280;
+  --accent:#e85d04;
+  --teal:#06b6d4;
+  --amber:#f59e0b;
+  --green:#10b981;
+  --cyan:#22d3ee;
+  --purple:#c084fc;
+  --plum:#a855f7;
+  --red:#ef4444;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+
+/* ══ page shell ══ */
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.4}
+.page{padding:22px 22px 60px;max-width:900px;margin:0 auto}
+
+/* ══ header ══ */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content:space-between;
+  padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.htitle h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.htitle h1 b{color:var(--cyan)}
+.htitle p{margin:5px 0 0;color:var(--text-muted);font-size:12px;font-family:var(--mono)}
+.badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--border-hi);color:var(--text-muted)}
+.badge.cyan{border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.06);color:var(--cyan)}
+.badge.amber{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06);color:var(--amber)}
+
+/* ══ stage ══ */
+.stage-wrap{border:1px solid var(--border);border-radius:12px;
+  background:linear-gradient(180deg,var(--bg-panel),var(--bg-cell));
+  overflow:auto;margin-bottom:22px}
+
+/* ══ fd-engine canvas ══ */
+.fd-canvas{position:relative;width:100%;min-height:340px}
+
+/* ══ pie chart wrapper (flex: svg + legend) ══ */
+.fd-pie-wrap{display:flex;align-items:center;justify-content:center;gap:16px;padding:24px 16px;width:100%}
+
+/* ══ pie SVG slice interactions ══ */
+.fg-pie-slice{transition:opacity .15s,transform .15s;transform-origin:50% 50%}
+.fg-pie-slice:hover{opacity:.82;transform:scale(1.03)}
+
+/* ══ pie legend ══ */
+.fg-pie-legend{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:0 16px;flex:1;min-width:0}
+.fg-pie-legend-row{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:4px 0}
+.fg-pie-legend-row .swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.fg-pie-legend-row .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fg-pie-legend-row .value{margin-left:auto;color:var(--text-muted);white-space:nowrap;font-size:9.5px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="htitle">
+      <h1><b>Roxabi Forge</b> — Plugin LOC Distribution</h1>
+      <p>fd-engine · pie type · lyra-v2 · SVG arc math · declarative · file:// safe</p>
+    </div>
+    <div class="badges">
+      <span class="badge cyan">fd-engine v1</span>
+      <span class="badge amber">pie type</span>
+      <span class="badge">lyra-v2 theme</span>
+      <span class="badge">file:// safe</span>
+    </div>
+  </header>
+
+  <!-- Solid pie -->
+  <div class="stage-wrap">
+    <div class="fd-canvas" id="fd-canvas-solid"></div>
+  </div>
+
+  <!-- Donut variant -->
+  <div class="stage-wrap">
+    <div class="fd-canvas" id="fd-canvas-donut"></div>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- fd-data (solid): descriptor JSON embedded inline -->
+<script type="application/json" id="fd-data-solid">
+{
+  "type": "pie",
+  "title": "Plugin LOC distribution",
+  "theme": "lyra-v2",
+  "options": { "donut": false, "showPercent": true },
+  "slices": [
+    { "label": "references/",  "value": 38, "color": "cyan"   },
+    { "label": "skills/",      "value": 27, "color": "amber"  },
+    { "label": "scripts/",     "value": 18, "color": "purple" },
+    { "label": "runtime/",     "value": 11, "color": "green"  },
+    { "label": "supervisor/",  "value":  6, "color": "red"    }
+  ]
+}
+</script>
+
+<!-- fd-data (donut): donut variant descriptor -->
+<script type="application/json" id="fd-data-donut">
+{
+  "type": "pie",
+  "title": "fd-engine S slices",
+  "theme": "lyra-v2",
+  "options": { "donut": true, "showPercent": true },
+  "slices": [
+    { "label": "S1 core + architecture",  "value": 400, "color": "cyan"   },
+    { "label": "S2 flowchart + state",    "value": 200, "color": "amber"  },
+    { "label": "S5 xychart",              "value": 200, "color": "purple" },
+    { "label": "S6 gantt + pie",          "value": 100, "color": "green"  },
+    { "label": "S7 particles + interact", "value": 200, "color": "plum"   },
+    { "label": "S3 class + ER",           "value": 150, "color": "red"    },
+    { "label": "S4 sequence",             "value": 150, "color": "teal"   },
+    { "label": "S8 routing + cleanup",    "value":  80, "color": "accent" }
+  ]
+}
+</script>
+
+<!-- fd-engine inline bundle: pie type module (no edge engine needed for pie) -->
+<!-- AC-4: no fetch | AC-5: single file | AC-10: SVG is viewBox-relative, not an overlay -->
+<script>
+(function(){
+'use strict'
+
+/* ── canvas ref (set per render call, not shared) ── */
+var canvas = null
+
+/* ── fd/types/pie.js ── */
+
+var PIE_COLOR_MAP = {
+  cyan:   'var(--cyan,   #22d3ee)',
+  amber:  'var(--amber,  #f59e0b)',
+  purple: 'var(--purple, #c084fc)',
+  green:  'var(--green,  #10b981)',
+  red:    'var(--red,    #ef4444)',
+  plum:   'var(--plum,   #a855f7)',
+  teal:   'var(--teal,   #06b6d4)',
+  accent: 'var(--accent, #e85d04)',
+  blue:   '#3b82f6',
+  pink:   '#ec4899',
+  orange: '#f97316',
+  yellow: '#eab308',
+  slate:  'var(--text-dim, #6b7280)',
+}
+
+function polarToXY(cx, cy, r, angle){
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+}
+
+// MATH: arc path for one pie slice
+// solid:  M cx,cy  L x1,y1  A r,r 0 large-arc 1 x2,y2  Z
+// donut:  outer arc CW + inner arc CCW + Z
+// large-arc-flag = endAngle - startAngle > π ? 1 : 0
+function buildPieArc(cx, cy, r, rIn, startAngle, endAngle){
+  var largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0
+  var p1 = polarToXY(cx, cy, r, startAngle)
+  var p2 = polarToXY(cx, cy, r, endAngle)
+  function fmt(n){ return n.toFixed(4) }
+
+  if(rIn > 0){
+    var p3 = polarToXY(cx, cy, rIn, endAngle)
+    var p4 = polarToXY(cx, cy, rIn, startAngle)
+    return [
+      'M ' + fmt(p1.x) + ',' + fmt(p1.y),
+      'A ' + fmt(r) + ',' + fmt(r) + ' 0 ' + largeArc + ' 1 ' + fmt(p2.x) + ',' + fmt(p2.y),
+      'L ' + fmt(p3.x) + ',' + fmt(p3.y),
+      'A ' + fmt(rIn) + ',' + fmt(rIn) + ' 0 ' + largeArc + ' 0 ' + fmt(p4.x) + ',' + fmt(p4.y),
+      'Z'
+    ].join(' ')
+  }
+
+  return [
+    'M ' + fmt(cx) + ',' + fmt(cy),
+    'L ' + fmt(p1.x) + ',' + fmt(p1.y),
+    'A ' + fmt(r) + ',' + fmt(r) + ' 0 ' + largeArc + ' 1 ' + fmt(p2.x) + ',' + fmt(p2.y),
+    'Z'
+  ].join(' ')
+}
+
+function renderPie(descriptor, canvasEl){
+  canvas = canvasEl
+  var slices = descriptor.slices || []
+  var opts = descriptor.options || {}
+  var donut = Boolean(opts.donut)
+  var showPercent = opts.showPercent !== false
+  var title = descriptor.title || ''
+
+  if(slices.length === 0){ console.warn('[fd/pie] no slices defined'); return }
+
+  // MATH: compute total for fraction calculation
+  var total = 0
+  for(var i = 0; i < slices.length; i++) total += (slices[i].value || 0)
+  if(total <= 0){ console.warn('[fd/pie] total is zero'); return }
+
+  // SVG constants
+  var CX = 50, CY = 50, R = 38, R_IN = donut ? 22 : 0
+  var NS_SVG = 'http://www.w3.org/2000/svg'
+
+  var svgWrap = document.createElementNS(NS_SVG, 'svg')
+  svgWrap.setAttribute('viewBox', '0 0 100 100')
+  svgWrap.setAttribute('aria-label', title || 'pie chart')
+  svgWrap.setAttribute('role', 'img')
+  svgWrap.style.cssText = 'display:block;width:min(320px,50%);flex-shrink:0;overflow:visible'
+
+  // Per-slice fill colors via SVG <style> (resolves CSS vars — AC-6)
+  var defs = document.createElementNS(NS_SVG, 'defs')
+  var styleEl = document.createElementNS(NS_SVG, 'style')
+  var sliceCss = ''
+  for(var j = 0; j < slices.length; j++){
+    var sl = slices[j]
+    var colorVal = sl.color ? (PIE_COLOR_MAP[sl.color] || sl.color) : ('hsl(' + Math.round(j * 360 / slices.length) + ',60%,55%)')
+    sliceCss += '.fg-pie-slice-' + j + ' { fill: ' + colorVal + '; }\n'
+  }
+  styleEl.textContent = sliceCss
+  defs.appendChild(styleEl)
+  svgWrap.appendChild(defs)
+
+  // Draw arcs: start at -π/2 (12-o'clock), sweep clockwise
+  var angleStart = -Math.PI / 2
+
+  for(var k = 0; k < slices.length; k++){
+    var fraction = slices[k].value / total
+    var sweep = fraction * 2 * Math.PI
+    var angleEnd = angleStart + sweep
+
+    var d = buildPieArc(CX, CY, R, R_IN, angleStart, angleEnd)
+
+    var path = document.createElementNS(NS_SVG, 'path')
+    path.setAttribute('d', d)
+    path.setAttribute('class', 'fg-pie-slice fg-pie-slice-' + k)
+    path.setAttribute('data-label', slices[k].label || '')
+    path.setAttribute('data-value', String(slices[k].value))
+    path.setAttribute('stroke', 'var(--bg, #0d1117)')
+    path.setAttribute('stroke-width', '0.5')
+    var titleEl = document.createElementNS(NS_SVG, 'title')
+    titleEl.textContent = (slices[k].label || '') + ': ' + slices[k].value + ' (' + (fraction * 100).toFixed(1) + '%)'
+    path.appendChild(titleEl)
+    svgWrap.appendChild(path)
+
+    // Percent label at midpoint (skip < 4%)
+    if(showPercent && fraction >= 0.04){
+      var midAngle = angleStart + sweep / 2
+      var labelR = donut ? (R + R_IN) / 2 : R * 0.6
+      var lx = CX + labelR * Math.cos(midAngle)
+      var ly = CY + labelR * Math.sin(midAngle)
+      var txt = document.createElementNS(NS_SVG, 'text')
+      txt.setAttribute('x', lx.toFixed(2))
+      txt.setAttribute('y', (ly + 1.2).toFixed(2))
+      txt.setAttribute('text-anchor', 'middle')
+      txt.setAttribute('dominant-baseline', 'middle')
+      txt.setAttribute('font-size', '4.5')
+      txt.setAttribute('font-family', 'var(--mono, monospace)')
+      txt.setAttribute('fill', 'var(--bg, #0d1117)')
+      txt.setAttribute('font-weight', '700')
+      txt.textContent = Math.round(fraction * 100) + '%'
+      svgWrap.appendChild(txt)
+    }
+
+    angleStart = angleEnd
+  }
+
+  // Donut center label
+  if(donut && title){
+    var ct = document.createElementNS(NS_SVG, 'text')
+    ct.setAttribute('x', '50')
+    ct.setAttribute('y', '49')
+    ct.setAttribute('text-anchor', 'middle')
+    ct.setAttribute('dominant-baseline', 'middle')
+    ct.setAttribute('font-size', '5')
+    ct.setAttribute('font-family', 'var(--mono, monospace)')
+    ct.setAttribute('fill', 'var(--text-muted, #8b93a1)')
+    var words = title.split(' ')
+    if(words.length > 3){
+      var mid = Math.floor(words.length / 2)
+      var t1 = document.createElementNS(NS_SVG, 'tspan')
+      t1.setAttribute('x', '50'); t1.setAttribute('dy', '-3'); t1.textContent = words.slice(0, mid).join(' ')
+      var t2 = document.createElementNS(NS_SVG, 'tspan')
+      t2.setAttribute('x', '50'); t2.setAttribute('dy', '5.5'); t2.textContent = words.slice(mid).join(' ')
+      ct.appendChild(t1); ct.appendChild(t2)
+    } else {
+      ct.textContent = title
+    }
+    svgWrap.appendChild(ct)
+  }
+
+  // Build legend
+  var legend = document.createElement('div')
+  legend.className = 'fg-pie-legend'
+  for(var m = 0; m < slices.length; m++){
+    var fraction2 = slices[m].value / total
+    var cv = slices[m].color ? (PIE_COLOR_MAP[slices[m].color] || slices[m].color) : ('hsl(' + Math.round(m * 360 / slices.length) + ',60%,55%)')
+    var row = document.createElement('div')
+    row.className = 'fg-pie-legend-row'
+    row.innerHTML = '<span class="swatch" style="background:' + cv + '"></span>' +
+      '<span class="lbl">' + (slices[m].label || '') + '</span>' +
+      '<span class="value">' + slices[m].value + (showPercent ? ' (' + (fraction2 * 100).toFixed(1) + '%)' : '') + '</span>'
+    legend.appendChild(row)
+  }
+
+  // Wrap and inject into canvas
+  var wrapper = document.createElement('div')
+  wrapper.className = 'fd-pie-wrap'
+  wrapper.appendChild(svgWrap)
+  wrapper.appendChild(legend)
+  canvas.appendChild(wrapper)
+
+  canvas.style.height = 'auto'
+  canvas.style.minHeight = '340px'
+}
+
+/* ── bootstrap ── */
+
+function init(){
+  var solidData = JSON.parse(document.getElementById('fd-data-solid').textContent)
+  var donutData = JSON.parse(document.getElementById('fd-data-donut').textContent)
+  renderPie(solidData,  document.getElementById('fd-canvas-solid'))
+  renderPie(donutData,  document.getElementById('fd-canvas-donut'))
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init)
+} else {
+  init()
+}
+
+}())
+</script>
+</body>
+</html>
