@@ -31,24 +31,49 @@ function hasBannedToken(src: string): boolean {
   return bannedRe.test(src)
 }
 
-// Inline date helpers (mirror of gantt.js math, for pure-Node verification)
-function daysSince(isoDate: string, startMs: number): number {
-  return (Date.parse(isoDate) - startMs) / 86400000
+// Math helpers extracted from actual source files — not reimplemented inline.
+// This ensures tests exercise the production formula, not a local mirror copy.
+// RC (F4): the original helpers were inline reimplementations that would pass even if the
+// source formula was wrong — tautological-test anti-pattern. Using extractFn + new Function
+// with dependency injection guarantees we run the production code path.
+
+function extractFn(src: string, fnName: string, deps: Record<string, Function> = {}): Function {
+  // Match: function fnName(...) { ... }  (non-nested; greedy brace matching via stack)
+  const start = src.indexOf(`function ${fnName}(`)
+  if (start === -1) throw new Error(`[test-harness] function ${fnName} not found in source`)
+  let depth = 0, i = start
+  while (i < src.length) {
+    if (src[i] === '{') depth++
+    else if (src[i] === '}') { depth--; if (depth === 0) { i++; break } }
+    i++
+  }
+  const body = src.slice(start, i)
+  // Inject deps as named parameters so the extracted function can call its dependencies
+  // (e.g. barX calls ganttDaysSince) without a global scope.
+  const depNames = Object.keys(deps)
+  const depVals = Object.values(deps)
+  // eslint-disable-next-line no-new-func
+  return new Function(...depNames, `return (${body})`)(...depVals)
 }
+
+const ganttSrcForMath = readFileSync(join(FD_DIR, 'types', 'gantt.js'), 'utf-8')
+
+// Extract the three math helpers from the actual gantt.js source.
+// ganttDaysSince has no deps; barX and barW depend on ganttDaysSince.
+const ganttDaysSince = extractFn(ganttSrcForMath, 'ganttDaysSince') as (isoDate: string, startMs: number) => number
+const barXFn = extractFn(ganttSrcForMath, 'barX', { ganttDaysSince }) as (barStart: string, startMs: number, totalDays: number) => number
+const barWFn = extractFn(ganttSrcForMath, 'barW', { ganttDaysSince }) as (barStart: string, barEnd: string, startMs: number, totalDays: number) => number
 
 function barXPct(barStart: string, timelineStart: string, timelineEnd: string): number {
   const startMs = Date.parse(timelineStart)
   const totalDays = (Date.parse(timelineEnd) - startMs) / 86400000
-  return Math.max(0, Math.min(100, (daysSince(barStart, startMs) / totalDays) * 100))
+  return barXFn(barStart, startMs, totalDays)
 }
 
 function barWPct(barStart: string, barEnd: string, timelineStart: string, timelineEnd: string): number {
   const startMs = Date.parse(timelineStart)
   const totalDays = (Date.parse(timelineEnd) - startMs) / 86400000
-  const startPct = (daysSince(barStart, startMs) / totalDays) * 100
-  const endPct = (daysSince(barEnd, startMs) / totalDays) * 100
-  const raw = endPct - startPct
-  return Math.max(0, Math.min(100 - startPct, raw))
+  return barWFn(barStart, barEnd, startMs, totalDays)
 }
 
 // ---------------------------------------------------------------------------
@@ -156,8 +181,10 @@ describe('fd/types/pie.js — source checks', () => {
   })
 
   it('uses sweep-flag=1 (clockwise arcs)', () => {
-    // SVG arc sweep-flag=1 = clockwise
-    expect(pieSrc).toContain('1 : 0')   // large-arc ternary
+    // RC (F6): '1 : 0' matched the largeArc ternary, not the sweep-flag in the arc command.
+    // Changing sweep-flag from 1 to 0 in the outer arc left the test green.
+    // Assert on the actual outer arc template-literal pattern instead.
+    expect(pieSrc).toMatch(/A \$\{fmt\(r\)\},\$\{fmt\(r\)\} 0 \$\{largeArc\} 1/)
   })
 
   it('CARD_DEFAULT is null (SVG-only, no HTML nodes — RD-3)', () => {
@@ -179,8 +206,9 @@ describe('fd/types/pie.js — source checks', () => {
   })
 
   it('donut path includes inner arc with sweep-flag=0 (CCW)', () => {
-    // Donut ring: outer arc CW (flag=1), inner arc CCW (flag=0)
-    expect(pieSrc).toContain('0 ' + '0 ')
+    // RC (F5): '0 0 ' matched viewBox="0 0 100 100" so the test never caught a wrong sweep.
+    // Assert on the actual inner arc template-literal pattern (rIn arc with flag=0).
+    expect(pieSrc).toMatch(/A \$\{fmt\(rIn\)\},\$\{fmt\(rIn\)\} 0 \$\{largeArc\} 0/)
   })
 
   it('GUARD: must not contain banned lowercase token', () => {
@@ -314,6 +342,18 @@ describe('MATH: gantt bar x/width from dates', () => {
     const x = barXPct('2026-02-01', TL_START, TL_END)
     const expected = (31 / 90) * 100
     expect(x).toBeCloseTo(expected, 1)
+  })
+
+  it('barW: bar starting before timeline start is NOT double-wide (F1 regression)', () => {
+    // bar.start = 2025-12-01 (31 days before TL_START = 2026-01-01).
+    // startPct = -34.4; endPct = +34.4 (2026-02-01).
+    // Bug (old): Math.min(100 - (-34.4), 68.9) = Math.min(134.4, 68.9) = 68.9 — double the
+    //   correct width because the upper bound was never effective for negative startPct.
+    // Fix: min(endPct,100) − max(startPct,0) = 34.4 − 0 = 34.4 (visible Jan 1→Feb 1 span).
+    const w = barWPct('2025-12-01', '2026-02-01', TL_START, TL_END)
+    const expected = (31 / 90) * 100  // visible portion: timeline start → Feb 1 = 31 days
+    expect(w).toBeCloseTo(expected, 1)
+    expect(w).toBeLessThan(40)  // must not be ~68.9 (the buggy double-wide value)
   })
 })
 

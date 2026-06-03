@@ -206,6 +206,12 @@ function buildPieArc(cx, cy, r, rIn, startAngle, endAngle){
   ].join(' ')
 }
 
+// NOTE (F7 / Patch vs Archi): This example's renderPie(descriptor, canvasEl) takes an
+// explicit canvas parameter to drive two simultaneous charts in one page. The canonical
+// source module (fd/types/pie.js) uses renderPie(descriptor) with canvas as a shared scope
+// variable set by core.js. This is a Patch-local signature — intentionally divergent from
+// the source module. Forge-chart callers must use the source module contract:
+// renderChart(descriptor) dispatched via window.__fdTypes bootstrap.
 function renderPie(descriptor, canvasEl){
   canvas = canvasEl
   var slices = descriptor.slices || []
@@ -299,7 +305,8 @@ function renderPie(descriptor, canvasEl){
     ct.setAttribute('font-family', 'var(--mono, monospace)')
     ct.setAttribute('fill', 'var(--text-muted, #8b93a1)')
     var words = title.split(' ')
-    if(words.length > 3){
+    // RC (F9): 3-word titles also overflow the inner donut hole; threshold >= 3.
+    if(words.length >= 3){
       var mid = Math.floor(words.length / 2)
       var t1 = document.createElementNS(NS_SVG, 'tspan')
       t1.setAttribute('x', '50'); t1.setAttribute('dy', '-3'); t1.textContent = words.slice(0, mid).join(' ')
@@ -317,12 +324,25 @@ function renderPie(descriptor, canvasEl){
   legend.className = 'fg-pie-legend'
   for(var m = 0; m < slices.length; m++){
     var fraction2 = slices[m].value / total
-    var cv = slices[m].color ? (PIE_COLOR_MAP[slices[m].color] || slices[m].color) : ('hsl(' + Math.round(m * 360 / slices.length) + ',60%,55%)')
+    // RC (F3/SEC-002): whitelist-only color; never interpolate raw sl.color into innerHTML.
+    var cv = (slices[m].color && PIE_COLOR_MAP[slices[m].color])
+      ? PIE_COLOR_MAP[slices[m].color]
+      : ('hsl(' + Math.round(m * 360 / slices.length) + ',60%,55%)')
     var row = document.createElement('div')
     row.className = 'fg-pie-legend-row'
-    row.innerHTML = '<span class="swatch" style="background:' + cv + '"></span>' +
-      '<span class="lbl">' + (slices[m].label || '') + '</span>' +
-      '<span class="value">' + slices[m].value + (showPercent ? ' (' + (fraction2 * 100).toFixed(1) + '%)' : '') + '</span>'
+    // SEC-001/SEC-002 (F3): use createElement+style.background — no innerHTML sink.
+    var swatchEl = document.createElement('span')
+    swatchEl.className = 'swatch'
+    swatchEl.style.background = cv
+    var lblEl2 = document.createElement('span')
+    lblEl2.className = 'lbl'
+    lblEl2.textContent = slices[m].label || ''
+    var valEl = document.createElement('span')
+    valEl.className = 'value'
+    valEl.textContent = slices[m].value + (showPercent ? ' (' + (fraction2 * 100).toFixed(1) + '%)' : '')
+    row.appendChild(swatchEl)
+    row.appendChild(lblEl2)
+    row.appendChild(valEl)
     legend.appendChild(row)
   }
 

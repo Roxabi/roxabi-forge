@@ -213,8 +213,11 @@ function renderPie(descriptor) {
     centerText.setAttribute('font-family', 'var(--mono, monospace)')
     centerText.setAttribute('fill', 'var(--text-muted, #8b93a1)')
     // Wrap long titles to two lines (split at space near midpoint)
+    // RC (F9): threshold was words.length > 3, but 3-word titles like 'fd-engine S slices'
+    // (18 chars at font-size 5.5) are wider than the inner donut hole (44 SVG units diameter).
+    // Lowering to >= 3 ensures any 3+ word title is split across two lines.
     const words = title.split(' ')
-    if (words.length > 3) {
+    if (words.length >= 3) {
       const mid = Math.floor(words.length / 2)
       const line1 = words.slice(0, mid).join(' ')
       const line2 = words.slice(mid).join(' ')
@@ -249,17 +252,33 @@ function renderPie(descriptor) {
 
   slices.forEach((sl, i) => {
     const fraction = sl.value / total
-    const colorVal = sl.color
-      ? PIE_COLOR_MAP[sl.color] || sl.color
-      : `hsl(${((i * 360) / slices.length).toFixed(0)},60%,55%)`
+    // RC (F3/SEC-002): PIE_COLOR_MAP[sl.color] || sl.color passes raw descriptor string
+    // into style via innerHTML — XSS vector when color is not a known key.
+    // Fix: whitelist-only; unknown color falls back to safe HSL. Never interpolate raw input.
+    const colorVal =
+      sl.color && PIE_COLOR_MAP[sl.color]
+        ? PIE_COLOR_MAP[sl.color]
+        : `hsl(${((i * 360) / slices.length).toFixed(0)},60%,55%)`
 
     const row = document.createElement('div')
     row.className = 'fg-pie-legend-row'
-    row.innerHTML = `
-      <span class="swatch" style="background:${colorVal}"></span>
-      <span class="lbl">${sl.label || ''}</span>
-      <span class="value">${sl.value}${showPercent ? ` (${(fraction * 100).toFixed(1)}%)` : ''}</span>
-    `
+
+    // SEC-001/SEC-002 (F3): use createElement+style.background — no innerHTML sink.
+    const swatch = document.createElement('span')
+    swatch.className = 'swatch'
+    swatch.style.background = colorVal
+
+    const lbl = document.createElement('span')
+    lbl.className = 'lbl'
+    lbl.textContent = sl.label || ''
+
+    const val = document.createElement('span')
+    val.className = 'value'
+    val.textContent = `${sl.value}${showPercent ? ` (${(fraction * 100).toFixed(1)}%)` : ''}`
+
+    row.appendChild(swatch)
+    row.appendChild(lbl)
+    row.appendChild(val)
     legend.appendChild(row)
   })
 

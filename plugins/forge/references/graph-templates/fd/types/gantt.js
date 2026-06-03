@@ -49,11 +49,14 @@ function barX(barStart, timelineStartMs, totalDays) {
 }
 
 // barW: width in % within the chart area
+// RC (F1): the old clamp `Math.min(100 - startPct, raw)` is wrong when startPct < 0
+// (bar starts before timeline). E.g. startPct = -34.4 → bound = 134.4, no effect, so
+// the full date-range % (68.9) is returned instead of the visible 34.4.
+// Correct formula: visible extent = min(endPct, 100) − max(startPct, 0).
 function barW(barStart, barEnd, timelineStartMs, totalDays) {
   const startPct = (ganttDaysSince(barStart, timelineStartMs) / totalDays) * 100
   const endPct = (ganttDaysSince(barEnd, timelineStartMs) / totalDays) * 100
-  const raw = endPct - startPct
-  return Math.max(0, Math.min(100 - startPct, raw))
+  return Math.max(0, Math.min(100, endPct) - Math.max(0, startPct))
 }
 
 // ── tick label generator ────────────────────────────────────────────────────
@@ -185,16 +188,20 @@ function renderGantt(descriptor) {
 
   const ticks = ganttTicks(timelineStart, timelineEnd, totalDays)
   for (const tick of ticks) {
-    const tickPct = tick.x * (chartW / 100) // remap tick position to chart lane
-
+    // RC (F2/F10): tick.x is already in 0..100% of the chart lane (same coordinate space as
+    // barX). The axis div spans left:12%;right:0 — its children are positioned relative to
+    // this axis div's own width (88% of canvas). Setting left:tick.x% places the tick at
+    // the same canvas-absolute position as the corresponding bar edge.
+    // The previous tick.x*(chartW/100) applied a second ×0.88 remap, shifting ticks up to
+    // 7% of canvas width left of their bar boundaries.
     const tickEl = document.createElement('div')
     tickEl.className = 'fg-axis-date-tick'
-    tickEl.style.left = `${tickPct.toFixed(2)}%`
+    tickEl.style.left = `${tick.x.toFixed(2)}%`
     axis.appendChild(tickEl)
 
     const lblEl = document.createElement('div')
     lblEl.className = 'fg-axis-date-label'
-    lblEl.style.left = `${tickPct.toFixed(2)}%`
+    lblEl.style.left = `${tick.x.toFixed(2)}%`
     lblEl.textContent = tick.label
     axis.appendChild(lblEl)
   }
