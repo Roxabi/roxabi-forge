@@ -37,6 +37,8 @@ const KIND_TONE = {
   queue: 'purple',
   decision: 'red',
   gate: 'red',
+  // hub-int accent defaults to --hub-c (cyan fallback) per fd-engine.css line 290
+  'hub-int': 'cyan',
 }
 
 // ── host badge label normalisation ────────────────────────────────────
