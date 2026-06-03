@@ -130,8 +130,11 @@ function renderXychart(descriptor) {
   }
 
   // ── Resolve chart dimensions from canvas style or descriptor
+  // RC-fix(S5-F5): prefer canvas.offsetWidth over descriptor canvas.width so the SVG
+  // fills the actual container (not a hardcoded value that leaves dead space at wider
+  // viewports). descriptor canvas.height is still respected as an explicit override.
   const canvasCfg = descriptor.canvas || {}
-  const chartW = canvasCfg.width || canvas.offsetWidth || 800
+  const chartW = (canvas.offsetWidth > 0 ? canvas.offsetWidth : canvasCfg.width) || 800
   const chartH = canvasCfg.height || canvas.offsetHeight || 420
 
   // ── Derive Y range

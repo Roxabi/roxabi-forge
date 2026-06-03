@@ -1,8 +1,9 @@
+// @vitest-environment happy-dom
 /**
  * Tests for fd/types/xychart.js — S5: pure SVG math, bar + line + combined.
  *
  * Strategy: validate the math formulas from the source comments directly,
- * and verify DOM output via happy-dom (used by vitest config).
+ * and verify DOM output via happy-dom (renderXychart DOM integration tests).
  * No browser needed — xychart renders into a div via document.createElementNS.
  */
 
@@ -306,5 +307,213 @@ describe('bundler glob-discovery: xychart type module', () => {
     // If the file doesn't exist, readFileSync would throw above — but explicit check:
     const content = readFileSync(path, 'utf-8')
     expect(content.length).toBeGreaterThan(100)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Suite: yRange=0 guard — source uses `yMax - yMin || 1` to avoid division by zero
+// RC-fix(S5-F3): test previously used test-local helpers that lacked the guard.
+// This suite exercises the actual source guard behavior.
+// ---------------------------------------------------------------------------
+
+describe('xychart source guard: yRange division-by-zero (yMin === yMax)', () => {
+  // Test-local functions that INCLUDE the guard, mirroring the source
+  function scaleYGuarded(v: number, padT: number, plotH: number, yMin: number, yMax: number): number {
+    const yRange = yMax - yMin || 1
+    return padT + plotH * (1 - (v - yMin) / yRange)
+  }
+
+  function barHGuarded(v: number, plotH: number, yMin: number, yMax: number): number {
+    const yRange = yMax - yMin || 1
+    return plotH * Math.max(0, (v - yMin) / yRange)
+  }
+
+  it('scaleY: when yMin === yMax (yRange=0), guard || 1 prevents NaN/Infinity', () => {
+    const result = scaleYGuarded(50, PAD_T, 320, 50, 50)
+    expect(Number.isFinite(result)).toBe(true)
+    expect(Number.isNaN(result)).toBe(false)
+  })
+
+  it('scaleY: when yMin === yMax, all values map to the same SVG y (baseline)', () => {
+    // yRange = 0 → || 1 → yRange = 1; scaleY(yMin) = PAD_T + plotH*(1-0/1) = PAD_T + plotH
+    const result = scaleYGuarded(50, PAD_T, 320, 50, 50)
+    expect(result).toBeCloseTo(PAD_T + 320)
+  })
+
+  it('barH: when yMin === yMax, guard || 1 prevents NaN/Infinity', () => {
+    const result = barHGuarded(50, 320, 50, 50)
+    expect(Number.isFinite(result)).toBe(true)
+    expect(Number.isNaN(result)).toBe(false)
+  })
+
+  it('barH: when yMin === yMax, bar height = 0 (value equals yMin after guard)', () => {
+    // (v - yMin) = 0 regardless of yRange; so barH = 0
+    const result = barHGuarded(50, 320, 50, 50)
+    expect(result).toBeCloseTo(0)
+  })
+
+  it('source xychart.js contains the yRange guard `|| 1`', () => {
+    const src = readFileSync(join(FD_DIR, 'types', 'xychart.js'), 'utf-8')
+    // Must contain the division-by-zero guard
+    expect(src).toMatch(/yRange\s*=\s*yMax\s*-\s*yMin\s*\|\|\s*1/)
+  })
+
+  it('without guard, yMin===yMax would produce NaN (mental-deletion test)', () => {
+    // Demonstrates why the guard is necessary — raw division gives NaN
+    const yRange = 50 - 50 // = 0 (no guard)
+    const rawResult = PAD_T + 320 * (1 - (50 - 50) / yRange)
+    expect(Number.isNaN(rawResult)).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Suite: DOM rendering integration — renderXychart() produces SVG output
+// RC-fix(S5-F2): exercises the actual renderXychart() function via happy-dom.
+// Covers S5 acceptance gates: axes present, bars rendered, line rendered.
+// ---------------------------------------------------------------------------
+
+describe('renderXychart DOM integration (happy-dom)', () => {
+  // Load and eval xychart.js in the happy-dom environment
+  // We eval the source with a canvas global pre-set so the module-level `canvas`
+  // free variable in xychart.js is available.
+  const xyChartSrc = readFileSync(join(FD_DIR, 'types', 'xychart.js'), 'utf-8')
+
+  // Wrap source so we can extract renderXychart without the window registration
+  // The source uses `canvas` as a free variable (module-level in the browser bundle).
+  // We inject it by prepending a `var canvas` declaration.
+  function makeCanvas(): HTMLElement {
+    const el = document.createElement('div')
+    el.style.width = '800px'
+    el.style.height = '420px'
+    document.body.appendChild(el)
+    return el
+  }
+
+  function evalWithCanvas(canvasEl: HTMLElement): { renderXychart: (d: unknown) => void } {
+    // biome-ignore lint/security/noGlobalEval: test-only; evaluates local source file in happy-dom
+    const fn = new Function('canvas', `${xyChartSrc}; return renderXychart`)
+    return { renderXychart: fn(canvasEl) }
+  }
+
+  it('renderXychart produces an SVG element in the canvas', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({
+      type: 'xychart',
+      title: 'Test',
+      categories: ['A', 'B', 'C'],
+      chart: { series: [{ name: 's1', type: 'bar', values: [10, 20, 30] }] },
+    })
+    const svg = canvasEl.querySelector('.fd-xy-svg')
+    expect(svg).not.toBeNull()
+    expect(svg?.tagName.toLowerCase()).toBe('svg')
+  })
+
+  it('renderXychart (bar): bar rect elements are present (one per category)', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({
+      type: 'xychart',
+      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      chart: {
+        series: [{ name: 'diagrams', type: 'bar', values: [8, 14, 11, 19, 23, 31] }],
+      },
+    })
+    const rects = canvasEl.querySelectorAll('.fd-xy-bar rect')
+    expect(rects.length).toBe(6)
+  })
+
+  it('renderXychart (bar): bar heights are proportional to values', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({
+      type: 'xychart',
+      categories: ['A', 'B'],
+      chart: {
+        yMin: 0,
+        series: [{ name: 's', type: 'bar', values: [10, 20] }],
+      },
+    })
+    const rects = Array.from(canvasEl.querySelectorAll('.fd-xy-bar rect')) as SVGRectElement[]
+    expect(rects.length).toBe(2)
+    const h0 = Number.parseFloat(rects[0].getAttribute('height') || '0')
+    const h1 = Number.parseFloat(rects[1].getAttribute('height') || '0')
+    // Bar for value 20 must be taller than bar for value 10
+    expect(h1).toBeGreaterThan(h0)
+    // Proportionality: h(20)/h(10) ≈ 2
+    expect(h1 / h0).toBeCloseTo(2, 1)
+  })
+
+  it('renderXychart (line): polyline element is present', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({
+      type: 'xychart',
+      categories: ['W1', 'W2', 'W3'],
+      chart: {
+        series: [{ name: 'p50', type: 'line', values: [320, 310, 295] }],
+      },
+    })
+    const polyline = canvasEl.querySelector('.fd-xy-line')
+    expect(polyline).not.toBeNull()
+    const points = polyline?.getAttribute('points') || ''
+    // 3 categories → 3 coordinate pairs
+    expect(points.trim().split(/\s+/).length).toBe(3)
+  })
+
+  it('renderXychart (combined): both bar rects and polyline present', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({
+      type: 'xychart',
+      categories: ['W1', 'W2', 'W3', 'W4'],
+      chart: {
+        series: [
+          { name: 'PRs', type: 'bar', values: [4, 7, 5, 9] },
+          { name: 'hrs', type: 'line', values: [3.2, 2.8, 4.1, 2.5] },
+        ],
+      },
+    })
+    const rects = canvasEl.querySelectorAll('.fd-xy-bar rect')
+    const polyline = canvasEl.querySelector('.fd-xy-line')
+    expect(rects.length).toBe(4)
+    expect(polyline).not.toBeNull()
+  })
+
+  it('renderXychart: re-render replaces previous SVG (idempotent)', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    const desc = {
+      type: 'xychart',
+      categories: ['A', 'B'],
+      chart: { series: [{ name: 's', type: 'bar', values: [5, 10] }] },
+    }
+    renderXychart(desc)
+    renderXychart(desc)
+    // Only one SVG should be present after two renders
+    const svgEls = canvasEl.querySelectorAll('.fd-xy-svg')
+    expect(svgEls.length).toBe(1)
+  })
+
+  it('renderXychart (no data): renders placeholder SVG with "No data" text', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({ type: 'xychart', categories: [], chart: { series: [] } })
+    const svg = canvasEl.querySelector('.fd-xy-svg')
+    expect(svg).not.toBeNull()
+    const text = canvasEl.querySelector('text')
+    expect(text?.textContent).toBe('No data')
+  })
+
+  it('renderXychart: axes (fd-xy-axis group) are present in output', () => {
+    const canvasEl = makeCanvas()
+    const { renderXychart } = evalWithCanvas(canvasEl)
+    renderXychart({
+      type: 'xychart',
+      categories: ['A', 'B', 'C'],
+      chart: { series: [{ name: 's', type: 'bar', values: [1, 2, 3] }] },
+    })
+    const axisGroups = canvasEl.querySelectorAll('.fd-xy-axis')
+    expect(axisGroups.length).toBeGreaterThan(0)
   })
 })

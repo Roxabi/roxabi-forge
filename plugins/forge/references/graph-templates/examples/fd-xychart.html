@@ -598,7 +598,10 @@ function renderXychart(descriptor) {
 
 function init(descriptor) {
   renderXychart(descriptor)
-  new ResizeObserver(() => renderXychart(descriptor)).observe(canvas)
+  // NOTE: ResizeObserver is NOT registered here in the example bundle.
+  // The single observer is registered once in bootstrap() and references ACTIVE_DESCRIPTOR,
+  // so repeated init() calls (e.g., from tab switches) would accumulate stale observers.
+  // See bootstrap() for the canonical observer registration.
   return { typeDefault: null }
 }
 
@@ -620,11 +623,21 @@ function renderTab(tabKey) {
   ACTIVE_DESCRIPTOR = desc
   canvas = document.getElementById('fd-canvas')
   initEngine(desc, canvas)
-  window.__fdTypes.xychart.init(desc)
+  // RC-fix(S5-F1/F4): call renderXychart() directly instead of init().
+  // init() registers a new ResizeObserver on each call; after 3 tab switches, 3 live
+  // observers exist on the same canvas element. The single observer in bootstrap()
+  // references ACTIVE_DESCRIPTOR by closure, so it always renders the active tab.
+  renderXychart(desc)
 }
 
 function bootstrap() {
   canvas = document.getElementById('fd-canvas')
+
+  // RC-fix(S5-F1/F4): single ResizeObserver registered once here (not in init()).
+  // On resize, re-renders ACTIVE_DESCRIPTOR — always the current tab's data.
+  new ResizeObserver(() => {
+    if (ACTIVE_DESCRIPTOR) renderXychart(ACTIVE_DESCRIPTOR)
+  }).observe(canvas)
 
   // Tab switching
   document.querySelectorAll('.tab[data-tab]').forEach((btn) => {
