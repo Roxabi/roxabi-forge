@@ -105,8 +105,8 @@ export function buildEngine(fdDir, type) {
     '  renderNodes: renderNodes,',
     '  draw: draw,',
     '  wireResize: wireResize,',
-    '  uniquePlanes: typeof uniquePlanes !== \'undefined\' ? uniquePlanes : null,',
-    '  initMarkers: typeof initMarkers !== \'undefined\' ? initMarkers : null,',
+    "  uniquePlanes: typeof uniquePlanes !== 'undefined' ? uniquePlanes : null,",
+    "  initMarkers: typeof initMarkers !== 'undefined' ? initMarkers : null,",
     '}',
   ].join('\n')
 
