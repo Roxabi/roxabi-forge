@@ -73,9 +73,9 @@ All diagram types below route through the fd-engine path:
 1. Generate an **fd-engine descriptor JSON** (see schema below)
 2. Embed it as `<script type="application/json" id="fd-data">` in the output HTML
 3. Inline the **fd-engine bundle** via `buildEngine(fdDir, type)` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd/bundler.js`
-4. Inline `fd-engine.css` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd-engine.css`
-5. Inline `fgraph-base.css` (Mode A — single file)
-6. Inline forge base CSS + selected aesthetic CSS
+4. Inline forge base CSS + selected aesthetic CSS **first** (before fd-engine.css — the engine's token bootstrap depends on aesthetic tokens being declared first)
+5. Inline `fd-engine.css` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd-engine.css` **after** the aesthetic
+6. Inline `fgraph-base.css` (Mode A — single file)
 
 For **auto-layout types** (flowchart, state, class, er, sequence): also run `bun scripts/fd-layout.mjs <descriptor.json>` to inject node positions before assembling the HTML. The browser receives pre-positioned nodes — no elkjs at runtime.
 
@@ -106,7 +106,7 @@ The `theme` field in the descriptor maps to a file under `${CLAUDE_PLUGIN_ROOT}/
 | `warm-light.css` | `"warm-light"` | Presentation / slides contexts |
 | `mono-slate.css` | `"mono-slate"` | Minimal monochrome |
 
-Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to select the `theme` value. Both the descriptor `theme` field and the inlined aesthetic CSS must use the same aesthetic. The fd-engine reads `--amber`, `--cyan`, `--purple`, `--green`, `--plum`, `--accent` CSS custom properties — these are defined by whichever aesthetic is inlined.
+Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to select the `theme` value. Both the descriptor `theme` field and the inlined aesthetic CSS must use the same aesthetic. `fd-engine.css` is self-bootstrapping: its `:root` block provides fallback values for all required tokens (`--panel`, `--panel2`, `--bd2`, `--mut`, `--mut2`, `--mono`, `--sans`, `--slate`, `--amber`, `--cyan`, `--vio`, `--emer`, `--sky`, `--orng`, `--rose`) by mapping them from universal forge tokens or hard lyra-v2 fallbacks. All aesthetics render correctly — `lyra-v2` is the default and produces the reference look.
 
 ### Descriptor JSON schema (normative)
 

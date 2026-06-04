@@ -93,6 +93,132 @@ For process flows with distinct phases, use phase cards:
 </div>
 ```
 
+### fd-engine page shell + bootstrap (canonical pattern)
+
+For fd-engine types (`architecture`, `hub-spoke`, `er`, `sequence`, etc.), the output HTML follows this structure. Full reference: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/fd-architecture.html`.
+
+**CSS inline order (critical — fd-engine.css must come AFTER the aesthetic):**
+```html
+<style>
+  /* 1. forge base reset */
+  /* 2. aesthetic CSS (lyra-v2.css / cool-dark.css / etc.) */
+  /* 3. fd-engine.css — must be LAST; its :root block maps short-name tokens
+        from the aesthetic's universal tokens. Inlining before the aesthetic
+        breaks the cascade direction and leaves --panel etc. undefined. */
+  /* 4. fgraph-base.css (Mode A) */
+  /* 5. diagram-specific overrides */
+</style>
+```
+
+**Minimal DOM layout:**
+```html
+<div class="fd-layout">
+  <div class="fd-main">
+    <!-- canvas: explicit height required (set via JS from descriptor.canvas.height) -->
+    <div class="fd-canvas" id="fd-canvas" style="height:920px">
+      <!-- SVG overlay: pixel-space, NO viewBox, NO preserveAspectRatio (AC-10) -->
+      <svg class="fd-edges" id="fd-edges"
+           style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible"
+           aria-hidden="true">
+        <defs></defs>
+      </svg>
+      <!-- .fd-node divs and .fd-zone divs are injected by the bootstrap -->
+    </div>
+  </div>
+  <!-- sidebar (spotlight / use-case panel) — optional -->
+  <div class="sidebar" id="fd-sidebar">
+    <div id="sbHeader">…</div>
+    <div id="sbUc">…</div>
+  </div>
+</div>
+```
+
+**Descriptor JSON embedded inline:**
+```html
+<script type="application/json" id="fd-data">
+{
+  "type": "architecture",
+  "title": "…",
+  "theme": "lyra-v2",
+  "layout": "declarative",
+  "canvas": { "height": 920 },
+  "options": { "particles": false, "spotlight": true, "sidebar": true },
+  "nodes": […],
+  "edges": […],
+  "zones": […],
+  "useCases": […]
+}
+</script>
+```
+
+**Bootstrap — SINGLE script block (critical):**
+
+The `buildEngine()` bundle wraps everything in an IIFE. `initEngine`, `renderNodes`, `draw`, `wireResize` are IIFE-scoped only. The bundler injects `window.__fd = { initEngine, renderNodes, draw, wireResize }` so a separate `<script>` can bootstrap:
+
+```html
+<script>
+/* buildEngine bundle inlined here (IIFE with window.__fd + window.__fdTypes exposed) */
+(function(){ 'use strict'
+  /* … fd/core.js … fd/edges.js … fd/cards.js … fd/types/architecture.js … */
+  /* window.__fdTypes['architecture'] = { CARD_DEFAULT, placeZones, init } */
+  window.__fd = { initEngine, renderNodes, draw, wireResize, … }
+})()
+</script>
+
+<!-- bootstrap: runs after bundle sets window.__fd + window.__fdTypes -->
+<script>
+;(function(){
+  function run() {
+    var descriptor = JSON.parse(document.getElementById('fd-data').textContent)
+    var canvasEl   = document.getElementById('fd-canvas')
+    var svgEl      = document.getElementById('fd-edges')
+
+    // 1. set canvas height (fd-engine.css --fd-canvas-h var or inline style)
+    if (descriptor.canvas && descriptor.canvas.height) {
+      canvasEl.style.height = descriptor.canvas.height + 'px'
+    }
+
+    // 2. init engine core (sets DESCRIPTOR, canvas, svg shared vars)
+    window.__fd.initEngine(descriptor, canvasEl, svgEl)
+
+    // 3. dispatch to type module
+    var typeReg = window.__fdTypes && window.__fdTypes[descriptor.type]
+    var typeDefault = typeReg ? typeReg.CARD_DEFAULT : 'simple'
+
+    // 4. render nodes
+    window.__fd.renderNodes(descriptor, typeDefault)
+
+    // 5. draw edges (DOM-measured bezier overlay; init markers)
+    if (window.__fd.initMarkers) window.__fd.initMarkers(/* uniquePlanes from descriptor */)
+    window.__fd.draw()
+
+    // 6. zone placement (type-specific)
+    if (typeReg && typeof typeReg.placeZones === 'function') {
+      typeReg.placeZones(descriptor)
+    }
+
+    // 7. wire ResizeObserver for responsive redraw
+    window.__fd.wireResize()
+
+    // 8. type-specific init (spotlight, use-case UI, etc.)
+    if (typeReg && typeof typeReg.init === 'function') {
+      typeReg.init(descriptor)
+    }
+  }
+
+  // delay 80ms: Chrome needs one paint cycle after DOMContentLoaded
+  // for getBoundingClientRect to return real pixel rects
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(run, 80) })
+  } else {
+    setTimeout(run, 80)
+  }
+})()
+</script>
+```
+
+> **Note:** `setTimeout(..., 80)` is required — calling `draw()` immediately on `DOMContentLoaded` returns zero-rect nodes because the browser hasn't completed layout. Use 80ms consistently.
+
 ### Reveal Animation
 
 Add reveal observer to `{EXTRA_SCRIPTS}` (skip for single quick diagrams with no `.reveal` elements):
