@@ -31,7 +31,6 @@ roxabi-forge/
 │       ├── supervisor/          # supervisord config + wrapper script
 │       └── Makefile             # deploy + register targets
 ├── scripts/                     # Build scripts (build.sh, gen-manifest.py, gen-plugin-manifest.py, render-md{,-tabs}.py, etc.)
-├── sync-plugins.sh              # Sync to local/remote plugin caches
 └── CLAUDE.md                    # this file
 ```
 
@@ -56,13 +55,12 @@ make -C ~/.roxabi/forge deploy
 
 Source of truth: `plugins/forge/` in this repo.
 
-```bash
-# After editing, sync to all local cache dirs
-./sync-plugins.sh --local
+Workflow to ship plugin changes to users:
 
-# Sync local + remote (Machine 1)
-./sync-plugins.sh
-```
+1. Edit under `plugins/forge/`.
+2. Bump `version` in `.claude-plugin/plugin.json` (run `scripts/gen-plugin-manifest.py` to mirror it into `marketplace.json`).
+3. Push to `staging` → merge to `main`.
+4. Users run `claude plugin update forge` (or `claude plugin install forge` on first install via `claude plugin marketplace add Roxabi/roxabi-forge`). Claude Code's marketplace updater fetches the new version from GitHub keyed on `plugin.json` → `version`.
 
 ## Plugin manifests (generated)
 

@@ -200,7 +200,6 @@ roxabi-forge/
 │   └── supervisor/         # supervisord config
 ├── scripts/                # build.sh, gen-manifest.py, render-md*.py, …
 ├── docs/                   # contributing, architecture, processes, guides
-├── sync-plugins.sh         # sync source → local + remote plugin caches
 └── CLAUDE.md               # AI agent instructions
 ```
 
