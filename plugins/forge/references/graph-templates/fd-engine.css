@@ -1,10 +1,45 @@
 /* fd-engine.css — static rules for the fd-engine canvas, nodes, edges, card variants
  * Inlined into generated HTML output at generation time (not linked at runtime).
  * No viewBox / no preserveAspectRatio on the SVG overlay (AC-10).
- * Depends on forge base CSS vars: --panel, --panel2, --bd, --bd2, --tx, --mut, --mut2,
- *   --mono, --sans, --amber, --cyan, --violet, --emer, --sky, --vio, --orng, --slate, --rose.
- * Plane CSS vars (--fd-plane-{name}) must be declared by the aesthetic layer or default below.
+ * Self-bootstrapping: the :root block below maps each internal short-name token to a
+ *   universal forge aesthetic token with a hard fallback. Works on lyra-v2, cool-dark,
+ *   editorial, and all other aesthetics — no per-aesthetic shim needed.
+ * Plane CSS vars (--fd-plane-{name}) default below; aesthetic layer may override.
  */
+
+/* ---- Token contract: self-bootstrapping short-name aliases ---- */
+/* fd-engine.css is inlined AFTER the aesthetic, so these :root declarations run last.
+ *
+ * Two mapping strategies:
+ *   A) fd short-name ≠ aesthetic token name → var(--universal-name, #hex)
+ *      The aesthetic's universal token wins; hard hex = lyra-v2 dark fallback.
+ *   B) fd short-name = aesthetic token name (--cyan, --amber, --slate, …) →
+ *      hard hex fallback only (no self-referential var()); aesthetics that already
+ *      declare the token will have their value replaced by the same hex here — safe
+ *      because we target the same colour. Aesthetics that omit the token get the
+ *      fallback, which is what we want.
+ *
+ * Regression note for roxabi.css (defines --panel:#13191f, no --bg-panel):
+ *   --panel → var(--bg-panel, #13191f) → bg-panel absent → #13191f = unchanged. ✓ */
+:root {
+  /* Strategy A: fd name ≠ aesthetic universal name */
+  --panel:  var(--bg-panel,   #13191f);
+  --panel2: var(--bg-card,    #161b22);
+  --bd2:    var(--border-hi,  #30363d);
+  --mut:    var(--text-muted, #8b93a1);
+  --mut2:   var(--text-dim,   #6b7280);
+  --mono:   var(--font-mono,  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  --sans:   var(--font-sans,  "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif);
+  --vio:    var(--plum,       #a855f7);
+  --emer:   var(--green,      #10b981);
+  /* Strategy B: fd name = aesthetic token name — hard fallback, no self-ref var() */
+  --slate:  #64748b;
+  --amber:  #f59e0b;
+  --cyan:   #22d3ee;
+  --sky:    #58a6ff;
+  --orng:   #fb923c;
+  --rose:   #fb7185;
+}
 
 /* ---- Plane color defaults (overridden by aesthetic inlines) ---- */
 :root {

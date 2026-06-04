@@ -115,6 +115,17 @@ describe('buildEngine(fdDir, "architecture")', () => {
     const bundle = buildEngine(FD_DIR, 'architecture')
     expect(bundle).toContain('window.__fdTypes')
   })
+
+  it('exposes window.__fd entry (bootstrapper can call from separate script)', () => {
+    const bundle = buildEngine(FD_DIR, 'architecture')
+    // bundler.js injects window.__fd = { initEngine, renderNodes, draw, wireResize, … }
+    // inside the IIFE so a cross-script bootstrap can call window.__fd.initEngine(…)
+    expect(bundle).toContain('window.__fd')
+    expect(bundle).toContain('initEngine: initEngine')
+    expect(bundle).toContain('renderNodes: renderNodes')
+    expect(bundle).toContain('draw: draw')
+    expect(bundle).toContain('wireResize: wireResize')
+  })
 })
 
 // ---------------------------------------------------------------------------
