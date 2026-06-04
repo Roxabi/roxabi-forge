@@ -474,9 +474,9 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content
       "id": "sync",
       "x": 23, "y": 93,
       "kind": "store",
-      "n": "sync-plugins.sh",
-      "img": "roxabi-forge root",
-      "d": "syncs plugins/forge/ → ~/.roxabi/forge/plugins/ → M1",
+      "n": "marketplace update",
+      "img": "claude plugin update forge",
+      "d": "fetches new version from GitHub keyed on plugin.json → version",
       "plane": "write",
       "h": "M1",
       "cardStyle": "premium"
@@ -562,7 +562,7 @@ header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content
       "title": "③ live reload",
       "desc": "<b>serve.py</b> watches the output dir for changes, pushes SSE events to any open browser tab. <b>Claude Code</b> sub-agents write files; the browser auto-refreshes.",
       "steps": [
-        { "nodes": ["sync"],                           "edge": null,                          "label": "1. sync-plugins.sh deploys plugin source" },
+        { "nodes": ["sync"],                           "edge": null,                          "label": "1. claude plugin update forge (version-keyed)" },
         { "nodes": ["sync","dev-server"],              "edge": ["sync","dev-server"],         "label": "2. serve.py starts watching" },
         { "nodes": ["dev-server","artifacts"],         "edge": ["dev-server","artifacts"],    "label": "3. file change detected" },
         { "nodes": ["dev-server","claude"],            "edge": ["dev-server","claude"],       "label": "4. SSE push → browser reloads" }
