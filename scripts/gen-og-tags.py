@@ -36,11 +36,11 @@ VIEWPORT_RE = re.compile(
 )
 
 
-def build_og_block(title, description, url):
+def build_og_block(title, description, url, img_url):
     t = escape(title, quote=True)
     d = escape(description, quote=True)
     u = escape(url, quote=True)
-    img = escape(OG_IMAGE_URL, quote=True)
+    img = escape(img_url, quote=True)
     return (
         f'<meta property="og:title" content="{t}">\n'
         f'<meta property="og:description" content="{d}">\n'
@@ -86,13 +86,19 @@ def process(filepath, rel):
 
     url = f'{BASE_URL}/{rel}'
 
+    png = filepath.with_suffix('.og.png')
+    if png.exists():
+        img_url = f'{BASE_URL}/{rel[:-5]}.og.png'  # rel ends in '.html'
+    else:
+        img_url = OG_IMAGE_URL
+
     cleaned = OG_LINE_RE.sub('', text)
 
     vm = VIEWPORT_RE.search(cleaned)
     if not vm:
         return SKIP_NO_VIEWPORT
 
-    og_block = build_og_block(title, description, url)
+    og_block = build_og_block(title, description, url, img_url)
     insert_at = vm.end()
     new_text = cleaned[:insert_at] + og_block + cleaned[insert_at:]
 
