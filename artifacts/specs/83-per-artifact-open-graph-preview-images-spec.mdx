@@ -15,6 +15,16 @@ hardcodes `OG_IMAGE_URL` into every artifact's `og:image` / `twitter:image`. Scr
 infra exists at `.claude/fc-loop/render.mjs` (Playwright chromium). Build flow:
 `scripts/build.sh` → `gen-og-tags.py` → rsync `$FORGE_DIR/` → `_dist/`.
 
+> **Implementation note (pivot, approved 2026-06-14):** the renderer is **Python**
+> `scripts/gen-og-images.py` run via `uv run --with playwright python3` — NOT a node
+> `.mjs`. Rationale: `$FORGE_DIR` (where `build.sh` runs) has no `node_modules` and the
+> build is 100% Python; `playwright` npm lives only in dev (`.claude/fc-loop/`). `uv`
+> (0.11.1) + cached chromium (`~/.cache/ms-playwright`) make the Python path work with
+> zero new runtime deps (verified: chromium launch + 1200×630 screenshot). Throughout
+> this spec, read the node phrasing as its Python equivalent: `.mjs`→`.py`,
+> `newContext`→`new_context`, `console.warn`+`process.exit(0)`→`print`+`sys.exit(0)`,
+> `fullPage:false`→`full_page=False`, `node <script>`→`uv run --with playwright python3 <script>`.
+
 ## Goal
 
 Each forge artifact's social card shows a screenshot of that artifact, with graceful
@@ -27,8 +37,8 @@ fallback to the global banner when no screenshot exists.
 
 ## Expected Behavior
 
-1. `build.sh` runs `node scripts/gen-og-images.mjs` before `gen-og-tags.py`.
-2. `gen-og-images.mjs` uses its **own** Playwright setup (it does **not** invoke
+1. `build.sh` runs `uv run --with playwright python3 scripts/gen-og-images.py` before `gen-og-tags.py` (guarded: `uv` absent → skip + warn, never abort).
+2. `gen-og-images.py` uses its **own** Playwright setup (it does **not** invoke
    `render.mjs`, whose `fullPage:true` / height-900 defaults are incompatible): launch
    chromium once, `newContext({ viewport:{width:1200,height:630}, deviceScaleFactor:2 })`,
    per artifact `page.goto` + force-reveal (same settle logic as `render.mjs`) +
@@ -47,7 +57,7 @@ fallback to the global banner when no screenshot exists.
    else → `img_url = OG_IMAGE_URL` (banner). `OG_IMAGE_URL` stays the fallback default.
 6. `build.sh` rsync ships `.og.png` into `_dist/` (PNG not excluded; ~0.2–0.8 MB each, far
    under the 25 MiB cap). `plugins/forge/Makefile` `deploy` target gains a `cp` line so
-   `gen-og-images.mjs` reaches `$FORGE_DIR/scripts/` on the runtime host.
+   `gen-og-images.py` reaches `$FORGE_DIR/scripts/` on the runtime host.
 7. Result: sharing an artifact URL shows a preview of that artifact; untouched artifacts
    keep the banner — no broken cards.
 
@@ -87,7 +97,7 @@ classDiagram
 
 ```mermaid
 flowchart LR
-    H[artifact .html] --> G[gen-og-images.mjs]
+    H[artifact .html] --> G[gen-og-images.py]
     G -->|render 1200x630| P[(name.og.png)]
     H --> T[gen-og-tags.py]
     P -.->|exists?| T
@@ -99,7 +109,7 @@ flowchart LR
 
 | Consumer | Fields consumed | When | Status |
 |---|---|---|---|
-| `gen-og-images.mjs` | htmlPath, htmlMtime, pngMtime | build, before tags | this issue |
+| `gen-og-images.py` | htmlPath, htmlMtime, pngMtime | build, before tags | this issue |
 | `gen-og-tags.py` | sibling `.og.png` existence, relPath | build, after images | this issue |
 | `build.sh` rsync | `.og.png` files | build, after tags | this issue |
 | social crawler (X/Discord) | resolved `og:image`/`twitter:image` URL | on share | this issue |
@@ -108,12 +118,12 @@ flowchart LR
 
 | ID | Affordance | Handler | Data |
 |---|---|---|---|
-| S1 | `node scripts/gen-og-images.mjs` | own Playwright setup (viewport 1200×630, `fullPage:false`, dSF 2); walk `$FORGE_DIR/**/*.html` (gen-og-tags exclusions) → render stale → write `<name>.og.png.tmp` → atomic rename | htmlPath, mtimes |
+| S1 | `node scripts/gen-og-images.py` | own Playwright setup (viewport 1200×630, `fullPage:false`, dSF 2); walk `$FORGE_DIR/**/*.html` (gen-og-tags exclusions) → render stale → write `<name>.og.png.tmp` → atomic rename | htmlPath, mtimes |
 | S2 | `--force` flag | bypass mtime check, re-render all | argv |
 | S3 | error granularity | chromium launch fail → `console.warn`+`exit(0)`; per-artifact render fail → warn + delete `.tmp` + continue | error |
 | S4 | `gen-og-tags.py` per-artifact lookup | `build_og_block(…, img_url)`; `process()` probes `filepath.with_suffix('.og.png')` → exists ? per-artifact URL : `OG_IMAGE_URL` | rel, FORGE_DIR |
 | S5 | `build.sh` ordering | run S1 before `gen-og-tags.py`; `.og.png` transfers in existing rsync | — |
-| S6 | `plugins/forge/Makefile` deploy | add `cp -v $(REPO_ROOT)/scripts/gen-og-images.mjs $(FORGE_DIR)/scripts/gen-og-images.mjs` | — |
+| S6 | `plugins/forge/Makefile` deploy | add `cp -v $(REPO_ROOT)/scripts/gen-og-images.py $(FORGE_DIR)/scripts/gen-og-images.py` | — |
 
 Exclusions (shared with `gen-og-tags.py`): site `index.html`, `tabs/`, `_dist/`. A
 `<name>.og.png` is itself not an artifact (skip `.og.png` and non-`.html`).
@@ -122,17 +132,17 @@ Exclusions (shared with `gen-og-tags.py`): site `index.html`, `tabs/`, `_dist/`.
 
 | # | Slice | Demo |
 |---|---|---|
-| 1 | `gen-og-images.mjs` renders one artifact → 1200×630 `.og.png` (own Playwright setup; mtime-idempotent; tmp+rename; graceful chromium-fail + per-artifact skip) | run on one artifact, inspect PNG dims + re-run no-op + simulate fail leaves no partial |
+| 1 | `gen-og-images.py` renders one artifact → 1200×630 `.og.png` (own Playwright setup; mtime-idempotent; tmp+rename; graceful chromium-fail + per-artifact skip) | run on one artifact, inspect PNG dims + re-run no-op + simulate fail leaves no partial |
 | 2 | `gen-og-tags.py` `build_og_block(img_url)` prefers sibling `.og.png`, else banner | run on dir with/without `.og.png`, diff injected meta |
 | 3 | `build.sh` wires S1 before tags; `plugins/forge/Makefile` deploys the script; `.og.png` reaches `_dist/` | full `build.sh`, verify `_dist/**/*.og.png` + meta URLs; `make deploy` copies the mjs |
 
 ## Success Criteria
 
-- [ ] `gen-og-images.mjs` produces a 1200×630 PNG sibling for a given artifact HTML (own Playwright setup, `fullPage:false`).
+- [ ] `gen-og-images.py` produces a 1200×630 PNG sibling for a given artifact HTML (own Playwright setup, `fullPage:false`).
 - [ ] Re-running with an up-to-date `.og.png` performs no render (mtime no-op); `--force` re-renders.
 - [ ] chromium launch failure → warning + exit 0 (build continues); a per-artifact render failure skips that artifact and continues; no partial/`.tmp`/0-byte PNG left behind.
 - [ ] `gen-og-tags.py` `build_og_block` emits per-artifact `og:image`+`twitter:image` when a sibling `.og.png` exists.
 - [ ] `gen-og-tags.py` falls back to `/og-image.png` when no `.og.png` exists (no broken cards).
 - [ ] After `build.sh`, `_dist/` contains the `.og.png` files and meta URLs resolve to them.
-- [ ] `plugins/forge/Makefile` `deploy` copies `gen-og-images.mjs` to `$FORGE_DIR/scripts/`.
+- [ ] `plugins/forge/Makefile` `deploy` copies `gen-og-images.py` to `$FORGE_DIR/scripts/`.
 - [ ] Site `index.html`, `tabs/`, `_dist/`, and `.og.png`/non-`.html` files are excluded (no spurious screenshots).

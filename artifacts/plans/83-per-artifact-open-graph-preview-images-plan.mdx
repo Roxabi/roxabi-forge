@@ -9,9 +9,16 @@ generated: 2026-06-14
 
 ## Summary
 
-Add `scripts/gen-og-images.mjs` (Playwright 1200×630 per-artifact screenshots), make
-`gen-og-tags.py` prefer a sibling `.og.png` over the global banner, and wire the new step
-into `build.sh` + the plugin `Makefile` deploy. Single domain (build tooling).
+Add `scripts/gen-og-images.py` (Playwright sync API, 1200×630 per-artifact screenshots,
+run via `uv run --with playwright python3`), make `gen-og-tags.py` prefer a sibling
+`.og.png` over the global banner, and wire the new step into `build.sh` + the plugin
+`Makefile` deploy. Single domain (build tooling).
+
+> **Pivot (approved 2026-06-14):** renderer is Python `gen-og-images.py` via `uv run
+> --with playwright`, NOT node `.mjs` — `$FORGE_DIR` has no `node_modules` and the build
+> is 100% Python. T1/T3/T4 reflect this. T4 = vitest **integration** test that shells out
+> to the Python scripts on a fixture (repo has no Python test runner; vitest is the only
+> QG test stage) + an executed end-to-end `build.sh` verify.
 
 ## Architecture
 
@@ -22,7 +29,7 @@ flowchart TD
     P[(name.og.png)]
   end
   subgraph scripts
-    GI[gen-og-images.mjs]
+    GI[gen-og-images.py]
     GT[gen-og-tags.py]
     BS[build.sh]
     MK[plugins/forge/Makefile]
@@ -39,7 +46,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  subgraph gen-og-images.mjs
+  subgraph gen-og-images.py
     walk[walkArtifacts] --> stale[isStale mtime] --> shot[renderShot]
     excl[shouldExclude]
     walk --> excl
@@ -55,7 +62,7 @@ flowchart LR
 
 | Agent instance | Tasks | Files | Subject |
 |---|---|---|---|
-| devops-A | T1 | `scripts/gen-og-images.mjs` | screenshot |
+| devops-A | T1 | `scripts/gen-og-images.py` | screenshot |
 | devops-B | T2, T3 | `scripts/gen-og-tags.py`, `scripts/build.sh`, `plugins/forge/Makefile` | og-tags, build-wiring |
 | tester-A | T4 | `scripts/__tests__/og-images.test.mjs` (or repo test loc) + fixture verify | verify |
 
@@ -73,7 +80,7 @@ flowchart LR
 
 | Task | Items | Class | Est. ops | Split? |
 |------|-------|-------|----------|--------|
-| T1 gen-og-images.mjs | 1 | judgmental | 6 | — |
+| T1 gen-og-images.py | 1 | judgmental | 6 | — |
 | T2 gen-og-tags.py | 1 | judgmental | 5 | — |
 | T3 build.sh + Makefile | 2 | bounded | 3 | — |
 | T4 tests + verify | 2 | judgmental | 5 | — |
@@ -95,15 +102,16 @@ flowchart LR
 
 ## Micro-Tasks
 
-### Slice V1 — gen-og-images.mjs (devops-A)
+### Slice V1 — gen-og-images.py (devops-A)
 
-**T1** — Create `scripts/gen-og-images.mjs`. [screenshot · diff 4 · SC1-3,8 · V1 · GREEN]
-- Own Playwright setup: `chromium.launch()`, `newContext({viewport:{width:1200,height:630}, deviceScaleFactor:2})`, one reused page.
-- Walk `glob($FORGE_DIR/**/*.html)`; `shouldExclude(rel)` → site `index.html`, `tabs/` segments, `_dist/`, and any non-`.html`/`.og.png`. Mirror `gen-og-tags.py` exclusions.
-- `isStale(html, png)` → png absent OR `mtime(png) < mtime(html)`. `--force` bypasses.
-- Render: `page.goto(fileURL, {waitUntil:'networkidle'})`, fonts.ready, force-reveal (lift from `.claude/fc-loop/render.mjs`), `page.screenshot({path: tmp, fullPage:false})` → `rename(tmp, png)`.
-- Error granularity: launch fail → `console.warn` + `process.exit(0)`; per-artifact fail → warn + `rm(tmp)` + continue.
-- Verify: `node scripts/gen-og-images.mjs --force` on a 1-file fixture → `file name.og.png` reports `1200 x 630`; re-run without `--force` → "0 rendered".
+**T1** — Create `scripts/gen-og-images.py` (Python, playwright sync API). [screenshot · diff 4 · SC1-3,8 · V1 · GREEN]
+- `from playwright.sync_api import sync_playwright`; `p.chromium.launch()`, `browser.new_context(viewport={'width':1200,'height':630}, device_scale_factor=2)`, one reused page.
+- Walk `glob(str(DIR/'**/*.html'), recursive=True)`; `should_exclude(rel)` → site `index.html`, `tabs/` segments, `_dist/`. Mirror `gen-og-tags.py` exclusions exactly (line 111).
+- `is_stale(html, png)` → png absent OR `png.stat().st_mtime < html.stat().st_mtime`. `--force` bypasses.
+- Render: `page.goto(html.resolve().as_uri(), wait_until='networkidle')`, await `document.fonts.ready`, force-reveal `.reveal,[data-reveal]` (set revealed/visible classes + opacity/transform), small settle wait, `page.screenshot(path=tmp, full_page=False)` → `os.replace(tmp, png)` where `tmp = png.parent/(png.name+'.tmp')`.
+- Error granularity: chromium launch fail → `print('⚠ …')` + `sys.exit(0)` (build continues); per-artifact fail → warn + `tmp.unlink(missing_ok=True)` + continue.
+- Pure helpers `should_exclude(rel)` + `is_stale(html, png)` at module top (importable/exercisable by T4 fixture run). `--self-test` flag runs helper assertions + exits 0 (no browser) so T4 can unit-check logic without chromium.
+- Verify: `uv run --with playwright python3 scripts/gen-og-images.py --force` on a 1-file fixture → `file name.og.png` reports `1200 x 630`; re-run without `--force` → "0 rendered".
 
 ### Slice V2 — gen-og-tags.py (devops-B)
 
@@ -116,14 +124,29 @@ flowchart LR
 ### Slice V3 — wiring (devops-B) + verify (tester-A)
 
 **T3** — Edit `scripts/build.sh` + `plugins/forge/Makefile`. [build-wiring · diff 2 · SC6-7 · V3 · GREEN] (blockedBy T1, T2)
-- `build.sh`: insert `echo "▸ Rendering per-artifact OG images…"; node "$SCRIPT_DIR/gen-og-images.mjs"` immediately BEFORE the `gen-og-tags.py` call (line ~26-27). Ensure `node` available; the OG-images step must not abort the build (script already exits 0 on launch fail).
-- `plugins/forge/Makefile` deploy: add `@cp -v $(REPO_ROOT)/scripts/gen-og-images.mjs $(FORGE_DIR)/scripts/gen-og-images.mjs` next to the other `scripts/*` cp lines (~line 41).
+- `build.sh`: insert before the `gen-og-tags.py` call (line ~26-27), guarded so the step never aborts the build (`set -euo pipefail`):
+  ```bash
+  echo "▸ Rendering per-artifact OG images…"
+  if command -v uv >/dev/null 2>&1; then
+    uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
+      || echo "  ⚠ OG image render skipped (rc=$?) — cards fall back to banner"
+  else
+    echo "  ⚠ uv not found — skipping OG image render (cards fall back to banner)"
+  fi
+  ```
+- `plugins/forge/Makefile` deploy: add `@cp -v $(REPO_ROOT)/scripts/gen-og-images.py $(FORGE_DIR)/scripts/gen-og-images.py` next to the other `scripts/*` cp lines (~line 41).
 - Verify: `FORGE_DIR=<fixture> bash scripts/build.sh` → `find _dist -name '*.og.png'` non-empty AND injected meta resolves to per-artifact URL; `make -C plugins/forge deploy` dry-check lists the new cp.
 
-**T4** — Tests + end-to-end verify. [verify · diff 3 · SC1-8 · V3 · RED-GATE] (blockedBy T3)
-- Unit (vitest, no browser): extract/import pure helpers `shouldExclude` + `isStale` from `gen-og-images.mjs`; assert exclusion set + stale logic (absent png, older png, newer png, --force).
-- Integration verify: run the full `build.sh` on a 2-artifact fixture, assert all 8 success criteria (dims, no-op, fallback, exclusions, `_dist` contents, Makefile cp).
-- Verify: `bunx vitest run` green; verify script prints 8/8.
+**T4** — vitest integration test + end-to-end verify. [verify · diff 3 · SC1-8 · V3 · RED-GATE] (blockedBy T3)
+- `scripts/__tests__/og-images.test.ts` (vitest, node env): builds a temp `$FORGE_DIR` fixture (1 renderable artifact `a/index-ish.html` with viewport+title, 1 plain `b.html`, plus an excluded `index.html` + `tabs/x.html`), shells `execFileSync('uv', ['run','--with','playwright','python3', gen-og-images.py])` with `FORGE_DIR` env, then asserts:
+  - `a.og.png` exists, PNG header dims = 1200×630 (read IHDR bytes) — SC1.
+  - second run renders 0 (mtime no-op); `--force` re-renders — SC2.
+  - excluded paths get no `.og.png` — SC8.
+  - run `gen-og-tags.py` → `a.html` meta `og:image`/`twitter:image` = `…/a.og.png`; `b.html` = `…/og-image.png` — SC4, SC5.
+  - grep `plugins/forge/Makefile` for the `gen-og-images.py` cp line — SC7.
+- Skip-guard: if `uv`/chromium unavailable in CI env, `test.skipIf` → mark skipped (graceful — matches SC3 launch-fail path); record in matrix as env-gated.
+- Executed e2e (manual during implement, not a committed test): `FORGE_DIR=<fixture> bash scripts/build.sh` → assert `find _dist -name '*.og.png'` non-empty + meta URLs resolve — SC6.
+- Verify: `bunx vitest run` green (or skip on browserless CI); e2e prints `_dist` PNG present.
 
 ## Task Seeding Blueprint
 
