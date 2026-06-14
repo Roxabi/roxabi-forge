@@ -90,12 +90,13 @@ def main():
             worklist.append((html, png, rel))
 
     # Prune orphan .og.png files (no matching .html, or excluded) — runs every invocation
+    # Candidates are already filtered by should_exclude, so no worklist entry is pruned here.
     pruned = 0
     for png in sorted(DIR.glob('**/*.og.png')):
-        rel = str(png.relative_to(DIR))
         stem = png.name.removesuffix('.og.png')
         html = png.parent / (stem + '.html')
-        if not html.exists() or should_exclude(rel):
+        html_rel = str(html.relative_to(DIR))
+        if not html.exists() or should_exclude(html_rel):
             png.unlink()
             pruned += 1
 
