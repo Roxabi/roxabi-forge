@@ -23,6 +23,15 @@ fi
 echo "▸ Generating image gallery manifests…"
 python3 "$SCRIPT_DIR/gen-image-manifests.py"
 
+echo "▸ Rendering per-artifact OG images…"
+if command -v uv >/dev/null 2>&1; then
+  # non-fatal: playwright absent / hang -> OG cards fall back to banner
+  timeout 120 uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
+    || echo "  ⚠ OG image render skipped (rc=$?) — cards fall back to banner"
+else
+  echo "  ⚠ uv not found — skipping OG image render (cards fall back to banner)"
+fi
+
 echo "▸ Injecting Open Graph meta tags…"
 python3 "$SCRIPT_DIR/gen-og-tags.py"
 
