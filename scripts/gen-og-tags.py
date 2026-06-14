@@ -13,6 +13,8 @@ import os, re
 from html import escape, unescape
 from pathlib import Path
 
+from _og_common import og_png_for, should_exclude
+
 if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
     print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
@@ -86,9 +88,9 @@ def process(filepath, rel):
 
     url = f'{BASE_URL}/{rel}'
 
-    png = filepath.with_suffix('.og.png')
+    png = og_png_for(filepath)
     if png.exists():
-        img_url = f'{BASE_URL}/{rel[:-5]}.og.png'  # rel ends in '.html'
+        img_url = f'{BASE_URL}/{rel.removesuffix(".html")}.og.png'
     else:
         img_url = OG_IMAGE_URL
 
@@ -108,26 +110,31 @@ def process(filepath, rel):
     return SKIP_UP_TO_DATE
 
 
-injected = 0
-skipped: dict[str, list[str]] = {SKIP_NO_TITLE: [], SKIP_NO_VIEWPORT: [], SKIP_NO_HEAD: []}
-up_to_date = 0
-for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
-    fp = Path(match)
-    rel = str(fp.relative_to(DIR))
-    if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
-        continue
-    result = process(fp, rel)
-    if result is None:
-        injected += 1
-    elif result == SKIP_UP_TO_DATE:
-        up_to_date += 1
-    else:
-        skipped[result].append(rel)
+def main():
+    injected = 0
+    skipped: dict[str, list[str]] = {SKIP_NO_TITLE: [], SKIP_NO_VIEWPORT: [], SKIP_NO_HEAD: []}
+    up_to_date = 0
+    for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
+        fp = Path(match)
+        rel = str(fp.relative_to(DIR))
+        if should_exclude(rel):
+            continue
+        result = process(fp, rel)
+        if result is None:
+            injected += 1
+        elif result == SKIP_UP_TO_DATE:
+            up_to_date += 1
+        else:
+            skipped[result].append(rel)
 
-parts = [f'og-tags — {injected} updated, {up_to_date} already up-to-date.']
-for reason, files in skipped.items():
-    if files:
-        label = reason.replace('_', ' ')
-        parts.append(f'  ⚠ skipped ({label}) — {len(files)} files:')
-        parts.extend(f'      {f}' for f in files)
-print('\n'.join(parts))
+    parts = [f'og-tags — {injected} updated, {up_to_date} already up-to-date.']
+    for reason, files in skipped.items():
+        if files:
+            label = reason.replace('_', ' ')
+            parts.append(f'  ⚠ skipped ({label}) — {len(files)} files:')
+            parts.extend(f'      {f}' for f in files)
+    print('\n'.join(parts))
+
+
+if __name__ == '__main__':
+    main()

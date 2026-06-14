@@ -1,14 +1,22 @@
 /**
  * Tests for gen-og-images.py and gen-og-tags.py
  *
- * Browser-free tests (SC4, SC5, SC7) always run.
+ * Browser-free tests (SC3, SC4, SC5, SC7) always run when uv is available.
  * Browser-gated tests (SC1, SC2, SC8) are wrapped in describe.skipIf(!browserAvailable).
  *
  * Scripts under test are invoked via execFileSync — no module mocking.
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,26 +34,40 @@ const GEN_OG_TAGS = join(SCRIPTS_DIR, 'gen-og-tags.py')
 const MAKEFILE = fileURLToPath(new URL('../../plugins/forge/Makefile', import.meta.url))
 
 // ---------------------------------------------------------------------------
-// Browser availability probe (evaluated once at module load)
+// Availability probes (evaluated once at module load)
+// B3: cheap uv check first; browser probe only if uv available
 // ---------------------------------------------------------------------------
 
-let browserAvailable = false
+let uvAvailable = false
 try {
-  execFileSync(
-    'uv',
-    [
-      'run',
-      '--with',
-      'playwright',
-      'python3',
-      '-c',
-      'from playwright.sync_api import sync_playwright as s; p=s().start(); b=p.chromium.launch(); b.close(); p.stop()',
-    ],
-    { stdio: 'ignore', timeout: 120000 },
-  )
-  browserAvailable = true
+  execFileSync('uv', ['--version'], { stdio: 'ignore', timeout: 5000 })
+  uvAvailable = true
 } catch {
-  browserAvailable = false
+  uvAvailable = false
+}
+
+let browserAvailable = false
+if (!uvAvailable) {
+  console.warn('og-images.test: uv/chromium probe failed — SC1/SC2/SC8 skipped')
+} else {
+  try {
+    execFileSync(
+      'uv',
+      [
+        'run',
+        '--with',
+        'playwright',
+        'python3',
+        '-c',
+        'from playwright.sync_api import sync_playwright as s; p=s().start(); b=p.chromium.launch(); b.close(); p.stop()',
+      ],
+      { stdio: 'ignore', timeout: 120000 },
+    )
+    browserAvailable = true
+  } catch {
+    browserAvailable = false
+    console.warn('og-images.test: uv/chromium probe failed — SC1/SC2/SC8 skipped')
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -127,7 +149,7 @@ describe('SC4: gen-og-tags — per-artifact og:image when sibling .og.png exists
 // ---------------------------------------------------------------------------
 
 describe('SC5: gen-og-tags — fallback to global og-image.png when no sibling .og.png', () => {
-  it('injects twitter:image pointing to the global banner URL', () => {
+  it('injects both og:image and twitter:image pointing to the global banner URL', () => {
     // Arrange: write b.html with NO sibling .og.png
     writeFileSync(join(forgeDir, 'b.html'), buildHtml('Artifact B'))
 
@@ -137,8 +159,9 @@ describe('SC5: gen-og-tags — fallback to global og-image.png when no sibling .
       timeout: 30000,
     })
 
-    // Assert: twitter:image falls back to the global banner
+    // Assert: both og:image and twitter:image fall back to the global banner
     const html = readFileSync(join(forgeDir, 'b.html'), 'utf-8')
+    expect(html).toContain('og:image" content="https://forge.roxabi.dev/og-image.png"')
     expect(html).toContain('twitter:image" content="https://forge.roxabi.dev/og-image.png"')
   })
 })
@@ -148,14 +171,63 @@ describe('SC5: gen-og-tags — fallback to global og-image.png when no sibling .
 // ---------------------------------------------------------------------------
 
 describe('SC7: Makefile deploy target copies gen-og-images.py', () => {
-  it('Makefile contains a cp line that deploys scripts/gen-og-images.py', () => {
+  it('Makefile cp line distinguishes REPO_ROOT source from FORGE_DIR dest', () => {
     // Arrange
     const makefile = readFileSync(MAKEFILE, 'utf-8')
 
-    // Act + Assert: the deploy target copies gen-og-images.py from scripts/ to scripts/
-    expect(makefile).toMatch(/cp\b.*scripts\/gen-og-images\.py.*scripts\/gen-og-images\.py/)
+    // Act + Assert: the deploy target copies gen-og-images.py from REPO_ROOT to FORGE_DIR
+    // (rejects identity copy: cp foo foo must fail this assertion)
+    expect(makefile).toMatch(
+      /cp\b[^\n]*\$\(REPO_ROOT\)\/scripts\/gen-og-images\.py[^\n]*\$\(FORGE_DIR\)\/scripts\/gen-og-images\.py/,
+    )
   })
 })
+
+// ---------------------------------------------------------------------------
+// SC3 — graceful degradation on chromium launch failure (uv-gated, browser-free)
+// ---------------------------------------------------------------------------
+
+describe.skipIf(!uvAvailable)(
+  'SC3: graceful degradation on chromium launch failure',
+  () => {
+    it('exits 0 and prints fallback message without producing png or tmp files', () => {
+      // Arrange: fixture with one renderable sub/a.html
+      const subDir = join(forgeDir, 'sub')
+      mkdirSync(subDir, { recursive: true })
+      writeFileSync(join(subDir, 'a.html'), buildHtml('SC3 Artifact'))
+
+      // Act: run gen-og-images.py --force with a nonexistent browsers path
+      // This forces chromium to fail to launch while uv + playwright package are available.
+      // Must NOT throw (script must exit 0 — graceful degradation).
+      let stdout: string
+      try {
+        stdout = execFileSync(
+          'uv',
+          ['run', '--with', 'playwright', 'python3', GEN_OG_IMAGES, '--force'],
+          {
+            env: { ...process.env, FORGE_DIR: forgeDir, PLAYWRIGHT_BROWSERS_PATH: '/nonexistent' },
+            encoding: 'utf-8',
+            timeout: 120000,
+          },
+        )
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        throw new Error(`gen-og-images.py must exit 0 on chromium failure, but it threw: ${msg}`)
+      }
+
+      // Assert: degradation message present in output
+      const combined = stdout
+      expect(combined).toMatch(/chromium launch failed|fall back to banner/i)
+
+      // Assert: NO .og.png produced
+      expect(existsSync(join(subDir, 'a.og.png'))).toBe(false)
+
+      // Assert: NO leftover .tmp.png files
+      const tmpFiles = readdirSync(subDir).filter((f) => f.endsWith('.tmp.png'))
+      expect(tmpFiles).toHaveLength(0)
+    })
+  },
+)
 
 // ---------------------------------------------------------------------------
 // Browser-gated tests (SC1, SC2, SC8)
@@ -164,7 +236,7 @@ describe('SC7: Makefile deploy target copies gen-og-images.py', () => {
 describe.skipIf(!browserAvailable)('Browser-gated: gen-og-images.py with Playwright', () => {
   // SC1 — gen-og-images renders <name>.og.png at correct dimensions
   describe('SC1: renders sibling .og.png with correct aspect ratio', () => {
-    it('produces sub/a.og.png at 1200×630 or 2×DPR (2400×1260)', () => {
+    it('produces sub/a.og.png at exact 2400×1260 (device_scale_factor=2)', () => {
       // Arrange: write a renderable sub/a.html
       const subDir = join(forgeDir, 'sub')
       mkdirSync(subDir, { recursive: true })
@@ -184,13 +256,13 @@ describe.skipIf(!browserAvailable)('Browser-gated: gen-og-images.py with Playwri
       const pngPath = join(subDir, 'a.og.png')
       expect(existsSync(pngPath)).toBe(true)
 
-      // Assert: dimensions are correct
+      // Assert: exact physical dimensions — device_scale_factor=2 → 2400×1260
+      // (update if dSF changes)
       const { width: w, height: h } = readPngDims(pngPath)
-      const isLogicalDims = w === 1200 && h === 630
-      const isPhysicalDims = w === 2400 && h === 1260
-      expect(isLogicalDims || isPhysicalDims).toBe(true)
+      expect(w).toBe(2400)
+      expect(h).toBe(1260)
 
-      // Assert: aspect ratio ≈ 1200/630 (within 0.01)
+      // Assert: aspect ratio ≈ 1200/630 (within 0.01) — secondary check
       const expectedRatio = 1200 / 630
       const actualRatio = w / h
       expect(Math.abs(actualRatio - expectedRatio)).toBeLessThan(0.01)
@@ -226,8 +298,8 @@ describe.skipIf(!browserAvailable)('Browser-gated: gen-og-images.py with Playwri
         },
       )
 
-      // Assert: no re-render
-      expect(stdout1).toContain('0 rendered (all up-to-date)')
+      // Assert: no re-render — new format: "0 rendered, 0 failed, N pruned (all up-to-date)."
+      expect(stdout1).toMatch(/0 rendered.*all up-to-date/)
 
       // Act: run with --force → 1 re-rendered
       const stdout2 = execFileSync(
@@ -240,8 +312,8 @@ describe.skipIf(!browserAvailable)('Browser-gated: gen-og-images.py with Playwri
         },
       )
 
-      // Assert: 1 rendered
-      expect(stdout2).toContain('1 rendered')
+      // Assert: exactly 1 rendered (anchored — avoids false match on "11 rendered")
+      expect(stdout2).toMatch(/og-images — 1 rendered\b/)
     })
   })
 

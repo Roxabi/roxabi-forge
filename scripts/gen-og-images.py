@@ -17,20 +17,13 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _og_common import og_png_for, should_exclude
+
 if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
     print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
 DIR = Path(os.environ.get('FORGE_DIR', os.environ.get('DIAGRAMS_DIR', Path.home() / '.roxabi' / 'forge')))
 
 BASE_URL = 'https://forge.roxabi.dev'
-
-
-def should_exclude(rel):
-    name = rel.rsplit('/', 1)[-1]
-    return name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/')
-
-
-def og_png_for(html):
-    return html.with_suffix('.og.png')
 
 
 def is_stale(html, png):
@@ -96,13 +89,24 @@ def main():
         if args.force or is_stale(html, png):
             worklist.append((html, png, rel))
 
+    # Prune orphan .og.png files (no matching .html, or excluded) — runs every invocation
+    pruned = 0
+    for png in sorted(DIR.glob('**/*.og.png')):
+        rel = str(png.relative_to(DIR))
+        stem = png.name.removesuffix('.og.png')
+        html = png.parent / (stem + '.html')
+        if not html.exists() or should_exclude(rel):
+            png.unlink()
+            pruned += 1
+
     if not worklist:
-        print('og-images — 0 rendered (all up-to-date).')
+        print(f'og-images — 0 rendered, 0 failed, {pruned} pruned (all up-to-date).')
         sys.exit(0)
 
     from playwright.sync_api import sync_playwright
 
     rendered = 0
+    failed = 0
 
     with sync_playwright() as pw:
         try:
@@ -134,11 +138,12 @@ def main():
             except Exception as e:
                 print(f'  ⚠ render failed for {rel}: {e}')
                 tmp.unlink(missing_ok=True)
+                failed += 1
 
         browser.close()
 
     up_to_date = len(candidates) - len(worklist)
-    print(f'og-images — {rendered} rendered, {up_to_date} up-to-date.')
+    print(f'og-images — {rendered} rendered, {up_to_date} up-to-date, {failed} failed, {pruned} pruned.')
 
 
 if __name__ == '__main__':

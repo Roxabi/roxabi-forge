@@ -25,7 +25,8 @@ python3 "$SCRIPT_DIR/gen-image-manifests.py"
 
 echo "▸ Rendering per-artifact OG images…"
 if command -v uv >/dev/null 2>&1; then
-  uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
+  # non-fatal: playwright absent / hang -> OG cards fall back to banner
+  timeout 120 uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
     || echo "  ⚠ OG image render skipped (rc=$?) — cards fall back to banner"
 else
   echo "  ⚠ uv not found — skipping OG image render (cards fall back to banner)"
