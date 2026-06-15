@@ -1,6 +1,6 @@
 {
   "name": "roxabi-forge",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "description": "Forge — HTML visual artifacts for Claude Code (diagrams, galleries, guides, epics)",
   "license": "AGPL-3.0",
