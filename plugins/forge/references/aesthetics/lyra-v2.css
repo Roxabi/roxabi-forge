@@ -1,0 +1,250 @@
+/* ══════════════════════════════════════════════════════════════════
+   lyra-v2.css — Lyra brand aesthetic · v2 (GitHub-dark variant)
+   Used by: lyra, voicecli (v2-styled artifacts only)
+
+   Difference vs lyra.css (v1 "Forge Floor"):
+   - Surfaces rebased on GitHub-dark (#0d1117 family) with an explicit
+     elevation ladder: bg < bg-cell < bg-panel < bg-card
+   - Adds --border-hi for stronger dividers in dense data grids
+   - Accent alphas pushed (dim 0.08→0.12, glow 0.22→0.40) for more
+     "live ember" feel on cards and nodes
+   - Drops the forge-floor body chrome (spark particles + 42px grid)
+     — v2 docs are flat, data-dense, GitHub-network-graph style
+   - Adds lane palette (lane-a1..i, status-ready/blocked/done) so
+     dep-graph / kernel-arch / swimlane docs share one token set
+
+   Reference implementations:
+   - lyra-v2-dependency-graph-v5.1.html
+   - lyra-kernel-architecture-v5.html
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Brand Tokens — Dark (default, v2 only exists in dark) ── */
+:root, [data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surface elevation ladder (darkest → lightest) */
+  --bg:           #0d1117;  /* page */
+  --bg-cell:      #0f141a;  /* grid cell / recessed surface inside panel */
+  --bg-panel:     #13191f;  /* section / wrapper */
+  --bg-card:      #161b22;  /* card / raised surface inside panel */
+
+  /* Legacy aliases — keep v1 variable names working in v2 docs */
+  --surface:      #13191f;  /* alias → bg-panel */
+  --surface2:     #161b22;  /* alias → bg-card */
+
+  /* Dividers */
+  --border:       #21262d;
+  --border-hi:    #30363d;
+  --border-bright:#30363d;  /* alias → border-hi */
+
+  /* Text ramp */
+  --text:         #fafafa;
+  --text-muted:   #8b93a1;
+  --text-dim:     #6b7280;
+
+  /* Forge orange — same hue as v1, stronger alphas */
+  --accent:       #e85d04;
+  --accent-2:     #f97316;
+  --accent-dim:   rgba(232,93,4,0.12);
+  --accent-glow:  rgba(232,93,4,0.40);
+  --error:        #ef4444;
+
+  /* Extended lane palette — shared by dep-graph, kernel-arch, swimlanes */
+  --teal:    #06b6d4;  --teal-dim:   rgba(6,182,212,0.10);
+  --amber:   #f59e0b;  --amber-dim:  rgba(245,158,11,0.10);
+  --green:   #10b981;  --green-dim:  rgba(16,185,129,0.10);
+  --cyan:    #22d3ee;
+  --purple:  #c084fc;
+  --pink:    #ec4899;  --pink-dim:   rgba(236,72,153,0.10);
+  --plum:    #a855f7;  --plum-dim:   rgba(168,85,247,0.10);
+  --red:     #ef4444;  --red-dim:    rgba(239,68,68,0.10);
+
+  /* Issue / task status — for plan artifacts */
+  --status-ready:   #22c55e;
+  --status-blocked: #f97316;
+  --status-done:    #475569;
+
+  /* Lane tones — for multi-lane swim/DAG views */
+  --lane-a1: #22c55e;
+  --lane-a2: #6366f1;
+  --lane-a3: #8b5cf6;
+  --lane-b:  #3b82f6;
+  --lane-c1: #a855f7;
+  --lane-c2: #d946ef;
+  --lane-c3: #ec4899;
+  --lane-d:  #06b6d4;
+  --lane-e:  #eab308;
+  --lane-f:  #10b981;
+  --lane-g:  #f97316;
+  --lane-h:  #f59e0b;
+  --lane-i:  #14b8a6;
+}
+
+/* v2 is dark-only by design. If a doc needs a light mode, use lyra.css v1. */
+
+/* ══════════════════════════════════════════════════════════════════
+   Base page chrome — flat body, 24px gutter, 12px base type
+   ══════════════════════════════════════════════════════════════════ */
+.lyra-v2 body,
+body.lyra-v2 {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 24px;
+  min-height: 100vh;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Page header primitive
+   ══════════════════════════════════════════════════════════════════ */
+.lyra-v2 header.page-header,
+body.lyra-v2 header.page-header {
+  max-width: 100%;
+  margin: 0 auto 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.lyra-v2 header.page-header h1,
+body.lyra-v2 header.page-header h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.lyra-v2 header.page-header h1 .accent,
+body.lyra-v2 header.page-header h1 .accent { color: var(--accent); }
+.lyra-v2 .subtitle,
+body.lyra-v2 .subtitle {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Section / panel primitive
+   ══════════════════════════════════════════════════════════════════ */
+.lyra-v2 .section,
+body.lyra-v2 .section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.lyra-v2 .section-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.lyra-v2 .section-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+.lyra-v2 .section-title .accent { color: var(--accent); }
+.lyra-v2 .section-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.45;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Card primitive — raised surface with border-left tone stripe
+   ══════════════════════════════════════════════════════════════════ */
+.lyra-v2 .card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 11px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  border-left: 3px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+.lyra-v2 .card:hover {
+  background: var(--bg-panel);
+  border-color: currentColor;
+  transform: translateX(1px);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Footer primitive
+   ══════════════════════════════════════════════════════════════════ */
+.lyra-v2 footer.page-footer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.lyra-v2 footer.page-footer a { color: var(--accent); text-decoration: none; }
+.lyra-v2 footer.page-footer a:hover { text-decoration: underline; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Slide mode — lyra-v2 aesthetic (forge-slides)
+   Same flame-gradient as v1, but on the GitHub-dark ladder.
+   ══════════════════════════════════════════════════════════════════ */
+.deck.lyra-v2 .slide--title,
+.lyra-v2 .deck .slide--title {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-glow) 0%, transparent 55%),
+    linear-gradient(135deg, var(--bg) 0%, var(--bg-panel) 100%);
+}
+.lyra-v2 .deck .slide--title .slide__display {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+.lyra-v2 .deck .slide--title .slide__subtitle { color: var(--text-muted); }
+.lyra-v2 .deck .slide--content .slide__label { color: var(--accent); }
+.lyra-v2 .deck .slide--content .slide__heading {
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.lyra-v2 .deck .slide--content li::before { color: var(--accent); }
+.lyra-v2 .deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.1;
+}
+.lyra-v2 .deck .slide--closing {
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(to top, var(--bg), var(--bg-panel));
+}
+.lyra-v2 .deck .slide--closing .slide__heading {
+  color: var(--accent);
+  font-weight: 700;
+}
+.lyra-v2 .deck .slide--closing .cta {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+}
+.lyra-v2 .deck .slide--quote .slide__quote-mark { color: var(--accent); }
+.lyra-v2 .deck .slide--comparison .slide__col.accent {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}

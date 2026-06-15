@@ -96,15 +96,12 @@ components:
   card_default:  accent       # maps to .card.accent (border-left accent color)
   timeline:      steps        # .steps + .step + .step-num (base/explainer-base.css)
   badges:        verdict      # .verdict-badge.green/amber/cyan/red
-  mermaid_theme_bias: dark    # dark | light — default theme for Mermaid rendering
 
 # ── Structure preferences ───────────────────────────────────────
 # Bias Structure decisions for this project. Does not override content
-# topology (e.g. a dep graph is still a Mermaid flowchart), but resolves
-# ties between equally valid choices.
+# topology, but resolves ties between equally valid choices.
 structure_defaults:
-  prefer_fgraph_under: 6       # hub-and-spoke with ≤ N peers → fgraph over mermaid
-  prefer_mermaid_over: 8       # > N nodes → mermaid regardless of topology
+  prefer_fgraph_under: 6       # hub-and-spoke with ≤ N peers → fgraph
   comparison_as_table: true    # matrices use HTML tables, not grid cards
 
 # ── Canonical examples ──────────────────────────────────────────
@@ -176,7 +173,6 @@ project:
 | `card_default` | `default`, `accent`, `info`, `warning`, `critical` |
 | `timeline` | `steps`, `phases`, `flex-connectors` |
 | `badges` | `verdict`, `status`, `none` |
-| `mermaid_theme_bias` | `dark`, `light`, `auto` |
 
 ### `allow_override` values
 
@@ -255,14 +251,14 @@ inheriting lyra's brand and overriding only `project` metadata and two delivery 
 
 | Skill | Fields it reads | What it does with them |
 |---|---|---|
-| `forge-chart` | `aesthetic`, `palette`, `components.hero`, `components.section_label`, `components.timeline`, `mermaid_theme_bias`, `structure_defaults`, `deliver_must_match` | Skips Frame phase. Uses brand aesthetic + palette verbatim. Pre-fills Style table with brand components. Deliver verifies against `must_match` rules. |
+| `forge-chart` | `aesthetic`, `palette`, `components.hero`, `components.section_label`, `components.timeline`, `structure_defaults`, `deliver_must_match` | Skips Frame phase. Uses brand aesthetic + palette verbatim. Pre-fills Style table with brand components. Deliver verifies against `must_match` rules. |
 | `forge-guide` | `aesthetic`, `palette`, `typography`, `components`, `structure_defaults`, `examples`, `deliver_must_match` | Same as forge-chart + uses `examples` to spot-check generated tab fragments against canonical references. |
 | `forge-gallery` | `aesthetic`, `palette`, `typography`, `deliver_must_match` | Gallery templates are content-driven (pivot/simple/comparison/audio/multi-mode), so `components` is ignored. Brand palette + deliver constraints apply. |
 | `forge-epic` | `aesthetic`, `palette`, `components.hero`, `components.section_label`, `deliver_must_match` | Epic hero inherits brand components. Tab structure is content-driven (overview/breakdown/deps/criteria), not brand-influenced. |
 
 ---
 
-## Integration with Aesthetic Detection precedence
+## Integration within Aesthetic Detection precedence
 
 When `forge.yml` is found, it supersedes the current priority chain in `forge-ops.md` § Aesthetic Detection. The updated precedence becomes:
 

@@ -1,6 +1,11 @@
 {
   "release-type": "node",
+  "target-branch": "main",
   "packages": {
-    ".": {}
+    ".": {
+      "component": "roxabi-forge",
+      "package-name": "roxabi-forge",
+      "tag-separator": "/"
+    }
   }
 }

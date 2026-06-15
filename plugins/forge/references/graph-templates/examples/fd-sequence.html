@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="diagram:title" content="Forge Chart — Skill Invocation Sequence">
+<meta name="diagram:category" content="sequence">
+<meta name="diagram:color" content="#22d3ee">
+<meta name="diagram:engine" content="fd-engine">
+<meta name="diagram:type" content="sequence">
+<title>Forge Chart — Skill Invocation Sequence</title>
+<!-- Google Fonts — degrades gracefully offline -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ forge base reset ══ */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+ul,ol{list-style:none;margin:0;padding:0}
+button{cursor:pointer;font-family:inherit}
+
+/* ══ lyra-v2 aesthetic tokens ══ */
+:root{
+  --bg:#0d1117;
+  --bg-cell:#0f141a;
+  --bg-panel:#13191f;
+  --bg-card:#161b22;
+  --surface:#13191f;
+  --surface2:#161b22;
+  --border:#21262d;
+  --border-hi:#30363d;
+  --border-bright:#30363d;
+  --text:#fafafa;
+  --text-muted:#8b93a1;
+  --text-dim:#6b7280;
+  --accent:#e85d04;
+  --accent-2:#f97316;
+  --teal:#06b6d4;
+  --amber:#f59e0b;
+  --green:#10b981;
+  --cyan:#22d3ee;
+  --purple:#c084fc;
+  --plum:#a855f7;
+  --red:#ef4444;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+
+/* ══ fd-engine plane vars ══ */
+:root{
+  --fd-plane-control:#22d3ee;
+  --fd-plane-write:#10b981;
+  --fd-plane-read:#c084fc;
+  --fd-plane-data:#a855f7;
+  --fd-plane-async:#f59e0b;
+  --fd-plane-feedback:#e85d04;
+  --fd-plane-message:#22d3ee;
+}
+
+/* ══ page shell ══ */
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.4}
+.page{padding:22px 22px 60px;max-width:960px;margin:0 auto}
+
+/* ══ header ══ */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content:space-between;
+  padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.htitle h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.htitle h1 b{color:var(--cyan)}
+.htitle p{margin:5px 0 0;color:var(--text-muted);font-size:11.5px;font-family:var(--mono)}
+.badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--border-hi);color:var(--text-muted)}
+.badge.cyan{border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.06);color:var(--cyan)}
+.badge.amber{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06);color:var(--amber)}
+.badge.purple{border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.06);color:var(--purple)}
+
+/* ══ diagram container ══ */
+.stage-wrap{position:relative;border:1px solid var(--border);border-radius:12px;
+  background:linear-gradient(180deg,var(--bg-panel),var(--bg-cell));overflow:auto;margin-bottom:22px}
+.stage-wrap::-webkit-scrollbar{height:8px;width:8px}
+.stage-wrap::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:8px}
+
+/* ══ fd-engine canvas (sequence: sized by JS) ══ */
+.fd-canvas{position:relative;width:100%;height:var(--fd-canvas-h,600px);overflow:visible}
+
+/* ══ sequence SVG styles ══ */
+/* Lifelines — vertical dashed lines behind participants */
+.seq-lifeline{
+  stroke:var(--border-hi);
+  stroke-width:1.5;
+  stroke-dasharray:5 4;
+  opacity:.7
+}
+
+/* Participant boxes */
+.seq-participant{
+  fill:var(--bg-card);
+  stroke:var(--border-hi);
+  stroke-width:1.5
+}
+.seq-participant-actor{
+  stroke:rgba(34,211,238,.45);
+  fill:rgba(34,211,238,.04)
+}
+
+/* Participant label text */
+.seq-participant-label{
+  font-family:var(--mono);
+  font-size:11.5px;
+  font-weight:600;
+  fill:var(--text);
+  dominant-baseline:central
+}
+
+/* Activation boxes */
+.seq-activation{
+  fill:rgba(34,211,238,.12);
+  stroke:rgba(34,211,238,.45);
+  stroke-width:1
+}
+
+/* Message arrows — solid */
+.seq-message{
+  stroke:var(--cyan);
+  stroke-width:1.8;
+  fill:none;
+  opacity:.75
+}
+/* Dashed (return / response arrows) */
+.seq-message-dashed{
+  stroke-dasharray:5 3;
+  opacity:.55
+}
+
+/* Message labels */
+.seq-msg-label{
+  font-family:var(--mono);
+  font-size:10px;
+  fill:var(--text-muted)
+}
+
+/* Arrowhead marker fill via CSS class (AC-6: bound to CSS vars) */
+.seq-marker-filled{fill:var(--cyan)}
+.seq-marker-open{stroke:var(--cyan);stroke-width:1.5}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="htitle">
+      <h1><b>Forge Chart</b> — Skill Invocation Sequence</h1>
+      <p>fd-engine · sequence type · lyra-v2 · timeline-based layout · participant strips · activation boxes</p>
+    </div>
+    <div class="badges">
+      <span class="badge cyan">fd-engine v1</span>
+      <span class="badge purple">sequence type</span>
+      <span class="badge">lyra-v2 theme</span>
+      <span class="badge">file:// safe</span>
+    </div>
+  </header>
+
+  <div class="stage-wrap">
+    <!-- fd-canvas: sequence SVG is appended here by JS (no HTML nodes — SVG-only renderer) -->
+    <div class="fd-canvas" id="fd-canvas"></div>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- fd-data: descriptor JSON embedded inline (AC-4: no fetch, AC-5: single file)
+     Sequence type uses participants[] + messages[] (not nodes[]/edges[]).
+     layout: "sequence" signals the SVG-only renderer path (no bun elk step needed).
+     Activation boxes: activate/deactivate on messages track execution focus. -->
+<script type="application/json" id="fd-data">
+{
+  "type": "sequence",
+  "title": "Forge Chart — Skill Invocation Sequence",
+  "theme": "lyra-v2",
+  "layout": "sequence",
+  "options": {
+    "particles": false,
+    "spotlight": false
+  },
+  "participants": [
+    { "id": "user",      "label": "User / LLM",    "kind": "actor" },
+    { "id": "forge",     "label": "forge-chart",   "kind": "system" },
+    { "id": "bundler",   "label": "bundler.js",    "kind": "system" },
+    { "id": "layout",    "label": "fd-layout.mjs", "kind": "system" },
+    { "id": "browser",   "label": "Browser",       "kind": "system" }
+  ],
+  "messages": [
+    { "from": "user",    "to": "forge",   "label": "invoke forge-chart skill",  "arrowHead": "filled" },
+    { "from": "forge",   "to": "layout",  "label": "bun fd-layout.mjs descriptor.json", "activate": true },
+    { "from": "layout",  "to": "layout",  "label": "elkjs.layout() (gen-time)", "arrowHead": "open" },
+    { "from": "layout",  "to": "forge",   "label": "nodes[] x/y injected",      "lineStyle": "dashed", "deactivate": true },
+    { "from": "forge",   "to": "bundler", "label": "buildEngine(fdDir, type)",  "activate": true },
+    { "from": "bundler", "to": "forge",   "label": "inline <script> bundle",    "lineStyle": "dashed", "deactivate": true },
+    { "from": "forge",   "to": "browser", "label": "write fd-sequence.html",    "activate": true },
+    { "from": "browser", "to": "browser", "label": "DOMContentLoaded → renderSequence()" },
+    { "from": "browser", "to": "forge",   "label": "rendered (file:// safe)",   "lineStyle": "dashed", "deactivate": true }
+  ]
+}
+</script>
+
+<!-- fd-engine inline bundle: core subset + sequence type module
+     AC-4: no fetch · AC-5: single file · AC-10: SVG uses explicit viewBox, no preserveAspectRatio=none
+     Particles: OFF (RD-2 default). Sequence uses dedicated SVG renderer (no edges.js bezier engine).
+     Layout: pure timeline math (no elkjs at runtime — spec §2 sequence special handling). -->
+<script>
+(function(){
+'use strict'
+
+/* ── fd/core.js (subset: canvas ref — sequence bypasses rect/pairKey/draw) ── */
+
+var canvas = null
+/* biome-ignore lint/correctness/noUnusedVariables: consumed by sequence.js in concat bundle */
+var DESCRIPTOR = null
+
+function initEngine(descriptor, canvasEl) {
+  DESCRIPTOR = descriptor
+  canvas = canvasEl
+  if (descriptor.canvas && descriptor.canvas.height) {
+    canvasEl.style.setProperty('--fd-canvas-h', descriptor.canvas.height + 'px')
+  }
+}
+
+/* ── fd/types/sequence.js ── */
+
+var SEQ_TYPE = 'sequence'
+var SEQ_CARD_DEFAULT = null
+
+var SEQ_PAD = 30
+var SEQ_ACTOR_H = 40
+var SEQ_ACTOR_PAD_X = 16
+var SEQ_ACTOR_GAP = 160
+var SEQ_HEADER_GAP = 24
+var SEQ_MSG_ROW_H = 44
+var SEQ_SELF_MSG_H = 32
+var SEQ_ACTIVATION_W = 10
+var SEQ_NESTING_OFFSET = 4
+
+function seqEstimateTextWidth(text) {
+  return Math.max(80, (text || '').length * 7 + SEQ_ACTOR_PAD_X * 2)
+}
+
+function seqLayoutActors(participants) {
+  var actorWidths = participants.map(function(p) {
+    return seqEstimateTextWidth(p.label || p.id)
+  })
+
+  var actorCenterX = []
+  var currentX = SEQ_PAD + actorWidths[0] / 2
+  for (var i = 0; i < participants.length; i++) {
+    if (i > 0) {
+      var minGap = Math.max(SEQ_ACTOR_GAP, (actorWidths[i - 1] + actorWidths[i]) / 2 + 40)
+      currentX += minGap
+    }
+    actorCenterX.push(currentX)
+  }
+
+  var actorIndex = new Map()
+  for (var j = 0; j < participants.length; j++) {
+    actorIndex.set(participants[j].id, j)
+  }
+
+  return { actorCenterX: actorCenterX, actorWidths: actorWidths, actorIndex: actorIndex }
+}
+
+function seqLayoutMessages(messages, actorCenterX, actorIndex) {
+  var actorY = SEQ_PAD
+  var messageY = actorY + SEQ_ACTOR_H + SEQ_HEADER_GAP
+
+  var positionedMessages = []
+  var activationStacks = new Map()
+  var activations = []
+
+  for (var msgIdx = 0; msgIdx < messages.length; msgIdx++) {
+    var msg = messages[msgIdx]
+    var fromIdx = actorIndex.has(msg.from) ? actorIndex.get(msg.from) : 0
+    var toIdx   = actorIndex.has(msg.to)   ? actorIndex.get(msg.to)   : 0
+    var isSelf  = msg.from === msg.to
+
+    var x1 = actorCenterX[fromIdx]
+    var x2 = actorCenterX[toIdx]
+
+    positionedMessages.push({
+      from:      msg.from,
+      to:        msg.to,
+      label:     msg.label || '',
+      lineStyle: msg.lineStyle || 'solid',
+      arrowHead: msg.arrowHead || 'filled',
+      x1: x1, x2: x2, y: messageY,
+      isSelf: isSelf,
+    })
+
+    if (msg.activate) {
+      if (!activationStacks.has(msg.to)) activationStacks.set(msg.to, [])
+      var stackA = activationStacks.get(msg.to)
+      var depth  = stackA.length
+      stackA.push({ startY: messageY, depth: depth })
+    }
+
+    if (msg.deactivate) {
+      var stackD = activationStacks.get(msg.from)
+      if (stackD && stackD.length > 0) {
+        var entry  = stackD.pop()
+        var idx    = actorIndex.has(msg.from) ? actorIndex.get(msg.from) : 0
+        var xOff   = entry.depth * SEQ_NESTING_OFFSET
+        activations.push({
+          actorId: msg.from,
+          x:      actorCenterX[idx] - SEQ_ACTIVATION_W / 2 + xOff,
+          topY:   entry.startY,
+          bottomY: messageY,
+          width:  SEQ_ACTIVATION_W,
+        })
+      }
+    }
+
+    messageY += isSelf ? SEQ_SELF_MSG_H + SEQ_MSG_ROW_H : SEQ_MSG_ROW_H
+  }
+
+  // Close unclosed activations
+  activationStacks.forEach(function(stack, actorId) {
+    for (var k = 0; k < stack.length; k++) {
+      var act  = stack[k]
+      var aIdx = actorIndex.has(actorId) ? actorIndex.get(actorId) : 0
+      activations.push({
+        actorId: actorId,
+        x:       actorCenterX[aIdx] - SEQ_ACTIVATION_W / 2 + act.depth * SEQ_NESTING_OFFSET,
+        topY:    act.startY,
+        bottomY: messageY - SEQ_MSG_ROW_H / 2,
+        width:   SEQ_ACTIVATION_W,
+      })
+    }
+  })
+
+  return {
+    positionedMessages: positionedMessages,
+    activations: activations,
+    diagramBottom: messageY + SEQ_PAD,
+  }
+}
+
+function seqFmt(n) { return n.toFixed(1) }
+
+function renderSequence(descriptor) {
+  var participants = descriptor.participants || []
+  var messages     = descriptor.messages    || []
+
+  if (participants.length === 0) return
+
+  // 1. Actor x-layout
+  var actorLayout  = seqLayoutActors(participants)
+  var actorCenterX = actorLayout.actorCenterX
+  var actorWidths  = actorLayout.actorWidths
+  var actorIndex   = actorLayout.actorIndex
+
+  // 2. Message y-layout
+  var msgLayout   = seqLayoutMessages(messages, actorCenterX, actorIndex)
+  var posMsg      = msgLayout.positionedMessages
+  var activations = msgLayout.activations
+  var diagBottom  = msgLayout.diagramBottom
+
+  // 3. Diagram dimensions
+  var lastIdx    = actorCenterX.length - 1
+  var diagWidth  = actorCenterX[lastIdx] + actorWidths[lastIdx] / 2 + SEQ_PAD
+  var actorY     = SEQ_PAD
+  var svgH       = diagBottom
+  var svgW       = diagWidth
+
+  // 4. Build SVG
+  var NS = 'http://www.w3.org/2000/svg'
+  var svgEl = document.createElementNS(NS, 'svg')
+  svgEl.setAttribute('class', 'fd-seq-svg')
+  // AC-10: explicit viewBox, no preserveAspectRatio=none
+  svgEl.setAttribute('viewBox', '0 0 ' + seqFmt(svgW) + ' ' + seqFmt(svgH))
+  svgEl.setAttribute('width', '100%')
+  svgEl.setAttribute('height', seqFmt(svgH) + 'px')
+  svgEl.setAttribute('aria-hidden', 'true')
+  svgEl.style.display = 'block'
+  svgEl.style.maxWidth = seqFmt(svgW) + 'px'
+
+  // 4a. Defs: arrowhead markers
+  var defs = document.createElementNS(NS, 'defs')
+
+  var mFilled = document.createElementNS(NS, 'marker')
+  mFilled.setAttribute('id', 'seq-arr-filled')
+  mFilled.setAttribute('markerWidth', '9')
+  mFilled.setAttribute('markerHeight', '9')
+  mFilled.setAttribute('refX', '7')
+  mFilled.setAttribute('refY', '3')
+  mFilled.setAttribute('orient', 'auto')
+  var pFilled = document.createElementNS(NS, 'path')
+  pFilled.setAttribute('d', 'M0,0 L7,3 L0,6 Z')
+  pFilled.setAttribute('class', 'seq-marker-filled')
+  mFilled.appendChild(pFilled)
+  defs.appendChild(mFilled)
+
+  var mOpen = document.createElementNS(NS, 'marker')
+  mOpen.setAttribute('id', 'seq-arr-open')
+  mOpen.setAttribute('markerWidth', '9')
+  mOpen.setAttribute('markerHeight', '9')
+  mOpen.setAttribute('refX', '7')
+  mOpen.setAttribute('refY', '3')
+  mOpen.setAttribute('orient', 'auto')
+  var pOpen = document.createElementNS(NS, 'path')
+  pOpen.setAttribute('d', 'M0,0 L7,3 L0,6')
+  pOpen.setAttribute('fill', 'none')
+  pOpen.setAttribute('class', 'seq-marker-open')
+  mOpen.appendChild(pOpen)
+  defs.appendChild(mOpen)
+
+  svgEl.appendChild(defs)
+
+  // 4b. Lifelines
+  for (var li = 0; li < participants.length; li++) {
+    var lx  = actorCenterX[li]
+    var lTop = actorY + SEQ_ACTOR_H
+    var lBot = diagBottom - SEQ_PAD
+    var ll   = document.createElementNS(NS, 'line')
+    ll.setAttribute('x1', seqFmt(lx))
+    ll.setAttribute('y1', seqFmt(lTop))
+    ll.setAttribute('x2', seqFmt(lx))
+    ll.setAttribute('y2', seqFmt(lBot))
+    ll.setAttribute('class', 'seq-lifeline')
+    svgEl.appendChild(ll)
+  }
+
+  // 4c. Activation boxes
+  for (var ai = 0; ai < activations.length; ai++) {
+    var act = activations[ai]
+    var ar  = document.createElementNS(NS, 'rect')
+    ar.setAttribute('x',      seqFmt(act.x))
+    ar.setAttribute('y',      seqFmt(act.topY))
+    ar.setAttribute('width',  seqFmt(act.width))
+    ar.setAttribute('height', seqFmt(act.bottomY - act.topY))
+    ar.setAttribute('class', 'seq-activation')
+    svgEl.appendChild(ar)
+  }
+
+  // 4d. Participant boxes (drawn over lifelines)
+  for (var pi = 0; pi < participants.length; pi++) {
+    var part = participants[pi]
+    var cx   = actorCenterX[pi]
+    var aw   = actorWidths[pi]
+    var bx   = cx - aw / 2
+    var by   = actorY
+
+    var boxRect = document.createElementNS(NS, 'rect')
+    boxRect.setAttribute('x',      seqFmt(bx))
+    boxRect.setAttribute('y',      seqFmt(by))
+    boxRect.setAttribute('width',  seqFmt(aw))
+    boxRect.setAttribute('height', seqFmt(SEQ_ACTOR_H))
+    boxRect.setAttribute('class', part.kind === 'actor'
+      ? 'seq-participant seq-participant-actor'
+      : 'seq-participant')
+    boxRect.setAttribute('rx', '6')
+    svgEl.appendChild(boxRect)
+
+    var lt = document.createElementNS(NS, 'text')
+    lt.setAttribute('x', seqFmt(cx))
+    lt.setAttribute('y', seqFmt(by + SEQ_ACTOR_H / 2 + 4))
+    lt.setAttribute('text-anchor', 'middle')
+    lt.setAttribute('class', 'seq-participant-label')
+    lt.textContent = part.label || part.id
+    svgEl.appendChild(lt)
+  }
+
+  // 4e. Message arrows
+  for (var mi = 0; mi < posMsg.length; mi++) {
+    var msg      = posMsg[mi]
+    var isDashed = msg.lineStyle === 'dashed'
+    var markerId = msg.arrowHead === 'open' ? 'seq-arr-open' : 'seq-arr-filled'
+    var cls      = 'seq-message' + (isDashed ? ' seq-message-dashed' : '')
+
+    if (msg.isSelf) {
+      var loopW   = 36
+      var loopX   = msg.x1 + loopW
+      var loopTop = msg.y
+      var loopBot = msg.y + SEQ_SELF_MSG_H
+      var sp      = document.createElementNS(NS, 'path')
+      var pd      = 'M ' + seqFmt(msg.x1) + ',' + seqFmt(loopTop)
+                  + ' L ' + seqFmt(loopX)   + ',' + seqFmt(loopTop)
+                  + ' L ' + seqFmt(loopX)   + ',' + seqFmt(loopBot)
+                  + ' L ' + seqFmt(msg.x1)  + ',' + seqFmt(loopBot)
+      sp.setAttribute('d', pd)
+      sp.setAttribute('fill', 'none')
+      sp.setAttribute('class', cls)
+      sp.setAttribute('marker-end', 'url(#' + markerId + ')')
+      svgEl.appendChild(sp)
+
+      if (msg.label) {
+        var sl = document.createElementNS(NS, 'text')
+        sl.setAttribute('x', seqFmt(loopX + 6))
+        sl.setAttribute('y', seqFmt(loopTop + SEQ_SELF_MSG_H / 2 + 4))
+        sl.setAttribute('class', 'seq-msg-label')
+        sl.textContent = msg.label
+        svgEl.appendChild(sl)
+      }
+    } else {
+      var dir   = msg.x2 > msg.x1 ? 1 : -1
+      var x2Adj = msg.x2 - dir * 2
+      var ml    = document.createElementNS(NS, 'line')
+      ml.setAttribute('x1', seqFmt(msg.x1))
+      ml.setAttribute('y1', seqFmt(msg.y))
+      ml.setAttribute('x2', seqFmt(x2Adj))
+      ml.setAttribute('y2', seqFmt(msg.y))
+      ml.setAttribute('class', cls)
+      ml.setAttribute('marker-end', 'url(#' + markerId + ')')
+      svgEl.appendChild(ml)
+
+      if (msg.label) {
+        var lbl = document.createElementNS(NS, 'text')
+        lbl.setAttribute('x', seqFmt((msg.x1 + msg.x2) / 2))
+        lbl.setAttribute('y', seqFmt(msg.y - 6))
+        lbl.setAttribute('text-anchor', 'middle')
+        lbl.setAttribute('class', 'seq-msg-label')
+        lbl.textContent = msg.label
+        svgEl.appendChild(lbl)
+      }
+    }
+  }
+
+  canvas.appendChild(svgEl)
+
+  // Resize canvas to fit computed diagram height
+  canvas.style.setProperty('--fd-canvas-h', seqFmt(svgH) + 'px')
+  canvas.style.height = seqFmt(svgH) + 'px'
+}
+
+/* ── bootstrap ── */
+
+function main() {
+  var descriptor = JSON.parse(document.getElementById('fd-data').textContent)
+  var canvasEl   = document.getElementById('fd-canvas')
+
+  initEngine(descriptor, canvasEl)
+
+  // Sequence: SVG-only renderer — bypasses renderNodes / draw (like gantt / pie)
+  renderSequence(descriptor)
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', main)
+} else {
+  main()
+}
+
+}())
+</script>
+</body>
+</html>

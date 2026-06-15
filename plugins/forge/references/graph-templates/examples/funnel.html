@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="SaaS sign-up funnel — Q2 2026">
+<meta name="diagram:date"      content="2026-06-02">
+<meta name="diagram:category"  content="forge">
+<meta name="diagram:cat-label" content="Forge · analytics">
+<meta name="diagram:color"     content="cyan">
+<!-- diagram-meta:end -->
+<title>SaaS sign-up funnel — Q2 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── design tokens ── */
+  :root {
+    --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+    --border: #1f252e; --border-bright: #2b3340;
+    --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+    --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+    --cyan:  #22d3ee; --cyan-dim:  rgba(34,211,238,0.12);
+    --purple:#c084fc; --purple-dim:rgba(192,132,252,0.12);
+    --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+    --red:   #f87171; --red-dim:   rgba(248,113,113,0.12);
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 32px 24px 40px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  header { margin-bottom: 20px; }
+  .header-eyebrow {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+  }
+  h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  h1 .accent { color: var(--cyan); }
+  .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  /* ── chart wrap — square aspect ── */
+  .fgraph-wrap.funnel {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto 20px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+  .fgraph-wrap.funnel svg {
+    width: 100%; height: 100%; display: block; overflow: visible;
+  }
+
+  /* ── stage trapezoids ── */
+  .fg-funnel-stage {
+    vector-effect: non-scaling-stroke;
+    transition: opacity 0.15s;
+  }
+  .fg-funnel-stage:hover { opacity: 0.8; }
+
+  /* ── separator lines ── */
+  .fg-funnel-sep {
+    stroke: var(--bg-panel);
+    stroke-width: 0.8;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* ── left-gutter stage labels (always outside band edges) ── */
+  .fg-funnel-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 3.8px;
+    fill: var(--text-dim);
+    text-anchor: end;
+    dominant-baseline: middle;
+    pointer-events: none;
+  }
+  .fg-funnel-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 3.2px;
+    fill: var(--text-muted);
+    text-anchor: end;
+    dominant-baseline: middle;
+    pointer-events: none;
+  }
+
+  /* ── connector tick (gutter → funnel edge) ── */
+  .fg-funnel-connector {
+    stroke: var(--border-bright);
+    stroke-width: 0.35;
+    stroke-dasharray: 1.2 0.8;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* ── right-margin conversion rate ── */
+  .fg-funnel-conv {
+    font-family: 'Space Mono', monospace;
+    font-size: 3px;
+    fill: var(--text-muted);
+    text-anchor: start;
+    dominant-baseline: middle;
+    pointer-events: none;
+  }
+  .fg-funnel-conv-line {
+    stroke: var(--border-bright);
+    stroke-width: 0.35;
+    stroke-dasharray: 1.2 0.8;
+    vector-effect: non-scaling-stroke;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Forge · analytics</div>
+  <h1>SaaS sign-up funnel <span class="accent">Q2 2026</span></h1>
+  <p class="header-subtitle">Visitor → Paying conversion for a B2B SaaS product. 4 stages with conversion % at each drop.</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     4-stage funnel (trapezoid variant), showConversionRate = true.
+
+     Data:
+       stage 0  Visitors   12 400   (reference / top)
+       stage 1  Sign-ups    3 720   conv = 3720/12400 = 30%
+       stage 2  Activated   1 488   conv = 1488/3720  = 40%
+       stage 3  Paying        446   conv =  446/1488  = 30%
+
+     Layout zones (viewBox 0..100):
+       Left gutter    x = 0..26    (labels right-anchored at x=26)
+       Funnel body    centre cx=55, max_halfWidth=26
+       Right margin   x = 82..100  (conv% left-anchored at x=83)
+
+     Stage height: y_top=8, y_bottom=96, stage_h=(96-8)/4=22
+
+     Half-width formula: sqrt-scale to avoid invisible slivers on
+     extreme ratios (12400:446 ≈ 28×).
+       hw(v) = max(26 * sqrt(v / 12400), 5)
+       Visitors  12400: hw=26.00   → x=29..81  (top of stage 0)
+       Sign-ups   3720: hw=14.24   → x=40.76..69.24
+       Activated  1488: hw= 9.01   → x=45.99..64.01
+       Paying      446: hw= 5.00   → x=50..60
+       tip          —: hw= 5.00   (min_halfWidth)
+
+     Trapezoid points (TL, TR, BR, BL):
+       stage 0  y:  8..30  29.00, 8.00  81.00, 8.00  69.24,30.00  40.76,30.00
+       stage 1  y: 30..52  40.76,30.00  69.24,30.00  64.01,52.00  45.99,52.00
+       stage 2  y: 52..74  45.99,52.00  64.01,52.00  60.00,74.00  50.00,74.00
+       stage 3  y: 74..96  50.00,74.00  60.00,74.00  60.00,96.00  50.00,96.00
+
+     Stage midpoints (label_y):
+       stage 0: y=19   stage 1: y=41   stage 2: y=63   stage 3: y=85
+
+     Left edge x at stage midpoint (cx - avg_hw where avg_hw=(hw_top+hw_bot)/2):
+       stage 0: cx - (26.00+14.24)/2 = 55 - 20.12 = 34.88 → connector x2=34.88
+       stage 1: cx - (14.24+9.01)/2  = 55 - 11.63 = 43.38 → connector x2=43.38
+       stage 2: cx - (9.01+5.00)/2   = 55 -  7.01 = 47.99 → connector x2=47.99
+       stage 3: cx - (5.00+5.00)/2   = 55 -  5.00 = 50.00 → connector x2=50.00
+
+     Separators (at stage boundary, span the TOP half-width of the lower stage):
+       y=30: x1=40.76 x2=69.24
+       y=52: x1=45.99 x2=64.01
+       y=74: x1=50.00 x2=60.00
+
+     Conversion annotations (right edge of lower stage top → x=81, label x=83):
+       y=30: right edge=69.24, line 69.24→81, text "30%"
+       y=52: right edge=64.01, line 64.01→81, text "40%"
+       y=74: right edge=60.00, line 60.00→81, text "30%"
+
+     DEGENERATE NOTE — 1-stage funnel: single trapezoid y_top → y_bottom,
+     hw_bot = min_halfWidth. No conversion annotations. No code change needed.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fgraph-wrap funnel" role="img"
+     aria-label="Funnel chart: Visitors 12400, Sign-ups 3720 (30%), Activated 1488 (40%), Paying 446 (30%).">
+
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="fn-title">
+
+    <title id="fn-title">SaaS sign-up funnel — Q2 2026</title>
+
+    <!-- ── STAGE TRAPEZOIDS ───────────────────────────────────────── -->
+    <!-- Stage 0 — Visitors (12,400) -->
+    <polygon class="fg-funnel-stage"
+             fill="var(--cyan)" fill-opacity="1.0" stroke="none"
+             points="29.00,8.00 81.00,8.00 69.24,30.00 40.76,30.00"/>
+
+    <!-- Stage 1 — Sign-ups (3,720) -->
+    <polygon class="fg-funnel-stage"
+             fill="var(--cyan)" fill-opacity="0.75" stroke="none"
+             points="40.76,30.00 69.24,30.00 64.01,52.00 45.99,52.00"/>
+
+    <!-- Stage 2 — Activated (1,488) -->
+    <polygon class="fg-funnel-stage"
+             fill="var(--cyan)" fill-opacity="0.55" stroke="none"
+             points="45.99,52.00 64.01,52.00 60.00,74.00 50.00,74.00"/>
+
+    <!-- Stage 3 — Paying (446) — narrowest -->
+    <polygon class="fg-funnel-stage"
+             fill="var(--cyan)" fill-opacity="0.40" stroke="none"
+             points="50.00,74.00 60.00,74.00 60.00,96.00 50.00,96.00"/>
+
+    <!-- ── SEPARATOR LINES ────────────────────────────────────────── -->
+    <line class="fg-funnel-sep" x1="40.76" y1="30" x2="69.24" y2="30"/>
+    <line class="fg-funnel-sep" x1="45.99" y1="52" x2="64.01" y2="52"/>
+    <line class="fg-funnel-sep" x1="50.00" y1="74" x2="60.00" y2="74"/>
+
+    <!-- ── LEFT-GUTTER LABELS (x=26, right-anchored, outside bands) ─
+         Connector: dashed line from x=27 to funnel left edge at label_y
+         label_y = stage vertical midpoint.  value_y = label_y + 4.5   -->
+
+    <!-- Stage 0: label_y=19 -->
+    <text class="fg-funnel-label" x="26" y="19">Visitors</text>
+    <text class="fg-funnel-value" x="26" y="23.5">12,400</text>
+    <line class="fg-funnel-connector" x1="27" y1="19" x2="34.88" y2="19"/>
+
+    <!-- Stage 1: label_y=41 -->
+    <text class="fg-funnel-label" x="26" y="41">Sign-ups</text>
+    <text class="fg-funnel-value" x="26" y="45.5">3,720</text>
+    <line class="fg-funnel-connector" x1="27" y1="41" x2="43.38" y2="41"/>
+
+    <!-- Stage 2: label_y=63 -->
+    <text class="fg-funnel-label" x="26" y="63">Activated</text>
+    <text class="fg-funnel-value" x="26" y="67.5">1,488</text>
+    <line class="fg-funnel-connector" x1="27" y1="63" x2="47.99" y2="63"/>
+
+    <!-- Stage 3: label_y=85 -->
+    <text class="fg-funnel-label" x="26" y="85">Paying</text>
+    <text class="fg-funnel-value" x="26" y="89.5">446</text>
+    <line class="fg-funnel-connector" x1="27" y1="85" x2="50.00" y2="85"/>
+
+    <!-- ── CONVERSION RATE ANNOTATIONS (right margin, showConversionRate=true) ──
+         Dashed tick from right edge of lower stage's top to x=81; text at x=83.
+         rate = data[i].value / data[i-1].value -->
+
+    <!-- Conv 0→1: 30% at y=30, right edge of stage 1 top = x=69.24 -->
+    <line class="fg-funnel-conv-line" x1="69.24" y1="30" x2="81" y2="30"/>
+    <text class="fg-funnel-conv" x="83" y="30">30%</text>
+
+    <!-- Conv 1→2: 40% at y=52, right edge of stage 2 top = x=64.01 -->
+    <line class="fg-funnel-conv-line" x1="64.01" y1="52" x2="81" y2="52"/>
+    <text class="fg-funnel-conv" x="83" y="52">40%</text>
+
+    <!-- Conv 2→3: 30% at y=74, right edge of stage 3 top = x=60.00 -->
+    <line class="fg-funnel-conv-line" x1="60.00" y1="74" x2="81" y2="74"/>
+    <text class="fg-funnel-conv" x="83" y="74">30%</text>
+
+  </svg>
+
+</div>
+
+</main>
+
+</body>
+</html>

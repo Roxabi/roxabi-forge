@@ -1,0 +1,51 @@
+---
+title: "feat(forge): migrate relational fgraph templates to uniform-aspect (kill giant-arrowhead bug class)"
+issue: 57
+status: approved
+tier: F-lite
+date: 2026-06-02
+---
+
+## Problem
+
+Relational fgraph templates author edges on a stretched grid: `<svg viewBox="0 0 100 100" preserveAspectRatio="none">`. The `none` value stretches the 0–100 grid to fill any-aspect container, so 1 SVG x-unit ≠ 1 y-unit in pixels. Arrowhead markers then distort/oversize — the recurring **giant-arrowhead bug class** (PR #53, and a later `vector-effect` regression). The only thing holding it back is a stack of workarounds: `vector-effect: non-scaling-stroke` on every `.fg-edge`, deliberately tiny `markerWidth/Height=6`, and a `validate-svg.sh` gate that exists solely to police them.
+
+**Scope measured:** 28 files under `plugins/forge/references/graph-templates/` carry `preserveAspectRatio="none"` (templates + per-type examples + the live-mode `.js`).
+
+The cleaner path is already proven in-repo: the 4 inline-SVG data-charts shipped in #20 (scatter, bubble, radar, funnel) use `preserveAspectRatio="xMidYMid meet"` (uniform aspect) → circles stay circular, markers render true-size, **no `non-scaling-stroke` needed**. They are bug-free by construction.
+
+## Who
+
+- **Primary:** Claude Code generating forge diagrams via the `forge-chart` skill — fills these templates with pre-computed coordinates; today inherits the stretch trap on every new relational diagram.
+- **Secondary:** End users viewing the generated HTML artifacts (forge.roxabi.dev + offline `file://` decks) — they see the distorted arrowheads. Maintainers who keep patching the symptom + the validator guard.
+
+## Constraints
+
+- **Zero-JS-runtime / single-file / `file://`-safe** must be preserved — this migration is pure SVG/CSS, no runtime added (the JS engine is the sibling issue #58).
+- Coordinates are **LLM-pre-computed at generation time** — the new aspect mapping must stay easy for an LLM to author (predictable 0–100 → container mapping).
+- Relational diagrams are often **wide**; `xMidYMid meet` letterboxes a square 0–100 grid in a wide panel — the migration must decide a per-template strategy (fixed-pixel viewBox sized to content aspect, or `meet` with a non-square viewBox) so content still fills the panel.
+- Must not regress existing golden examples (visual + coordinate-math verification per memory `forge-chart-qa-harness`).
+
+## Out of Scope
+
+- JS runtime / DOM-measured edge routing / particle animation → sibling issue **#58** (blocked-by this).
+- Bespoke per-diagram one-offs (lyra-stack style).
+- The 4 #20 data-charts — already uniform-aspect, no change.
+
+## Premise Validity
+
+**Success in 6 months:** All relational fgraph templates render arrowheads true-size and undistorted at any container aspect; the `non-scaling-stroke` + tiny-marker workarounds (and their `validate-svg.sh` guards) are removed or reduced to genuinely-needed cases; new diagrams the skill generates are correct-by-construction; zero giant-arrowhead regressions filed.
+
+**Failure in 6 months:** Within 3 months of shipping, ≥1 new giant-arrowhead / distorted-marker defect is filed against a relational template, OR the migration regressed layout in ≥2 template types (content overflow / letterbox) forcing a revert. (Measurable: defect count ≥1 or regressed-type count ≥2; horizon: 3 months.)
+
+**Simplest alternative:** Keep `preserveAspectRatio="none"` and keep patching markers per-template (`non-scaling-stroke` + tiny `markerWidth`) — the status quo.
+**Why not simplest:** That is the exact workaround that already failed twice (PR #53, the `vector-effect` regression). It treats the symptom, leaves the distortion source in place, and every new template re-inherits the trap — so `validate-svg.sh` must police it forever. Removing the stretch removes the bug class at the root.
+
+## Complexity
+
+**Tier: F-lite** — single domain (forge HTML/CSS templates), clear scope, no new architecture; a proven reference exists (#20 charts).
+
+Signals observed:
+- 28 files but one domain, mechanical-to-judgmental migration (coord re-fit per template).
+- Real unknowns are bounded: the `meet`-vs-fixed-viewBox / letterbox-on-wide-panel decision — captured for `/spec` to resolve, not a full `/analyze`.
+- No cross-cutting infra, no new runtime, no API/data-model change.

@@ -182,6 +182,36 @@
 .fgraph-wrap.green  { border-color: rgba(74,222,128,0.35); }
 .fgraph-wrap.red    { border-color: rgba(248,113,113,0.35); }
 
+/* ── gridded background (technical / blueprint aesthetic) ──
+   Overlays a subtle 32×32 grid on the wrap background. Use for
+   architecture / infrastructure diagrams where the "engineering
+   drawing" feel matters. Pure CSS — no SVG, no runtime cost.
+
+     <div class="fgraph-wrap arch gridded">…</div>
+
+   Grid color comes from --border (inheriting from the aesthetic).
+   Increase --fg-grid-size for a coarser grid or --fg-grid-opacity
+   for more / less visibility.
+*/
+.fgraph-wrap.gridded::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: var(--fg-grid-size, 32px) var(--fg-grid-size, 32px);
+  opacity: var(--fg-grid-opacity, 0.35);
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+/* Children keep their own positioning — the ::before pseudo is first
+   in paint order so absolute-positioned siblings (SVG edges, nodes,
+   frames) paint above it naturally via DOM order. Do NOT apply
+   `position: relative` to children here; it would break the absolute
+   left/top contract that .fgraph-node and .fgraph-frame rely on. */
+
 /* ── optional dashed region frame (machine / zone / deployment) ── */
 .fgraph-frame {
   position: absolute;
@@ -252,10 +282,87 @@
   text-transform: uppercase;
   background: var(--bg-panel);
   color: var(--text-muted);
+  white-space: nowrap;                  /* long labels extend past group, ¬wrap into children */
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .fgraph-group.region         > .fgraph-group__label { color: var(--text-muted); }
 .fgraph-group.cluster        > .fgraph-group__label { color: var(--cyan); }
 .fgraph-group.security-group > .fgraph-group__label { color: var(--red); }
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  SSoT — CANONICAL EDGE / MARKER BLOCK                           ║
+   ║  Do not hand-trim; templates inject this block via the          ║
+   ║  {{FGRAPH_BASE}} placeholder; the validate-svg gate enforces it.║
+   ║  Three locked props that prevent the giant-arrowhead bug class: ║
+   ║    1. vector-effect: non-scaling-stroke  on .fg-edge            ║
+   ║    2. markerUnits omitted (default strokeWidth — never override) ║
+   ║    3. markerWidth="6" markerHeight="6"   on all arrow <marker>s ║
+   ║  TODO(#58): this none+non-scaling-stroke model is the           ║
+   ║  pre-migration state; revise when the JS edge-engine migration   ║
+   ║  (#58) lands.                                                    ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+/* ══════════════════════════════════════════════════════════════════
+   ARROW SYSTEM (v2) — shared defs + mask rects + semantic edges
+   ─────────────────────────────────────────────────────────────────
+
+   BEFORE (v1): every template redefined 5+ <marker> elements with
+   per-template IDs (fg-arr-amber-ly, fg-arr-amber-sa, ...). Massive
+   duplication and no way to reference markers across SVG elements.
+
+   AFTER (v2): paste ONE canonical defs block at the top of the
+   document, reference markers by stable ID everywhere. Marker <path>
+   fill comes from .mk-{tone} CSS classes — aesthetics can retint
+   without editing markup.
+
+   Canonical defs block (paste once per HTML document, below <body>):
+
+     <svg class="fgraph-defs" aria-hidden="true" width="0" height="0">
+       <defs>
+         <!-- One-way markers (orient="auto") — arrow points in path direction -->
+         <marker id="fg-arr-amber"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+         <marker id="fg-arr-cyan"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+         <marker id="fg-arr-purple"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+         <marker id="fg-arr-green"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+         <marker id="fg-arr-red"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+         <marker id="fg-arr-orange"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-orange"/></marker>
+         <marker id="fg-arr-dim"     viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-dim"/></marker>
+         <!-- Bidirectional markers (orient="auto-start-reverse") — use with marker-start + marker-end -->
+         <marker id="fg-arr-amber-bi"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+         <marker id="fg-arr-cyan-bi"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+         <marker id="fg-arr-purple-bi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+         <marker id="fg-arr-green-bi"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+         <marker id="fg-arr-red-bi"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-red"/></marker>
+         <marker id="fg-arr-orange-bi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-orange"/></marker>
+         <marker id="fg-arr-dim-bi"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-dim"/></marker>
+       </defs>
+     </svg>
+
+   Usage in any .fgraph-edges SVG on the same page:
+     <path class="fg-edge orange thick" d="M 50,20 L 50,50" marker-end="url(#fg-arr-orange)"/>
+     <path class="fg-edge cyan"         d="M 20,50 L 80,50" marker-end="url(#fg-arr-cyan-bi)" marker-start="url(#fg-arr-cyan-bi)"/>
+
+   SVG markers resolve across <svg> elements in the same document —
+   the hidden .fgraph-defs svg exposes markers to every other SVG.
+
+   Routing patterns (paths are standard SVG — just document the shape):
+     Straight     : "M x1,y1 L x2,y2"
+     Elbow (L)    : "M x1,y1 L x1,y-mid L x2,y-mid L x2,y2"
+     Curve        : "M x1,y1 Q cx,cy x2,y2"          (quadratic — single control)
+     Bezier       : "M x1,y1 C c1x,c1y c2x,c2y x2,y2" (cubic — double control, long routes)
+     Corridor     : "M x1,y1 L x1,Y L x2,Y L x2,y2"   (shared horizontal lane at Y)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── hidden defs container (when present as a <svg class="fgraph-defs">) ── */
+.fgraph-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
 
 /* ── SVG edge layer (non-scaling strokes) ── */
 .fgraph-edges {
@@ -265,11 +372,12 @@
   height: 100%;
   pointer-events: none;
   overflow: visible;
+  z-index: 1;
 }
 .fgraph-edges .fg-edge {
   fill: none;
   stroke-width: 1.6;
-  opacity: 0.85;
+  opacity: 0.9;
   vector-effect: non-scaling-stroke;
 }
 .fgraph-edges .fg-edge.amber  { stroke: var(--amber); }
@@ -298,12 +406,46 @@
 .fgraph-edges .fg-edge.animated { stroke-dasharray: 8 4; animation: fg-dash 1s linear infinite; }
 @keyframes fg-dash { to { stroke-dashoffset: -12; } }
 
-/* arrowhead marker fill classes — apply to <path> inside <marker> */
-.fgraph-edges .mk-amber  { fill: var(--amber); }
-.fgraph-edges .mk-cyan   { fill: var(--cyan); }
-.fgraph-edges .mk-purple { fill: var(--purple); }
-.fgraph-edges .mk-green  { fill: var(--green); }
-.fgraph-edges .mk-red    { fill: var(--red); }
+/* visual hierarchy modifiers (compose with tone) */
+.fgraph-edges .fg-edge.subtle   { opacity: 0.4; stroke-width: 1.1; }
+.fgraph-edges .fg-edge.emphasis { opacity: 1; stroke-width: 2.2; filter: drop-shadow(0 0 4px currentColor); }
+
+/* edge orange tone (added for bus / message-bus flows — pairs with .fg-bus-strip) */
+:root { --fg-orange: #fb923c; }  /* single source — base layer has no orange token */
+.fgraph-edges .fg-edge.orange { stroke: var(--fg-orange); }
+.mk-orange                    { fill:   var(--fg-orange); }
+
+/* arrowhead marker fill classes — apply to <path> inside <marker>.
+   Declared at SVG root (not scoped under .fgraph-edges) so they also
+   resolve inside <svg class="fgraph-defs"> — the hidden shared-defs
+   container. */
+.mk-amber  { fill: var(--amber); }
+.mk-cyan   { fill: var(--cyan); }
+.mk-purple { fill: var(--purple); }
+.mk-green  { fill: var(--green); }
+.mk-red    { fill: var(--red); }
+.mk-dim    { fill: var(--text-dim); }
+
+/* ── mask rect — use to occlude edges behind a node ──
+   Transparent-toned nodes (.fgraph-node.amber, .cyan, etc.) let arrow
+   strokes show through. When an arrow routes behind a node and you
+   don't want it visible there, drop a <rect class="fg-edge-mask"> at
+   the node's position BEFORE the <path> draws — it paints a solid
+   block in the container background color, hiding the stroke behind.
+
+   Inside .fgraph-edges <svg> (0..100 space):
+     <rect class="fg-edge-mask" x="30" y="55" width="20" height="10" rx="1.2"/>
+     <path class="fg-edge orange" d="M 10,60 L 90,60" marker-end="url(#fg-arr-orange)"/>
+
+   Alternative: use .fgraph-node.solid (below) — opaque toned nodes
+   mask automatically and are preferred when the node itself sits on
+   top of the edge. Use .fg-edge-mask only when an edge must cross
+   empty space that should read as "not connecting here".
+*/
+.fgraph-edges .fg-edge-mask {
+  fill: var(--bg-panel);
+  stroke: none;
+}
 
 /* ── node cards ── */
 .fgraph-node {
@@ -454,12 +596,48 @@
 .fgraph-node.folded .fgraph-title,
 .fgraph-node.cylinder .fgraph-title { justify-content: center; }
 
+/* ── hexagon title legibility (C1) ──
+   The clip-path slants cut 25% off each side at the top/bottom edges.
+   max-width constrains the label to the safe inner band (≈56% of the
+   box) so wide labels wrap rather than extend into the clipped tips.
+   color: var(--text) is a contrast floor — tone rules (.fgraph-title.cyan
+   etc.) override with the bright tone colour and remain unaffected.
+   font-weight: 800 improves legibility on the translucent dim fill. */
+.fgraph-node.hexagon .fgraph-title {
+  max-width: 56%;
+  color: var(--text);
+  font-weight: 800;
+  word-break: break-word;
+}
+
 /* tone modifiers (border color + translucent background tint) */
 .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
 .fgraph-node.cyan   { border-color: var(--cyan);   background: var(--cyan-dim); }
 .fgraph-node.purple { border-color: var(--purple); background: var(--purple-dim); }
 .fgraph-node.green  { border-color: var(--green);  background: var(--green-dim); }
 .fgraph-node.red    { border-color: var(--red);    background: var(--red-dim); }
+
+/* ── .solid — opaque node (masks edges behind it) ──
+   Default tone backgrounds are rgba alpha-0.12 tints, which let SVG
+   arrow strokes show through the card. When the diagram has arrows
+   routing BEHIND nodes (long-distance bezier, cross-section feedback)
+   you want the node opaque so it masks the stroke cleanly.
+
+   .solid stacks the tint on top of an opaque --bg-card layer via
+   background-image, so color identity stays the same but alpha = 1.
+
+     <div class="fgraph-node amber solid" style="…">…</div>
+
+   Combine freely with pill / circle / narrow / wide. Clip-path shapes
+   (hexagon / diamond / folded) already have their own opaque fill
+   pseudo-elements — .solid is a no-op on them.
+*/
+.fgraph-node.solid        { background-color: var(--bg-card); background-image: none; }
+.fgraph-node.solid.amber  { background-image: linear-gradient(var(--amber-dim),  var(--amber-dim)); }
+.fgraph-node.solid.cyan   { background-image: linear-gradient(var(--cyan-dim),   var(--cyan-dim)); }
+.fgraph-node.solid.purple { background-image: linear-gradient(var(--purple-dim), var(--purple-dim)); }
+.fgraph-node.solid.green  { background-image: linear-gradient(var(--green-dim),  var(--green-dim)); }
+.fgraph-node.solid.red    { background-image: linear-gradient(var(--red-dim),    var(--red-dim)); }
 
 /* pill + tone: keep hollow background so the center hub reads as a bus */
 .fgraph-node.pill.amber,
@@ -489,6 +667,16 @@
 .fgraph-node.hexagon.purple::before, .fgraph-node.diamond.purple::before, .fgraph-node.folded.purple::before { background: var(--purple-dim); }
 .fgraph-node.hexagon.green::before,  .fgraph-node.diamond.green::before,  .fgraph-node.folded.green::before  { background: var(--green-dim); }
 .fgraph-node.hexagon.red::before,    .fgraph-node.diamond.red::before,    .fgraph-node.folded.red::before    { background: var(--red-dim); }
+
+/* ── hexagon ::before fill — higher opacity (C2) ──
+   Diamond and folded keep the shared 0.14-alpha dim tints above.
+   Hexagon overrides to 0.28 alpha so the fill provides a contrasting
+   backing for title text. Scoped ONLY to .hexagon — diamond/folded unaffected. */
+.fgraph-node.hexagon.amber::before  { background: rgba(251,191,36,0.28); }
+.fgraph-node.hexagon.cyan::before   { background: rgba(34,211,238,0.28); }
+.fgraph-node.hexagon.purple::before { background: rgba(192,132,252,0.28); }
+.fgraph-node.hexagon.green::before  { background: rgba(74,222,128,0.28); }
+.fgraph-node.hexagon.red::before    { background: rgba(248,113,113,0.28); }
 
 /* clip-path hover: enlarge border + glow via filter (box-shadow is clipped) */
 .fgraph-node.hexagon:hover::after,
@@ -592,7 +780,26 @@
 .fgraph-lbl.purple { color: var(--purple); }
 .fgraph-lbl.green  { color: var(--green); }
 .fgraph-lbl.red    { color: var(--red); }
+.fgraph-lbl.orange { color: #fb923c; }
 .fgraph-lbl .dim   { color: var(--text-muted); font-weight: 400; display: block; font-size: 8.5px; }
+
+/* chip-on-wire variant — pill-shaped edge label with border in the tone
+   color and an opaque background that occludes the stroke behind it.
+   Use when the label MUST sit directly on a busy stroke and should
+   read as a legend chip rather than a floating subtitle.
+
+     <div class="fgraph-lbl chip orange" style="--x:50;--y:46">NATS bus</div>
+
+   Same positioning contract as .fgraph-lbl (--x / --y in 0..100 %).
+   Background = --bg (not --bg-panel) so it contrasts equally against
+   card fill and panel fill. Border inherits currentColor from the
+   tone class, so there's no per-tone border rule needed. */
+.fgraph-lbl.chip {
+  background: var(--bg);
+  border: 1px solid currentColor;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
 
 /* ── legend strip (bottom of container) ── */
 .fgraph-legend {
@@ -607,8 +814,111 @@
   pointer-events: none;
 }
 
+/* ── bus strip (horizontal spanning pill band) ──
+   Consumed by: system-architecture.html, any multi-row diagram where a
+   message bus / event bus / broker spans the full width between two
+   node rows. Reads as "the bus IS the bus" — matches the mental model
+   better than a corner satellite.
+
+   Positioned via --y (top %) and --h (height %); --x/--w default to the
+   container inset (4% padding on both sides). Sits between node rows
+   in the 0..100 space, same as .fgraph-node.
+
+     <div class="fg-bus-strip orange" style="--y:48; --h:5">
+       <div class="fg-bus-strip__title">NATS · Message Bus</div>
+       <div class="fg-bus-strip__sub">lyra.inbound.&lt;platform&gt;.&lt;bot&gt;  ·  lyra.outbound.&lt;platform&gt;.&lt;bot&gt;</div>
+     </div>
+
+   Tone variants inherit the semantic bus palette. Orange is the default
+   "message bus" tone (matches --arch-message-bus / architecture tokens).
+*/
+.fg-bus-strip {
+  position: absolute;
+  left:   calc(var(--x, 2) * 1%);
+  right:  calc(var(--x, 2) * 1%);
+  top:    calc(var(--y, 50) * 1%);
+  height: calc(var(--h, 6) * 1%);
+  min-height: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(251,146,60,0.18);
+  border: 1.5px solid #fb923c;
+  font-family: 'Space Mono', monospace;
+  pointer-events: none;
+  z-index: 2;
+}
+.fg-bus-strip.amber  { background: rgba(251,191,36,0.18);  border-color: var(--amber); }
+.fg-bus-strip.cyan   { background: rgba(34,211,238,0.18);  border-color: var(--cyan); }
+.fg-bus-strip.purple { background: rgba(192,132,252,0.18); border-color: var(--purple); }
+.fg-bus-strip.green  { background: rgba(74,222,128,0.18);  border-color: var(--green); }
+.fg-bus-strip.red    { background: rgba(248,113,113,0.18); border-color: var(--red); }
+.fg-bus-strip.orange { background: rgba(251,146,60,0.18);  border-color: #fb923c; }
+
+.fg-bus-strip__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.fg-bus-strip__sub {
+  margin-top: 2px;
+  font-size: 9px;
+  color: #fb923c;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+}
+.fg-bus-strip.amber  .fg-bus-strip__sub { color: var(--amber); }
+.fg-bus-strip.cyan   .fg-bus-strip__sub { color: var(--cyan); }
+.fg-bus-strip.purple .fg-bus-strip__sub { color: var(--purple); }
+.fg-bus-strip.green  .fg-bus-strip__sub { color: var(--green); }
+.fg-bus-strip.red    .fg-bus-strip__sub { color: var(--red); }
+
+/* ── live-status dot (pulsing indicator) ──
+   Consumed by: architecture headers, live-system indicators. Inline
+   element; sits next to a title to signal "this is a running system".
+
+     <span class="fg-live-dot"></span>
+     <span class="fg-live-dot amber"></span>
+
+   Tone defaults to green ("healthy"). Amber = warning, red = down.
+   Pure CSS animation; no JS, no external assets.
+*/
+.fg-live-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(74,222,128,0.7);
+  animation: fg-live-pulse 2s infinite;
+  vertical-align: middle;
+}
+.fg-live-dot.amber { background: var(--amber); box-shadow: 0 0 0 0 rgba(251,191,36,0.7); animation-name: fg-live-pulse-amber; }
+.fg-live-dot.red   { background: var(--red);   box-shadow: 0 0 0 0 rgba(248,113,113,0.7); animation-name: fg-live-pulse-red; }
+@keyframes fg-live-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(74,222,128,0.7); }
+  70%  { box-shadow: 0 0 0 10px rgba(74,222,128,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(74,222,128,0);   }
+}
+@keyframes fg-live-pulse-amber {
+  0%   { box-shadow: 0 0 0 0   rgba(251,191,36,0.7); }
+  70%  { box-shadow: 0 0 0 10px rgba(251,191,36,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(251,191,36,0);   }
+}
+@keyframes fg-live-pulse-red {
+  0%   { box-shadow: 0 0 0 0   rgba(248,113,113,0.7); }
+  70%  { box-shadow: 0 0 0 10px rgba(248,113,113,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(248,113,113,0);   }
+}
+
 /* ── date axis ──
-   Consumed by: gantt.html
+   Consumed by: fd-engine type:"gantt" (gantt.html deleted — replaced by fd-engine path)
    Shape: a horizontal baseline near the bottom of the container with evenly
    spaced tick marks + labels. The axis coordinate space is the same 0–100
    percentage as --x on nodes, so gantt bars can position directly in sync.
@@ -671,7 +981,7 @@
 }
 
 /* ── gantt bars (horizontal time bars) ──
-   Consumed by: gantt.html. Positioned in the same 0–100 % space as the
+   Consumed by: fd-engine type:"gantt" (gantt.html deleted — replaced by fd-engine path). Positioned in the same 0–100 % space as the
    date axis so bar start / end align visibly with ticks.
 
      <div class="fg-gantt-bar amber" style="--x:10; --w:28; --y:22">Task name</div>
@@ -709,7 +1019,7 @@
 .fg-gantt-bar.red    { border-color: rgba(248,113,113,0.55); background: rgba(248,113,113,0.10); color: var(--red); }
 
 /* ── lifelines (sequence-diagram vertical rules) ──
-   Consumed by: sequence.html. Pairs with a top participant pill
+   Consumed by: fd-engine type:"sequence" (sequence.html deleted — replaced by fd-engine path). Pairs with a top participant pill
    (authored as .fgraph-node.pill) that sits at --y:6 or similar.
    The lifeline drops from just below the participant down to the bottom
    of the wrap, visualising the participant's existence over time.
@@ -744,8 +1054,8 @@
 }
 
 /* ── ER markers (crow's-foot relationship endpoints) ──
-   Consumed by: er.html. SVG <marker> defs themselves live inside each
-   er.html's inline <defs> block — <marker> is an SVG element, so it
+   Consumed by: fd-engine type:"er" (er.html deleted — replaced by fd-engine path). SVG <marker> defs live inside each
+   fd-er output's inline <defs> block — <marker> is an SVG element, so it
    cannot be shipped purely from CSS. This block styles the marker
    stroke / fill via the .mk-er-stroke class referenced inside the
    <marker>'s path.
@@ -779,3 +1089,407 @@
   fill: none;
   stroke-width: 1.4;
 }
+
+/* ── Lane-swim primitives  (rev 2 — row-per-node) ──
+   Consumed by: lane-swim.html.
+   N vertical lanes (fixed x) × N rows (one node per row, any lane).
+   Phases are visual groupings via separator lines — NOT shared y coords.
+
+   Primitive inventory:
+     .fgraph-wrap.lane-swim     — container: min-height, no aspect-ratio
+     .fg-lane-header            — sticky header strip (absolute, top:0..4%)
+     .fg-lane-title.{tone}      — lane title span inside header
+     .fg-lane-rule              — dashed vertical guideline per lane
+     .fg-lane-phase-line        — faint horizontal rule at phase boundary
+     .fg-lane-phase-lbl         — phase name label above the rule
+     .fg-lane-node.{tone}       — 18 px circle, positioned via left/top %
+     .fg-lane-node.optional     — dashed border, dimmed
+     .fg-lane-label             — absolutely-positioned text block
+     .fg-lane-title.{tone}      — node name line (flex + baseline-aligned tag)
+     .fg-lane-sig               — node signature line (monospace, muted)
+     .fg-lane-tag               — inline pill (sits on same baseline as title)
+     .fg-lane-tag.pure          — orange kernel variant
+     .fg-lane-tag.opt           — dashed optional variant
+     .fg-lane-curve.{tone}      — SVG connector paths
+     .fg-lane-curve.dashed      — optional / async edge
+     .fg-lane-svg               — SVG overlay element
+     .fg-edge-lbl.{tone}        — chip-on-a-wire edge label pill
+
+   Curve formula:
+     Same lane  → M x,y1  L x,y2
+     Diff lanes → M x1,y1  C x1,ymid  x2,ymid  x2,y2  (ymid=(y1+y2)/2)
+
+   Parallel-edge bend (XOR fork from same source, same lane):
+     Branch A (right bulge, +2):  M x,y1 C (x+2),cy1 (x+2),cy2 x,y2
+     Branch B (left bulge,  -3):  M x,y1 C (x-3),cy1 (x-3),cy2 x,y2
+     Edge label apex: --x=(x±offset); --y=((cy1+cy2)/2)
+
+   Min-height knob: --fg-lane-min-height (default 900px).
+     Scale: ≈ 60px × row_count + 120px (header + legend).
+*/
+
+/* Container — explicit min-height replaces aspect-ratio */
+.fgraph-wrap.lane-swim {
+  --bg-panel: var(--bg-panel, var(--bg));
+  aspect-ratio: unset;
+  min-height: var(--fg-lane-min-height, 900px);
+  max-width: 740px;
+}
+
+/* ── Lane header strip ── */
+.fg-lane-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4%;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+  z-index: 3;
+}
+.fg-lane-title {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+.fg-lane-title.teal        { color: var(--teal); }
+.fg-lane-title.amber       { color: var(--amber); }
+.fg-lane-title.accent      { color: var(--accent); }
+.fg-lane-title.green       { color: var(--green); }
+.fg-lane-title.cyan        { color: var(--cyan); }
+.fg-lane-title.purple      { color: var(--purple); }
+/* semantic aliases matching v3 class names */
+.fg-lane-title.presentation { color: var(--teal); }
+.fg-lane-title.application  { color: var(--amber); }
+.fg-lane-title.kernel       { color: var(--accent); }
+.fg-lane-title.infra        { color: var(--green); }
+
+/* ── Lane rules (dashed vertical guidelines) ── */
+.fg-lane-rule {
+  position: absolute;
+  top:    5%;
+  bottom: 3%;
+  width:  0;
+  border-left: 1px dashed var(--border);
+  opacity: 0.30;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Phase separator line + label ── */
+.fg-lane-phase-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(232,93,4,0.25), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.fg-lane-phase-lbl {
+  position: absolute;
+  left: 2px;
+  transform: translateY(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.55;
+  white-space: nowrap;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Node circles ──
+   Positioned via style="left:{x}%; top:{y}%" (not CSS custom props).
+   Uses currentColor for border so tone class drives both fill and ring.
+   .optional — dashed border + reduced opacity for optional nodes. */
+.fg-lane-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: var(--bg);
+  z-index: 3;
+  cursor: default;
+  transition: box-shadow 0.18s, transform 0.15s;
+}
+.fg-lane-node:hover { transform: translate(-50%, -50%) scale(1.3); }
+.fg-lane-node.optional { border-style: dashed; opacity: 0.72; }
+/* Tone variants — color drives currentColor border, glow, and fill */
+.fg-lane-node.teal        { color: var(--teal);   box-shadow: 0 0 7px rgba(6,182,212,0.4); }
+.fg-lane-node.amber       { color: var(--amber);  box-shadow: 0 0 7px rgba(245,158,11,0.4); }
+.fg-lane-node.accent      { color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 12px var(--accent-glow), 0 0 5px var(--accent-glow); }
+.fg-lane-node.green       { color: var(--green);  box-shadow: 0 0 7px rgba(16,185,129,0.4); }
+.fg-lane-node.cyan        { color: var(--cyan);   box-shadow: 0 0 7px rgba(34,211,238,0.4); }
+.fg-lane-node.purple      { color: var(--purple); box-shadow: 0 0 7px rgba(192,132,252,0.4); }
+/* semantic aliases */
+.fg-lane-node.presentation { color: var(--teal);   box-shadow: 0 0 7px rgba(6,182,212,0.4); }
+.fg-lane-node.application  { color: var(--amber);  box-shadow: 0 0 7px rgba(245,158,11,0.4); }
+.fg-lane-node.kernel       { color: var(--accent); background: var(--accent-dim); box-shadow: 0 0 12px var(--accent-glow), 0 0 5px var(--accent-glow); }
+.fg-lane-node.infra        { color: var(--green);  box-shadow: 0 0 7px rgba(16,185,129,0.4); }
+
+/* ── Label block (node title + sig) ──
+   Positioned via style="--lx:{x}; top:{y}%" (left + clamp derive from --lx).
+   transform:translateY(-50%) centres on the same y as the circle. */
+.fg-lane-label {
+  position: absolute;
+  /* left + max-width derive from --lx (the lane's x in 0..100). The clamp
+     guarantees the rightmost lane's label can never overflow the frame's
+     right edge — long sigs ellipsize instead (see .fg-lane-sig). */
+  left: calc(var(--lx, 0) * 1% + 12px);
+  max-width: calc((100 - var(--lx, 0)) * 1% - 20px);
+  overflow: hidden;
+  transform: translateY(-50%);
+  z-index: 4;
+  pointer-events: none;
+  line-height: 1.25;
+}
+/* Node name row — flex so tag sits inline on the baseline */
+.fg-lane-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px; font-weight: 700; line-height: 1.15;
+  display: flex; align-items: baseline; gap: 5px;
+}
+/* Reuse tone colours from header declaration above — no duplication needed */
+
+/* Signature / sub-text */
+.fg-lane-sig {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Inline tag pill (sits on the same baseline as the node title) ── */
+.fg-lane-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px;
+  padding: 1px 4px;
+  border-radius: 99px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.fg-lane-tag.pure { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+.fg-lane-tag.opt  { border-style: dashed; color: var(--text-muted); }
+
+/* ── SVG overlay ── */
+.fg-lane-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ── Curve connectors ── */
+.fg-lane-curve {
+  fill: none;
+  stroke-width: 1.6;
+  opacity: 0.80;
+  vector-effect: non-scaling-stroke;
+}
+.fg-lane-curve.teal        { stroke: var(--teal); }
+.fg-lane-curve.amber       { stroke: var(--amber); }
+.fg-lane-curve.accent      { stroke: var(--accent); }
+.fg-lane-curve.green       { stroke: var(--green); }
+.fg-lane-curve.cyan        { stroke: var(--cyan); }
+.fg-lane-curve.purple      { stroke: var(--purple); }
+.fg-lane-curve.dashed      { stroke-dasharray: 4 3; opacity: 0.50; }
+
+/* ── Edge label pills (chip-on-a-wire) ──
+   Positioned via --x/--y custom props (0..100 space, matching SVG coords).
+   background:var(--bg) occludes the stroke behind the pill.
+   border:1px solid currentColor — caller sets the tone class; both text
+   and border colour follow currentColor automatically (no per-tone rule). */
+.fg-edge-lbl {
+  position: absolute;
+  left: calc(var(--x, 50) * 1%);
+  top:  calc(var(--y, 50) * 1%);
+  transform: translate(-50%, -50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid currentColor;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+.fg-edge-lbl.teal   { color: var(--teal); }
+.fg-edge-lbl.amber  { color: var(--amber); }
+.fg-edge-lbl.accent { color: var(--accent); }
+.fg-edge-lbl.green  { color: var(--green); }
+.fg-edge-lbl.cyan   { color: var(--cyan); }
+.fg-edge-lbl.purple { color: var(--purple); }
+.fg-edge-lbl.red    { color: var(--red); }
+.fg-edge-lbl.orange { color: var(--fg-orange); }
+
+
+/* ════ live-mode hooks (merged from fgraph-live.css — feat/fgraph-live-edges) ════ */
+/* ══════════════════════════════════════════════════════════════════
+   fgraph-live.css — live-mode CSS hooks (partial for fgraph-base.css)
+
+   Activates only for .fgraph-wrap[data-fgraph="live"] + its children.
+   Static wraps are fully unaffected.
+
+   Merge strategy: paste this block at the end of fgraph-base.css,
+   after all existing rules. No existing rule is overridden for
+   static wraps because all selectors here require data-fgraph="live"
+   or the state classes fg-dim / fg-hot emitted by fgraph-interact.js.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── live svg overlay: px coords, no stretch ── */
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  /* viewBox & dimensions are set by fgraph-auto.js at runtime */
+}
+
+/* edge path transitions (generated paths only) */
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges path.fg-edge {
+  transition: opacity 0.18s, stroke-width 0.15s;
+}
+
+/* ── spotlight / dim state ── */
+/* dim non-hot nodes */
+.fgraph-wrap[data-fgraph="live"].fg-dim .fgraph-node:not(.fg-hot) {
+  opacity: 0.32;
+  transition: opacity 0.18s;
+}
+/* dim non-hot edges */
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges path.fg-edge:not(.fg-hot) {
+  opacity: 0.08;
+}
+/* hot edges: full opacity boost */
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges path.fg-edge.fg-hot {
+  opacity: 1;
+  stroke-width: 2.4;
+}
+/* hot nodes: subtle lift */
+.fgraph-wrap[data-fgraph="live"] .fgraph-node.fg-hot {
+  box-shadow: 0 0 18px var(--accent-glow, rgba(34,211,238,0.35));
+  z-index: 4;
+}
+
+/* ── tone hide filters (toggled by legend chip clicks) ── */
+.fg-hide-cyan    svg.fgraph-edges .fg-edge.cyan,
+.fg-hide-cyan    svg.fgraph-edges text.fg-edge-lbl.cyan     { display: none; }
+.fg-hide-orange  svg.fgraph-edges .fg-edge.orange,
+.fg-hide-orange  svg.fgraph-edges text.fg-edge-lbl.orange   { display: none; }
+.fg-hide-purple  svg.fgraph-edges .fg-edge.purple,
+.fg-hide-purple  svg.fgraph-edges text.fg-edge-lbl.purple   { display: none; }
+.fg-hide-green   svg.fgraph-edges .fg-edge.green,
+.fg-hide-green   svg.fgraph-edges text.fg-edge-lbl.green    { display: none; }
+.fg-hide-red     svg.fgraph-edges .fg-edge.red,
+.fg-hide-red     svg.fgraph-edges text.fg-edge-lbl.red      { display: none; }
+.fg-hide-amber   svg.fgraph-edges .fg-edge.amber,
+.fg-hide-amber   svg.fgraph-edges text.fg-edge-lbl.amber    { display: none; }
+.fg-hide-dim     svg.fgraph-edges .fg-edge.dim,
+.fg-hide-dim     svg.fgraph-edges text.fg-edge-lbl.dim      { display: none; }
+
+/* ── generated SVG edge labels (live mode only) ── */
+/* SVG <text> elements share the .fg-edge-lbl class with HTML overlay divs.
+   The base .fg-edge-lbl rule applies `transform:translate(-50%,-50%)` for HTML-overlay
+   label divs; SVG <text> is positioned by its x/y attributes, so only the transform
+   must be cancelled here. (`position`, `left`, `top` are HTML box-model only — inert
+   on SVG elements.) */
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl {
+  transform: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: var(--text-muted);
+  pointer-events: none;
+  opacity: 0.82;
+}
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.cyan   { fill: var(--cyan); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.orange { fill: var(--fg-orange); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.purple { fill: var(--purple); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.green  { fill: var(--green); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.red    { fill: var(--red); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.amber  { fill: var(--amber); }
+.fgraph-wrap[data-fgraph="live"] svg.fgraph-edges text.fg-edge-lbl.dim    { fill: var(--text-muted); opacity: 0.5; }
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges text.fg-edge-lbl:not(.fg-hot) { opacity: 0.05; }
+.fgraph-wrap[data-fgraph="live"].fg-dim svg.fgraph-edges text.fg-edge-lbl.fg-hot       { opacity: 1; }
+
+/* ── generated legend ── */
+.fgraph-legend--live {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fg-legend-chip {
+  pointer-events: all;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+  background: var(--bg-panel, #111);
+  color: var(--text-muted, #8aa0bd);
+  transition: opacity 0.15s, background 0.15s;
+  user-select: none;
+}
+.fg-legend-chip:hover { opacity: 0.85; }
+.fg-legend-chip--off  { opacity: 0.35; text-decoration: line-through; }
+
+/* tone-tinted chips */
+.fg-legend-chip.cyan   { color: var(--cyan); }
+.fg-legend-chip.orange { color: var(--fg-orange); }
+.fg-legend-chip.purple { color: var(--purple); }
+.fg-legend-chip.green  { color: var(--green); }
+.fg-legend-chip.red    { color: var(--red); }
+.fg-legend-chip.amber  { color: var(--amber); }
+.fg-legend-chip.dim    { color: var(--text-muted); }
+
+/* group chips: neutral tint */
+.fg-legend-chip--group {
+  color: var(--text, #e6edf6);
+  border-style: dashed;
+}
+
+/* group-hidden node: used by interact.js group toggle */
+.fgraph-node.fg-group-hidden { display: none; }
+/* edges + labels touching a hidden group (interact.js group toggle) */
+.fgraph-edges .fg-edge-hidden,
+.fgraph-edges text.fg-edge-hidden { display: none; }

@@ -51,12 +51,10 @@ components:
   card_default:      accent         # .card.accent — Forge Orange border-left
   timeline:          steps          # .steps component for sequential walks
   badges:            verdict        # .verdict-badge for built/active/planned states
-  mermaid_theme_bias: dark          # Lyra is dark-first; light mode is docs-only
 
 # ── Structure preferences ───────────────────────────────────────
 structure_defaults:
   prefer_fgraph_under: 6     # hub-and-spoke ≤ 6 peers → fgraph (matches existing visuals)
-  prefer_mermaid_over: 8     # > 8 nodes → mermaid regardless
   comparison_as_table: true  # matrices as HTML tables, not grid cards
 
 # ── Canonical examples ──────────────────────────────────────────

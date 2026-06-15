@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="Roxabi dev loop">
+<meta name="diagram:date"      content="2026-05-30">
+<meta name="diagram:category"  content="process">
+<meta name="diagram:cat-label" content="process · cycle">
+<meta name="diagram:color"     content="purple">
+<!-- diagram-meta:end -->
+<title>Roxabi dev loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+    --border: #1f252e; --border-bright: #2b3340;
+    --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+    --amber: #fbbf24; --cyan: #22d3ee; --purple: #c084fc; --green: #4ade80; --red: #f87171;
+    --amber-dim: rgba(251,191,36,0.10); --cyan-dim: rgba(34,211,238,0.10);
+    --purple-dim: rgba(192,132,252,0.10); --green-dim: rgba(74,222,128,0.10);
+    --accent-glow: rgba(192,132,252,0.35);
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; padding: 32px 24px 40px; max-width: 960px; margin: 0 auto; }
+  header { margin-bottom: 20px; }
+  .header-eyebrow { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  h1 .accent { color: var(--purple); }
+  .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  .fgraph-wrap { position: relative; width: 100%; max-width: 760px; aspect-ratio: 1/1; margin: 0 auto 20px; background: var(--bg-panel); border: 1px solid rgba(192,132,252,0.35); border-radius: 10px; padding: 14px; font-family: 'Inter', system-ui, sans-serif; }
+  .fgraph-wrap.square { aspect-ratio: 1/1; }
+  .fgraph-legend { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-family: 'Space Mono', monospace; font-size: 9.5px; color: var(--text-muted); pointer-events: none; }
+
+  .fgraph-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+  .fgraph-edges .fg-edge { fill: none; stroke-width: 1.6; opacity: 0.9; vector-effect: non-scaling-stroke; }
+  .fgraph-edges .fg-edge.amber  { stroke: var(--amber); }
+  .fgraph-edges .fg-edge.cyan   { stroke: var(--cyan); }
+  .fgraph-edges .fg-edge.purple { stroke: var(--purple); }
+  .fgraph-edges .fg-edge.green  { stroke: var(--green); }
+  .mk-amber { fill: var(--amber); } .mk-cyan { fill: var(--cyan); }
+  .mk-purple { fill: var(--purple); } .mk-green { fill: var(--green); }
+
+  .fgraph-node { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); width: var(--w,22%); transform: translate(-50%,-50%); background: var(--bg-card); border: 1.5px solid var(--border-bright); border-radius: 12px; padding: 8px 10px 9px; z-index: 2; transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s; }
+  .fgraph-node:hover { border-width: 2px; box-shadow: 0 0 14px var(--accent-glow); transform: translate(-50%,-50%) translateY(-1px); z-index: 3; }
+  .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
+  .fgraph-node.cyan   { border-color: var(--cyan);   background: var(--cyan-dim); }
+  .fgraph-node.purple { border-color: var(--purple); background: var(--purple-dim); }
+  .fgraph-node.green  { border-color: var(--green);  background: var(--green-dim); }
+
+  .fgraph-title { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+  .fgraph-title.amber  { color: var(--amber); }
+  .fgraph-title.cyan   { color: var(--cyan); }
+  .fgraph-title.purple { color: var(--purple); }
+  .fgraph-title.green  { color: var(--green); }
+  .fgraph-sub { margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 9.5px; line-height: 1.35; color: var(--text-dim); text-align: center; }
+
+  .fgraph-pill { display: inline-block; font-family: 'Space Mono', monospace; font-size: 8.5px; font-weight: 400; line-height: 1.3; padding: 1px 6px; border-radius: 99px; background: var(--bg-panel); border: 1px solid var(--border-bright); color: var(--text-muted); letter-spacing: 0.03em; }
+  .fgraph-pill.amber  { color: var(--amber);  border-color: rgba(251,191,36,0.35);  background: rgba(251,191,36,0.08); }
+  .fgraph-pill.cyan   { color: var(--cyan);   border-color: rgba(34,211,238,0.35);  background: rgba(34,211,238,0.08); }
+  .fgraph-pill.purple { color: var(--purple); border-color: rgba(192,132,252,0.35); background: rgba(192,132,252,0.08); }
+  .fgraph-pill.green  { color: var(--green);  border-color: rgba(74,222,128,0.35);  background: rgba(74,222,128,0.08); }
+
+  .fgraph-lbl { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); transform: translate(-50%,-50%); font-family: 'Space Mono', monospace; font-size: 9.5px; font-weight: 700; line-height: 1.35; padding: 2px 6px; background: var(--bg-panel); border-radius: 4px; pointer-events: none; white-space: nowrap; text-align: center; z-index: 1; }
+  .fgraph-lbl.amber  { color: var(--amber); }
+  .fgraph-lbl.cyan   { color: var(--cyan); }
+  .fgraph-lbl.purple { color: var(--purple); }
+  .fgraph-lbl.green  { color: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">process · cycle</div>
+  <h1>Roxabi <span class="accent">dev loop</span></h1>
+  <p class="header-subtitle">frame → spec → plan → implement → verify → ship — the /dev cycle.</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     6-node ring — no center hub.
+     Nodes at radius ~35% from center (50,50), 60° stride, clockwise.
+       node-1 frame     top         (50, 15)
+       node-2 spec      top-right   (80, 30)
+       node-3 plan      bot-right   (80, 70)
+       node-4 implement bottom      (50, 85)
+       node-5 verify    bot-left    (20, 70)
+       node-6 ship      top-left    (20, 30)
+     Sequential clockwise edges; ship → frame closes the loop.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fgraph-wrap square"
+     role="img"
+     aria-label="Cyclic ring diagram of the Roxabi /dev loop. Six stages in clockwise order: frame produces artifacts/frames; spec produces artifacts/specs; plan produces artifacts/plans; implement runs in a worktree and branch; verify runs tests and review; ship merges PR to staging and loops back to frame.">
+
+  <svg class="fgraph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="fg-arr-amber-rr"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-amber"/></marker>
+      <marker id="fg-arr-cyan-rr"   viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-cyan"/></marker>
+      <marker id="fg-arr-purple-rr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-purple"/></marker>
+      <marker id="fg-arr-green-rr"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="mk-green"/></marker>
+    </defs>
+
+    <!-- frame (top) → spec (top-right): arrive at spec's top-left edge, clear of badge -->
+    <path class="fg-edge amber" d="M 62,18 Q 66,22 71,26"
+          marker-end="url(#fg-arr-amber-rr)"/>
+
+    <!-- spec (top-right) → plan (bot-right): curve down -->
+    <path class="fg-edge cyan" d="M 82,42 Q 84,50 82,58"
+          marker-end="url(#fg-arr-cyan-rr)"/>
+
+    <!-- plan (bot-right) → implement (bottom): curve down-left -->
+    <path class="fg-edge purple" d="M 75,70 Q 68,80 58,82"
+          marker-end="url(#fg-arr-purple-rr)"/>
+
+    <!-- implement (bottom) → verify (bot-left): curve left -->
+    <path class="fg-edge green" d="M 42,82 Q 32,80 25,70"
+          marker-end="url(#fg-arr-green-rr)"/>
+
+    <!-- verify (bot-left) → ship (top-left): straight up left side, slight left-arc -->
+    <path class="fg-edge cyan" d="M 20,66 Q 16,50 20,34"
+          marker-end="url(#fg-arr-cyan-rr)"/>
+
+    <!-- ship (top-left) → frame (top): curve up-right, closes the loop -->
+    <path class="fg-edge green" d="M 25,30 Q 28,22 38,18"
+          marker-end="url(#fg-arr-green-rr)"/>
+  </svg>
+
+  <!-- Ring nodes -->
+
+  <!-- node-1: frame (top) — amber -->
+  <div class="fgraph-node amber" style="--x:50;--y:15;">
+    <div class="fgraph-title amber">
+      frame <span class="fgraph-pill amber">01</span>
+    </div>
+    <div class="fgraph-sub">artifacts/frames</div>
+  </div>
+
+  <!-- node-2: spec (top-right) — cyan -->
+  <div class="fgraph-node cyan" style="--x:80;--y:30;">
+    <div class="fgraph-title cyan">
+      spec <span class="fgraph-pill cyan">02</span>
+    </div>
+    <div class="fgraph-sub">artifacts/specs</div>
+  </div>
+
+  <!-- node-3: plan (bot-right) — purple -->
+  <div class="fgraph-node purple" style="--x:80;--y:70;">
+    <div class="fgraph-title purple">
+      plan <span class="fgraph-pill purple">03</span>
+    </div>
+    <div class="fgraph-sub">artifacts/plans</div>
+  </div>
+
+  <!-- node-4: implement (bottom) — green -->
+  <div class="fgraph-node green" style="--x:50;--y:85;">
+    <div class="fgraph-title green">
+      implement <span class="fgraph-pill green">04</span>
+    </div>
+    <div class="fgraph-sub">worktree + branch</div>
+  </div>
+
+  <!-- node-5: verify (bot-left) — cyan -->
+  <div class="fgraph-node cyan" style="--x:20;--y:70;">
+    <div class="fgraph-title cyan">
+      verify <span class="fgraph-pill cyan">05</span>
+    </div>
+    <div class="fgraph-sub">tests + review</div>
+  </div>
+
+  <!-- node-6: ship (top-left) — green -->
+  <div class="fgraph-node green" style="--x:20;--y:30;">
+    <div class="fgraph-title green">
+      ship <span class="fgraph-pill green">06</span>
+    </div>
+    <div class="fgraph-sub">PR merge → staging</div>
+  </div>
+
+  <div class="fgraph-legend">6 nodes · 6 edges · clockwise cycle · ship → frame closes the loop</div>
+</div>
+
+</main>
+
+</body>
+</html>

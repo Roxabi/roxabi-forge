@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="diagram:title" content="Roxabi Forge — Plugin Architecture">
+<meta name="diagram:category" content="architecture">
+<meta name="diagram:color" content="#22d3ee">
+<meta name="diagram:engine" content="fd-engine">
+<meta name="diagram:type" content="architecture">
+<title>Roxabi Forge — Plugin Architecture</title>
+<!-- Google Fonts — degrades gracefully offline -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ forge base reset (subset) ══ */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+ul,ol{list-style:none;margin:0;padding:0}
+button{cursor:pointer;font-family:inherit}
+
+/* ══ lyra-v2 aesthetic tokens ══ */
+:root{
+  --bg:#0d1117;
+  --bg-cell:#0f141a;
+  --bg-panel:#13191f;
+  --bg-card:#161b22;
+  --surface:#13191f;
+  --surface2:#161b22;
+  --border:#21262d;
+  --border-hi:#30363d;
+  --border-bright:#30363d;
+  --text:#fafafa;
+  --text-muted:#8b93a1;
+  --text-dim:#6b7280;
+  --accent:#e85d04;
+  --accent-2:#f97316;
+  --accent-dim:rgba(232,93,4,0.12);
+  --accent-glow:rgba(232,93,4,0.40);
+  --teal:#06b6d4;
+  --amber:#f59e0b;
+  --amber-dim:rgba(245,158,11,0.10);
+  --green:#10b981;
+  --cyan:#22d3ee;
+  --purple:#c084fc;
+  --plum:#a855f7;
+  --red:#ef4444;
+  /* fgraph-compat tone aliases */
+  --amber-glow:rgba(245,158,11,0.22);
+  --cyan-glow:rgba(34,211,238,0.22);
+  --purple-glow:rgba(192,132,252,0.22);
+  --green-glow:rgba(16,185,129,0.22);
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+
+/* ══ page shell ══ */
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.4}
+.page{padding:22px 22px 60px;max-width:1440px;margin:0 auto}
+
+/* ══ header ══ */
+header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content:space-between;
+  padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.htitle h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.3px}
+.htitle h1 b{color:var(--cyan)}
+.htitle p{margin:5px 0 0;color:var(--text-muted);font-size:12px;font-family:var(--mono)}
+.badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--border-hi);color:var(--text-muted)}
+.badge.cyan{border-color:rgba(34,211,238,.3);background:rgba(34,211,238,.06);color:var(--cyan)}
+.badge.amber{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06);color:var(--amber)}
+
+/* ══ control bar ══ */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text-muted);
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-family:var(--mono)}
+.lsw{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.lln{width:16px;height:0;border-top:2.5px solid;border-radius:2px}
+.ctl-group{display:flex;gap:7px;flex-wrap:wrap}
+.ctl{cursor:pointer;user-select:none;font-size:11px;font-family:var(--mono);color:var(--text);
+  background:var(--bg-panel);border:1px solid var(--border-hi);border-radius:7px;padding:5px 10px;transition:.15s}
+.ctl:hover{border-color:var(--cyan)}
+.ctl.off{opacity:.35;text-decoration:line-through}
+.uc-bar{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.uc-label{font-size:10.5px;font-family:var(--mono);color:var(--text-dim);white-space:nowrap}
+.uc-btn{cursor:pointer;user-select:none;font-size:10.5px;font-family:var(--mono);color:var(--text-muted);
+  background:var(--bg-panel);border:1px solid var(--border-hi);border-radius:7px;padding:4px 9px;transition:.15s}
+.uc-btn:hover{border-color:var(--amber);color:var(--text)}
+.uc-btn.active{background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.4);color:var(--amber)}
+.uc-play{font-size:10.5px;font-family:var(--mono);color:var(--green);
+  background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.3);border-radius:7px;padding:4px 9px;transition:.15s}
+.uc-play:hover{border-color:var(--green)}
+.uc-play:disabled{opacity:.38;cursor:default}
+.uc-reset{font-size:10.5px;font-family:var(--mono);color:var(--text-muted);
+  background:var(--bg-panel);border:1px solid var(--border-hi);border-radius:7px;padding:4px 9px;transition:.15s;display:none}
+.uc-reset.visible{display:inline-block}
+.uc-reset:hover{border-color:var(--text-muted);color:var(--text)}
+
+/* ══ diagram row ══ */
+.diagram-row{display:flex;gap:0;align-items:stretch;margin-bottom:22px}
+.stage-wrap{flex:1;min-width:0;position:relative;border:1px solid var(--border);border-radius:12px 0 0 12px;
+  background:linear-gradient(180deg,var(--bg-panel),var(--bg-cell));overflow:auto}
+.stage-wrap::-webkit-scrollbar{height:8px;width:8px}
+.stage-wrap::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:8px}
+
+/* ══ fd-engine canvas ══ */
+/* fd-canvas: the positioning root for all .fd-node divs and the SVG overlay */
+.fd-canvas{position:relative;width:100%}
+/* fd-edges SVG overlay: pixel space, NO preserveAspectRatio (AC-10) */
+/* position:absolute;inset:0;width:100%;height:100% maps SVG coords to pixel space */
+.fd-edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}
+.fd-edges path{fill:none;stroke-width:1.8;opacity:.6;transition:opacity .15s,stroke-width .15s}
+/* semantic planes — edge colors derive from aesthetic tokens (AC-6) */
+.fd-edges path.control{stroke:var(--cyan)}
+.fd-edges path.write{stroke:var(--green)}
+.fd-edges path.read{stroke:var(--purple)}
+.fd-edges path.data{stroke:var(--plum)}
+.fd-edges path.async{stroke:var(--amber)}
+.fd-edges path.feedback{stroke:var(--accent)}
+.fd-edges path.hot{opacity:1;stroke-width:2.8}
+.dimmed .fd-edges path:not(.hot){opacity:.06}
+/* edge label class aligned to modular source edges.js: fd-elabel (not elabel) */
+.fd-edges .fd-elabel{font-family:var(--mono);font-size:9px;fill:var(--text-muted);opacity:0}
+.fd-edges .fd-elabel.hot{opacity:1}
+/* uc edge states */
+.fd-edges path.uc-active{opacity:1!important;stroke-width:2.8!important}
+.fd-edges path.uc-done{opacity:.45!important;stroke-width:1.8!important}
+/* particle wrapper */
+.fd-edges g.fd-particle-wrap{filter:drop-shadow(0 0 5px var(--pcol,#22d3ee))}
+
+/* ══ fd-card-premium: lyra-style node card ══ */
+.fd-node{
+  position:absolute;
+  z-index:2;
+  transform:translate(-50%,-50%);
+  width:154px;
+  background:linear-gradient(180deg,var(--bg-panel),var(--bg-card));
+  border:1px solid var(--border-hi);
+  border-radius:10px;
+  padding:8px 10px 8px 12px;
+  cursor:default;
+  transition:transform .12s,box-shadow .15s,border-color .15s;
+  box-shadow:0 2px 12px rgba(0,0,0,.45)
+}
+.fd-node .accent-bar{position:absolute;left:0;top:7px;bottom:7px;width:3px;border-radius:3px;background:var(--text-dim)}
+.fd-node:hover{transform:translate(-50%,-50%) translateY(-2px);border-color:var(--border-bright);box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.fd-node.hot{border-color:rgba(255,255,255,.2);box-shadow:0 0 0 1px rgba(255,255,255,.12),0 8px 28px rgba(0,0,0,.7)}
+.dimmed .fd-node:not(.hot){opacity:.24}
+.fd-node .fd-nh{display:flex;align-items:center;justify-content:space-between;gap:5px}
+.fd-node .fd-name{font-weight:700;font-size:11.5px;font-family:var(--mono);letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fd-node .fd-img{color:var(--text-muted);font-size:9.5px;font-family:var(--mono);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fd-node .fd-desc{color:var(--text-dim);font-size:9.5px;margin-top:2px;line-height:1.3}
+.fd-tag{font-size:8px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.fd-tag.message{background:rgba(34,211,238,.12);color:var(--cyan)}
+.fd-tag.control{background:rgba(34,211,238,.12);color:var(--cyan)}
+.fd-tag.write{background:rgba(16,185,129,.12);color:var(--green)}
+.fd-tag.read{background:rgba(192,132,252,.12);color:var(--purple)}
+.fd-tag.data{background:rgba(168,85,247,.12);color:var(--plum)}
+.fd-tag.async{background:rgba(245,158,11,.12);color:var(--amber)}
+.fd-tag.feedback{background:rgba(232,93,4,.12);color:var(--accent)}
+.fd-tag.llm{background:rgba(192,132,252,.14);color:var(--purple)}
+.fd-tag.ext{background:rgba(107,114,128,.12);color:var(--text-dim)}
+.fd-hb{position:absolute;right:6px;bottom:5px;font-size:7.5px;font-family:var(--mono);font-weight:700;padding:1px 5px;border-radius:20px}
+.fd-hb.M1{background:rgba(16,185,129,.1);color:var(--green)}
+.fd-hb.M2{background:rgba(245,158,11,.1);color:var(--amber);border:1px dashed rgba(245,158,11,.25)}
+/* special node kinds */
+.fd-node.fd-bus{
+  width:58%;max-width:760px;
+  background:linear-gradient(90deg,rgba(34,211,238,.06),rgba(34,211,238,.03),rgba(34,211,238,.06));
+  border:1.5px solid rgba(34,211,238,.25);
+  box-shadow:0 0 24px rgba(34,211,238,.08),inset 0 0 28px rgba(34,211,238,.04);
+  padding:10px 16px
+}
+.fd-node.fd-bus .accent-bar{display:none}
+.fd-node.fd-bus .fd-name{font-size:12px;color:var(--cyan)}
+.fd-node.fd-bus .fd-subj{color:var(--text-muted);font-size:9px;font-family:var(--mono);margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fd-node.fd-bus .fd-subj b{color:rgba(191,230,255,.8);font-weight:600}
+.fd-node.fd-store{background:linear-gradient(180deg,rgba(168,85,247,.05),rgba(168,85,247,.02));border-color:rgba(168,85,247,.2)}
+.fd-node.fd-store .accent-bar{background:var(--plum)}
+.fd-node.fd-ext{background:repeating-linear-gradient(135deg,var(--bg-panel),var(--bg-panel) 7px,var(--bg-cell) 7px,var(--bg-cell) 14px);border:1.5px dashed var(--border-hi)}
+.fd-node.fd-ext .accent-bar{display:none}
+.fd-node.fd-ext .fd-name{color:rgba(203,214,230,.8)}
+/* uc node states */
+.fd-node.uc-active{border-color:var(--amber)!important;
+  box-shadow:0 0 0 2px rgba(245,158,11,.3),0 0 20px rgba(245,158,11,.2),0 6px 22px rgba(0,0,0,.7)!important;z-index:5}
+.fd-node.uc-done{border-color:rgba(245,158,11,.45)!important;opacity:1!important}
+
+/* ══ zones ══ */
+.fd-zone{position:absolute;z-index:0;border-radius:12px;border:1px dashed;pointer-events:none}
+.fd-zone .fd-zone-label{position:absolute;top:6px;left:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:1px;text-transform:uppercase}
+.zone-m1{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.03)}
+.zone-m1 .fd-zone-label{color:rgba(16,185,129,.6)}
+.zone-m2{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)}
+.zone-m2 .fd-zone-label{color:rgba(245,158,11,.6)}
+.zone-forge{border-color:rgba(34,211,238,.2);background:rgba(34,211,238,.03);border-style:solid;border-radius:14px}
+.zone-forge .fd-zone-label{color:rgba(34,211,238,.55);font-size:9px}
+
+/* ══ sidebar ══ */
+.sidebar{width:280px;flex-shrink:0;border:1px solid var(--border-hi);border-left:none;
+  border-radius:0 12px 12px 0;background:var(--bg-cell);display:flex;flex-direction:column;overflow:hidden}
+.sb-header{padding:12px 13px 9px;border-bottom:1px solid var(--border)}
+.sb-header h4{margin:0 0 2px;font-size:12.5px;font-family:var(--mono);color:var(--text)}
+.sb-header .fd-img{color:var(--text-muted);font-family:var(--mono);font-size:9.5px;margin-bottom:6px;word-break:break-all}
+.sb-header dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px}
+.sb-header dt{color:var(--text-dim);font-family:var(--mono);font-size:9.5px}
+.sb-header dd{margin:0;font-size:10.5px;font-family:var(--mono);color:var(--text)}
+.sb-header .hint{color:var(--text-dim);font-size:10px;font-style:italic;line-height:1.5}
+.sb-uc{padding:11px 13px;border-top:1px solid var(--border);flex:1;overflow:auto;display:none}
+.sb-uc.visible{display:block}
+.sb-uc .uc-title{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--amber);margin-bottom:7px}
+.uc-steps-list{display:flex;flex-direction:column;gap:3px}
+.uc-steps-list li{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:6px;
+  border:1px solid transparent;color:var(--text-dim);transition:.15s;line-height:1.4}
+.uc-steps-list li.step-done{color:var(--green);border-color:rgba(16,185,129,.15);background:rgba(16,185,129,.05)}
+.uc-steps-list li.step-active{color:var(--amber);border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.06);
+  box-shadow:0 0 8px rgba(245,158,11,.12)}
+.uc-steps-list li .sn{font-size:8.5px;opacity:.5;margin-right:4px}
+.sb-uc .uc-desc{margin-top:9px;font-size:10px;color:var(--text-muted);line-height:1.55;
+  padding-top:9px;border-top:1px dashed var(--border)}
+.sb-uc .uc-desc b{color:var(--text)}
+
+/* ══ net label ══ */
+.fd-net-label{position:absolute;left:14px;top:10px;font-family:var(--mono);font-size:10px;
+  color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;z-index:10;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="htitle">
+      <h1><b>Roxabi Forge</b> — Plugin Architecture</h1>
+      <p>fd-engine · architecture type · lyra-v2 · declarative layout · DOM-measured edges · ResizeObserver</p>
+    </div>
+    <div class="badges">
+      <span class="badge cyan">fd-engine v1</span>
+      <span class="badge amber">architecture type</span>
+      <span class="badge">lyra-v2 theme</span>
+      <span class="badge">file:// safe</span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div class="legend">
+        <span class="lg"><span class="lln" style="border-color:var(--cyan)"></span>control</span>
+        <span class="lg"><span class="lln" style="border-color:var(--green)"></span>write</span>
+        <span class="lg"><span class="lln" style="border-color:var(--purple)"></span>read</span>
+        <span class="lg"><span class="lln" style="border-color:var(--plum)"></span>data</span>
+        <span class="lg"><span class="lln" style="border-color:var(--amber)"></span>async</span>
+        <span class="lg"><span class="lln" style="border-color:var(--accent)"></span>feedback</span>
+      </div>
+      <div class="ctl-group">
+        <span class="ctl" id="ctl-control" data-plane="control">control</span>
+        <span class="ctl" id="ctl-write"   data-plane="write">write</span>
+        <span class="ctl" id="ctl-read"    data-plane="read">read</span>
+        <span class="ctl" id="ctl-data"    data-plane="data">data</span>
+        <span class="ctl" id="ctl-async"   data-plane="async">async</span>
+      </div>
+    </div>
+    <div class="uc-bar">
+      <span class="uc-label">use case:</span>
+      <button class="uc-btn" data-uc="0">① skill invoke</button>
+      <button class="uc-btn" data-uc="1">② artifact deploy</button>
+      <button class="uc-btn" data-uc="2">③ live reload</button>
+      <button class="uc-play" id="ucPlay" disabled>&#9654; play</button>
+      <button class="uc-reset" id="ucReset">&#8634; reset</button>
+    </div>
+  </div>
+
+  <div class="diagram-row">
+    <div class="stage-wrap">
+      <div class="fd-canvas" id="fd-canvas">
+        <div class="fd-net-label">forge.network — Claude Code plugin ecosystem</div>
+        <!-- zones positioned by JS from node rects -->
+        <div class="fd-zone zone-forge" id="zone-forge"><span class="fd-zone-label">forge plugin · skills</span></div>
+        <div class="fd-zone zone-m1"    id="zone-m1">   <span class="fd-zone-label">M&#x2081; · roxabituwer</span></div>
+        <div class="fd-zone zone-m2"    id="zone-m2">   <span class="fd-zone-label">M&#x2082; · roxabitower</span></div>
+        <!-- SVG overlay: pixel-space bezier edges (AC-10: no preserveAspectRatio) -->
+        <svg class="fd-edges" id="fd-edges" aria-hidden="true">
+          <defs>
+            <!-- AC-6: marker fill colors bound via CSS vars (theme-aware, matches edges.js initMarkers pattern) -->
+            <style>
+              #fd-arr-control path { fill: var(--fd-plane-control, #38bdf8); }
+              #fd-arr-write   path { fill: var(--fd-plane-write,   #34d399); }
+              #fd-arr-read    path { fill: var(--fd-plane-read,    #64748b); }
+              #fd-arr-data    path { fill: var(--fd-plane-data,    #a78bfa); }
+              #fd-arr-async   path { fill: var(--fd-plane-async,   #fb923c); }
+              #fd-arr-feedback path { fill: var(--fd-plane-feedback, #fb7185); }
+            </style>
+            <marker id="fd-arr-control"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-write"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-read"     markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-data"     markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-async"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+            <marker id="fd-arr-feedback" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z"/></marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="sidebar" id="fd-sidebar">
+      <div class="sb-header" id="sbHeader">
+        <h4>Hover = detail</h4>
+        <div class="hint">Hover a node to isolate its edges and see image / host / role.<br>Select a use case to animate the flow.</div>
+      </div>
+      <div class="sb-uc" id="sbUc">
+        <div class="uc-title" id="ucTitle"></div>
+        <ul class="uc-steps-list" id="ucStepsList"></ul>
+        <div class="uc-desc" id="ucDesc"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.page -->
+
+<!-- fd-data: descriptor JSON embedded inline (AC-4: no fetch, AC-5: single file) -->
+<script type="application/json" id="fd-data">
+{
+  "type": "architecture",
+  "title": "Roxabi Forge — Plugin Architecture",
+  "theme": "lyra-v2",
+  "layout": "declarative",
+  "canvas": { "height": 920 },
+  "options": {
+    "particles": false,
+    "spotlight": true,
+    "sidebar": true
+  },
+  "nodes": [
+    {
+      "id": "claude",
+      "x": 50, "y": 8,
+      "kind": "ext",
+      "n": "Claude Code",
+      "img": "claude-code CLI",
+      "d": "reads SKILL.md · invokes skill actions · spawns sub-agents",
+      "plane": "control",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "marketplace",
+      "x": 50, "y": 22,
+      "kind": "store",
+      "n": "marketplace.json",
+      "img": ".claude-plugin/",
+      "d": "plugin manifest · skill list · version metadata",
+      "plane": "read",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "skill-chart",
+      "x": 15, "y": 38,
+      "kind": "hub-int",
+      "n": "forge-chart",
+      "img": "skills/forge-chart/",
+      "d": "diagrams · fgraph · fd-engine descriptors",
+      "plane": "control",
+      "h": "forge",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "skill-epic",
+      "x": 33, "y": 38,
+      "kind": "hub-int",
+      "n": "forge-epic",
+      "img": "skills/forge-epic/",
+      "d": "epic + issue plans · wave harness",
+      "plane": "control",
+      "h": "forge",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "skill-gallery",
+      "x": 50, "y": 38,
+      "kind": "hub-int",
+      "n": "forge-gallery",
+      "img": "skills/forge-gallery/",
+      "d": "image galleries · tabs layout",
+      "plane": "control",
+      "h": "forge",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "skill-guide",
+      "x": 67, "y": 38,
+      "kind": "hub-int",
+      "n": "forge-guide",
+      "img": "skills/forge-guide/",
+      "d": "multi-section guide docs",
+      "plane": "control",
+      "h": "forge",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "skill-slides",
+      "x": 84, "y": 38,
+      "kind": "hub-int",
+      "n": "forge-slides",
+      "img": "skills/forge-slides/",
+      "d": "scroll-snap presentation decks",
+      "plane": "control",
+      "h": "forge",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "fd-engine",
+      "x": 50, "y": 57,
+      "kind": "bus",
+      "n": "fd-engine",
+      "img": "references/graph-templates/fd/",
+      "d": "core · edges · cards · bundler · types/",
+      "plane": "control",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "aesthetics",
+      "x": 50, "y": 57,
+      "kind": "store",
+      "n": "aesthetics/",
+      "img": "references/aesthetics/",
+      "d": "lyra-v2 · cool-dark · blueprint · terminal · roxabi",
+      "plane": "read",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "fgraph-base",
+      "x": 76, "y": 57,
+      "kind": "store",
+      "n": "fgraph-base.css",
+      "img": "graph-templates/",
+      "d": "node shapes · tones · SVG overlay primitives",
+      "plane": "read",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "dev-server",
+      "x": 23, "y": 78,
+      "kind": "hub-int",
+      "n": "serve.py",
+      "img": "runtime/serve.py",
+      "d": "SSE live-reload · watches ~/.roxabi/forge/<project>/",
+      "plane": "async",
+      "h": "M1",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "artifacts",
+      "x": 50, "y": 78,
+      "kind": "store",
+      "n": "artifacts/",
+      "img": "~/.roxabi/forge/<project>/",
+      "d": "generated HTML · visuals · docs · specs · frames",
+      "plane": "write",
+      "h": "M1",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "cf-pages",
+      "x": 77, "y": 78,
+      "kind": "ext",
+      "n": "Cloudflare Pages",
+      "img": "forge.roxabi.dev",
+      "d": "static HTML hosting · CDN deploy from ~/.roxabi/forge/",
+      "plane": "async",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "sync",
+      "x": 23, "y": 93,
+      "kind": "store",
+      "n": "marketplace update",
+      "img": "claude plugin update forge",
+      "d": "fetches new version from GitHub keyed on plugin.json → version",
+      "plane": "write",
+      "h": "M1",
+      "cardStyle": "premium"
+    },
+    {
+      "id": "m2-bun",
+      "x": 77, "y": 93,
+      "kind": "hub-int",
+      "n": "bun gen-time",
+      "img": "bun / node",
+      "d": "bundler.js · fd-layout.mjs · elk.bundled.js (gen-time only)",
+      "plane": "control",
+      "h": "M2",
+      "cardStyle": "premium"
+    }
+  ],
+  "edges": [
+    { "f": "claude",       "t": "marketplace", "plane": "read",    "label": "loads plugin" },
+    { "f": "marketplace",  "t": "skill-chart", "plane": "control" },
+    { "f": "marketplace",  "t": "skill-epic",  "plane": "control" },
+    { "f": "marketplace",  "t": "skill-gallery","plane": "control" },
+    { "f": "marketplace",  "t": "skill-guide", "plane": "control" },
+    { "f": "marketplace",  "t": "skill-slides","plane": "control" },
+    { "f": "skill-chart",  "t": "fd-engine",   "plane": "control", "label": "buildEngine()" },
+    { "f": "skill-chart",  "t": "aesthetics",  "plane": "read" },
+    { "f": "skill-chart",  "t": "fgraph-base", "plane": "read" },
+    { "f": "fd-engine",    "t": "m2-bun",      "plane": "control", "label": "bundler.js" },
+    { "f": "skill-chart",  "t": "artifacts",   "plane": "write",   "label": "→ .html" },
+    { "f": "skill-epic",   "t": "artifacts",   "plane": "write" },
+    { "f": "skill-gallery","t": "artifacts",   "plane": "write" },
+    { "f": "skill-guide",  "t": "artifacts",   "plane": "write" },
+    { "f": "skill-slides", "t": "artifacts",   "plane": "write" },
+    { "f": "dev-server",   "t": "artifacts",   "plane": "read",    "label": "watches" },
+    { "f": "dev-server",   "t": "claude",      "plane": "async",   "label": "SSE reload" },
+    { "f": "artifacts",    "t": "cf-pages",    "plane": "async",   "label": "make deploy" },
+    { "f": "sync",         "t": "dev-server",  "plane": "control" },
+    { "f": "m2-bun",       "t": "artifacts",   "plane": "write",   "label": "→ positioned HTML" }
+  ],
+  "zones": [
+    {
+      "id": "zone-forge",
+      "nodes": ["skill-chart","skill-epic","skill-gallery","skill-guide","skill-slides"],
+      "class": "zone-forge",
+      "label": "forge plugin · skills"
+    },
+    {
+      "id": "zone-m1",
+      "nodes": ["dev-server","artifacts","sync"],
+      "class": "zone-m1",
+      "label": "M1 · roxabituwer"
+    },
+    {
+      "id": "zone-m2",
+      "nodes": ["m2-bun"],
+      "class": "zone-m2",
+      "label": "M2 · roxabitower"
+    }
+  ],
+  "useCases": [
+    {
+      "title": "① skill invoke",
+      "desc": "<b>Claude Code</b> reads marketplace.json, dispatches to <b>forge-chart</b>, which reads aesthetics + fgraph-base, invokes <b>bundler.js</b>, writes output HTML to <b>artifacts/</b>.",
+      "steps": [
+        { "nodes": ["claude"],                         "edge": null,                       "label": "1. Claude reads SKILL.md" },
+        { "nodes": ["claude","marketplace"],           "edge": ["claude","marketplace"],   "label": "2. loads marketplace.json" },
+        { "nodes": ["marketplace","skill-chart"],      "edge": ["marketplace","skill-chart"],"label": "3. dispatches forge-chart" },
+        { "nodes": ["skill-chart","aesthetics"],       "edge": ["skill-chart","aesthetics"],"label": "4. reads lyra-v2 aesthetic" },
+        { "nodes": ["skill-chart","fgraph-base"],      "edge": ["skill-chart","fgraph-base"],"label": "5. reads fgraph-base.css" },
+        { "nodes": ["skill-chart","fd-engine"],        "edge": ["skill-chart","fd-engine"], "label": "6. calls buildEngine()" },
+        { "nodes": ["skill-chart","artifacts"],        "edge": ["skill-chart","artifacts"], "label": "7. writes output .html" }
+      ]
+    },
+    {
+      "title": "② artifact deploy",
+      "desc": "<b>artifacts/</b> are built locally, then <b>make deploy</b> pushes to <b>Cloudflare Pages</b> via Wrangler. No server required at runtime.",
+      "steps": [
+        { "nodes": ["artifacts"],                      "edge": null,                         "label": "1. artifact ready in ~/.roxabi/forge/" },
+        { "nodes": ["artifacts","cf-pages"],           "edge": ["artifacts","cf-pages"],     "label": "2. make deploy → Wrangler upload" },
+        { "nodes": ["cf-pages"],                       "edge": null,                         "label": "3. Cloudflare Pages serves forge.roxabi.dev" }
+      ]
+    },
+    {
+      "title": "③ live reload",
+      "desc": "<b>serve.py</b> watches the output dir for changes, pushes SSE events to any open browser tab. <b>Claude Code</b> sub-agents write files; the browser auto-refreshes.",
+      "steps": [
+        { "nodes": ["sync"],                           "edge": null,                          "label": "1. claude plugin update forge (version-keyed)" },
+        { "nodes": ["sync","dev-server"],              "edge": ["sync","dev-server"],         "label": "2. serve.py starts watching" },
+        { "nodes": ["dev-server","artifacts"],         "edge": ["dev-server","artifacts"],    "label": "3. file change detected" },
+        { "nodes": ["dev-server","claude"],            "edge": ["dev-server","claude"],       "label": "4. SSE push → browser reloads" }
+      ]
+    }
+  ]
+}
+</script>
+
+<!-- fd-engine inline bundle: layers 1-3 (core + edges + cards + architecture type) -->
+<!-- Layer 4 (particles): OFF by default per RD-2; descriptor.options.particles=false -->
+<!-- Layer 5 (spotlight): ON — wired via hover listeners -->
+<!-- AC-10: SVG overlay uses position:absolute;inset:0 NOT viewBox/preserveAspectRatio -->
+<script>
+(function(){
+'use strict'
+
+/* ── fd/core.js ── */
+
+const NS = 'http://www.w3.org/2000/svg'
+let canvas = null
+let svgEl   = null
+const nodeEl = {}
+
+function init(){
+  const data = JSON.parse(document.getElementById('fd-data').textContent)
+  canvas = document.getElementById('fd-canvas')
+  svgEl  = document.getElementById('fd-edges')
+  canvas.style.height = (data.canvas && data.canvas.height ? data.canvas.height : 800) + 'px'
+
+  renderNodes(data.nodes, data)
+  draw(data.edges)
+  placeZones(data.zones)
+
+  new ResizeObserver(() => {
+    draw(data.edges)
+    placeZones(data.zones)
+  }).observe(canvas)
+
+  wireFilters(data)
+  if(data.useCases) wireUseCaseUI(data)
+}
+
+// rect(): getBoundingClientRect relative to canvas (core technique from lyra-stack)
+function rect(id){
+  const el = nodeEl[id]
+  const cr = canvas.getBoundingClientRect()
+  const b  = el.getBoundingClientRect()
+  return { cx: b.left - cr.left + b.width / 2, cy: b.top - cr.top + b.height / 2, w: b.width, h: b.height }
+}
+
+// Canonical unordered key for a node pair
+function pairKey(a, b){ return [a, b].sort().join('|') }
+
+// Face selection: source exits toward target, target enters from opposite
+function faceFor(dx, dy, isSource, edge){
+  if(edge){
+    if(isSource && edge.srcFace) return edge.srcFace
+    if(!isSource && edge.dstFace) return edge.dstFace
+  }
+  if(Math.abs(dy) >= Math.abs(dx)){
+    if(isSource) return dy > 0 ? 'bottom' : 'top'
+    else         return dy > 0 ? 'top'    : 'bottom'
+  } else {
+    if(isSource) return dx > 0 ? 'right' : 'left'
+    else         return dx > 0 ? 'left'  : 'right'
+  }
+}
+
+// Port slot spreader: proportional spread across node face
+function portAnchor(r, face, slotIdx, slotCount){
+  const { cx, cy, w, h } = r
+  const hw = w / 2, hh = h / 2
+  const faceLen = (face === 'top' || face === 'bottom') ? w : h
+  const spread  = Math.min(faceLen * 0.55, slotCount * 16)
+  const step    = slotCount > 1 ? spread / (slotCount - 1) : 0
+  const offset  = slotCount > 1 ? -spread / 2 + slotIdx * step : 0
+  switch(face){
+    case 'top':    return { x: cx + offset, y: cy - hh, nx:  0, ny: -1 }
+    case 'bottom': return { x: cx + offset, y: cy + hh, nx:  0, ny:  1 }
+    case 'left':   return { x: cx - hw,     y: cy + offset, nx: -1, ny:  0 }
+    case 'right':  return { x: cx + hw,     y: cy + offset, nx:  1, ny:  0 }
+    default:       return { x: cx, y: cy, nx: 0, ny: 0 }
+  }
+}
+
+// Proportional bezier stub length: clamp(dist * 0.35, 30, 220)
+function stubLen(dx, dy){
+  return Math.max(30, Math.min(220, Math.sqrt(dx * dx + dy * dy) * 0.35))
+}
+
+/* ── fd/cards.js ── */
+
+const PLANE_ACCENT = {
+  control: '#22d3ee',
+  write:   '#10b981',
+  read:    '#c084fc',
+  data:    '#a855f7',
+  async:   '#f59e0b',
+  feedback:'#e85d04',
+  llm:     '#c084fc',
+  message: '#22d3ee',
+}
+
+// renderNodes: append .fd-node divs for each descriptor node
+function renderNodes(nodes, data){
+  for(const nd of nodes){
+    const e = document.createElement('div')
+    const kind = nd.kind || 'default'
+    let cls = 'fd-node'
+    if(kind === 'bus')     cls += ' fd-bus'
+    if(kind === 'store')   cls += ' fd-store'
+    if(kind === 'ext')     cls += ' fd-ext'
+    if(kind === 'hub-int') cls += ' fd-hub-int'
+    e.className = cls
+    // Declarative layout: x/y in 0..100 % space (RD branch B)
+    // Convert to pixel-equivalent using CSS percentage positioning
+    e.style.left = nd.x + '%'
+    e.style.top  = nd.y + '%'
+    e.dataset.id   = nd.id
+    e.dataset.host = nd.h || ''
+    e.dataset.plane = nd.plane || 'control'
+
+    const accentColor = PLANE_ACCENT[nd.plane] || '#6b7280'
+
+    if(kind === 'bus'){
+      e.innerHTML = `<div class="fd-nh"><span class="fd-name">${nd.n}</span><span class="fd-tag control">bus</span></div>
+        <div class="fd-img">${nd.img}</div>
+        <div class="fd-desc">${nd.d}</div>`
+    } else {
+      const hBadge = nd.h && nd.h !== 'EX' ? `<span class="fd-hb ${nd.h}">${nd.h === 'M1' ? 'M&#x2081;' : 'M&#x2082;'}</span>` : ''
+      const tagPlane = nd.plane || 'control'
+      e.innerHTML = `<span class="accent-bar" style="background:${accentColor}"></span>
+        <div class="fd-nh"><span class="fd-name">${nd.n}</span><span class="fd-tag ${tagPlane}">${tagPlane}</span></div>
+        <div class="fd-img">${nd.img}</div>
+        <div class="fd-desc">${nd.d}</div>
+        ${hBadge}`
+    }
+
+    canvas.appendChild(e)
+    nodeEl[nd.id] = e
+
+    e.addEventListener('mouseenter', () => { if(ucState !== 'playing') spotlight(nd, data) })
+    e.addEventListener('mouseleave', () => { if(ucState !== 'playing') clearSpot() })
+  }
+}
+
+/* ── fd/edges.js ── */
+
+let paths = []
+const pathByPair = new Map()
+
+function draw(edges){
+  // Clear existing paths (AC-3: redraw on resize)
+  svgEl.querySelectorAll(':scope > path, :scope > text').forEach(n => n.remove())
+  paths = []
+  pathByPair.clear()
+
+  // Step 1: deduplicate edges into canonical pairs
+  const seenPairs = new Map()
+  for(let i = 0; i < edges.length; i++){
+    const e = edges[i]
+    const k = pairKey(e.f, e.t)
+    if(!seenPairs.has(k)){
+      seenPairs.set(k, { f: e.f, t: e.t, plane: e.plane, lab: e.label || null, edge: e, edgeIndices: [i] })
+    } else {
+      seenPairs.get(k).edgeIndices.push(i)
+      if(e.label && !seenPairs.get(k).lab) seenPairs.get(k).lab = e.label
+    }
+  }
+  const dedupedEdges = [...seenPairs.values()]
+
+  // Step 2: build port maps
+  const portMap = new Map()
+  for(let i = 0; i < dedupedEdges.length; i++){
+    const { f, t, edge } = dedupedEdges[i]
+    const rf = rect(f), rt = rect(t)
+    const dx = rt.cx - rf.cx, dy = rt.cy - rf.cy
+    const fFace = faceFor(dx, dy, true,  edge)
+    const tFace = faceFor(dx, dy, false, edge)
+    const fk = `${f}:${fFace}`, tk = `${t}:${tFace}`
+    if(!portMap.has(fk)) portMap.set(fk, [])
+    if(!portMap.has(tk)) portMap.set(tk, [])
+    portMap.get(fk).push(i)
+    portMap.get(tk).push(i)
+  }
+
+  // Step 3: draw one path per deduped pair
+  for(let i = 0; i < dedupedEdges.length; i++){
+    const { f, t, plane, lab, edge } = dedupedEdges[i]
+    const rf = rect(f), rt = rect(t)
+    const dx = rt.cx - rf.cx, dy = rt.cy - rf.cy
+
+    const fFace = faceFor(dx, dy, true,  edge)
+    const tFace = faceFor(dx, dy, false, edge)
+    const fk = `${f}:${fFace}`, tk = `${t}:${tFace}`
+
+    const fSlots = portMap.get(fk)
+    const tSlots = portMap.get(tk)
+    const fi = fSlots.indexOf(i), ti = tSlots.indexOf(i)
+
+    const pu1 = portAnchor(rf, fFace, fi, fSlots.length)
+    const pu2 = portAnchor(rt, tFace, ti, tSlots.length)
+
+    const stb = stubLen(dx, dy)
+    const c1x = pu1.x + pu1.nx * stb
+    const c1y = pu1.y + pu1.ny * stb
+    const c2x = pu2.x + pu2.nx * stb
+    const c2y = pu2.y + pu2.ny * stb
+
+    const dStr = `M${pu1.x.toFixed(1)},${pu1.y.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${pu2.x.toFixed(1)},${pu2.y.toFixed(1)}`
+
+    const p = document.createElementNS(NS, 'path')
+    p.setAttribute('d', dStr)
+    p.setAttribute('class', plane)
+    p.setAttribute('marker-end', `url(#fd-arr-${plane})`)
+    p.dataset.f  = f
+    p.dataset.t  = t
+    p.dataset.pk = pairKey(f, t)
+    svgEl.appendChild(p)
+    paths.push(p)
+    pathByPair.set(pairKey(f, t), p)
+
+    if(lab){
+      const tx = document.createElementNS(NS, 'text')
+      const mx = 0.125 * pu1.x + 0.375 * c1x + 0.375 * c2x + 0.125 * pu2.x
+      const my = 0.125 * pu1.y + 0.375 * c1y + 0.375 * c2y + 0.125 * pu2.y
+      tx.setAttribute('x', mx.toFixed(1))
+      tx.setAttribute('y', (my - 4).toFixed(1))
+      tx.setAttribute('text-anchor', 'middle')
+      tx.setAttribute('class', 'fd-elabel')
+      tx.dataset.pk = pairKey(f, t)
+      tx.textContent = lab
+      svgEl.appendChild(tx)
+    }
+  }
+}
+
+/* ── fd/types/architecture.js ── */
+
+// placeZones: compute bounding rect over zone node set, position the zone div
+function placeZones(zones){
+  if(!zones) return
+  for(const zone of zones){
+    const zEl = document.getElementById(zone.id)
+    if(!zEl) continue
+    const rects = zone.nodes.map(id => (nodeEl[id] ? rect(id) : null)).filter(Boolean)
+    if(rects.length === 0) continue
+    const x  = Math.min(...rects.map(r => r.cx - r.w / 2)) - 18
+    const xr = Math.max(...rects.map(r => r.cx + r.w / 2)) + 18
+    const y  = Math.min(...rects.map(r => r.cy - r.h / 2)) - 22
+    const yb = Math.max(...rects.map(r => r.cy + r.h / 2)) + 14
+    zEl.style.cssText += `;left:${x}px;top:${y}px;width:${xr - x}px;height:${yb - y}px`
+  }
+}
+
+/* ── Layer 5: spotlight + sidebar ── */
+
+const sbHeader = document.getElementById('sbHeader')
+
+function spotlight(nd, data){
+  canvas.classList.add('dimmed')
+  const neigh = new Set([nd.id])
+  paths.forEach(p => {
+    const on = p.dataset.f === nd.id || p.dataset.t === nd.id
+    p.classList.toggle('hot', on)
+    if(on){ neigh.add(p.dataset.f); neigh.add(p.dataset.t) }
+  })
+  svgEl.querySelectorAll('text[data-pk]').forEach(t => {
+    const pk = t.dataset.pk
+    const p = pathByPair.get(pk)
+    t.classList.toggle('hot', !!(p && p.classList.contains('hot')))
+  })
+  Object.entries(nodeEl).forEach(([k, el]) => el.classList.toggle('hot', neigh.has(k)))
+  const hostLabel = !nd.h || nd.h === 'EX' ? 'external' : nd.h === 'M1' ? 'M&#x2081; · roxabituwer' : 'M&#x2082; · roxabitower'
+  sbHeader.innerHTML = `<h4>${nd.n}</h4><div class="fd-img">${nd.img}</div>
+    <dl><dt>plane</dt><dd>${nd.plane || '—'}</dd>
+    <dt>host</dt><dd>${hostLabel}</dd>
+    <dt>role</dt><dd>${nd.d}</dd></dl>`
+}
+
+function clearSpot(){
+  canvas.classList.remove('dimmed')
+  paths.forEach(p => p.classList.remove('hot'))
+  svgEl.querySelectorAll('text').forEach(t => t.classList.remove('hot'))
+  Object.values(nodeEl).forEach(el => el.classList.remove('hot'))
+  sbHeader.innerHTML = `<h4>Hover = detail</h4><div class="hint">Hover a node to isolate its edges and see image / host / role.<br>Select a use case to animate the flow.</div>`
+}
+
+/* ── plane filter controls ── */
+
+function wireFilters(data){
+  document.querySelectorAll('.ctl[data-plane]').forEach(c => {
+    c.addEventListener('click', () => {
+      c.classList.toggle('off')
+      canvas.classList.toggle('hide-' + c.dataset.plane, c.classList.contains('off'))
+    })
+  })
+}
+
+/* ── use-case animation ── */
+
+let activeUc  = null
+let ucState   = 'none'
+let ucTimer   = null
+let ucStepIdx = 0
+
+const ucPlay  = document.getElementById('ucPlay')
+const ucReset = document.getElementById('ucReset')
+const sbUc    = document.getElementById('sbUc')
+const ucTitle = document.getElementById('ucTitle')
+const ucStepsList = document.getElementById('ucStepsList')
+const ucDesc  = document.getElementById('ucDesc')
+
+function syncButtons(){
+  switch(ucState){
+    case 'none':
+      ucPlay.textContent = '▶ play'; ucPlay.disabled = true
+      ucReset.classList.remove('visible'); break
+    case 'ready':
+      ucPlay.textContent = '▶ play'; ucPlay.disabled = false
+      ucReset.classList.remove('visible'); break
+    case 'playing':
+      ucPlay.textContent = '⏸ pause'; ucPlay.disabled = false
+      ucReset.classList.remove('visible'); break
+    case 'paused':
+      ucPlay.textContent = '▶ resume'; ucPlay.disabled = false
+      ucReset.classList.add('visible'); break
+    case 'done':
+      ucPlay.textContent = '↺ replay'; ucPlay.disabled = false
+      ucReset.classList.remove('visible'); break
+  }
+}
+
+function resetUcVisuals(){
+  Object.values(nodeEl).forEach(el => el.classList.remove('uc-active', 'uc-done'))
+  paths.forEach(p => p.classList.remove('uc-active', 'uc-done'))
+  canvas.classList.remove('dimmed')
+  ucStepsList.querySelectorAll('li').forEach(li => li.classList.remove('step-active', 'step-done'))
+}
+
+function stopTimer(){
+  if(ucTimer){ clearTimeout(ucTimer); ucTimer = null }
+}
+
+function selectUc(idx, data){
+  stopTimer()
+  resetUcVisuals()
+  activeUc  = idx
+  ucStepIdx = 0
+  ucState   = 'ready'
+  const uc = data.useCases[idx]
+  ucTitle.textContent = uc.title
+  ucDesc.innerHTML = uc.desc
+  ucStepsList.innerHTML = ''
+  uc.steps.forEach((s, i) => {
+    const li = document.createElement('li')
+    li.innerHTML = `<span class="sn">${String(i + 1).padStart(2, '0')}</span>${s.label}`
+    ucStepsList.appendChild(li)
+  })
+  sbUc.classList.add('visible')
+  document.querySelectorAll('.uc-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.uc) === idx))
+  syncButtons()
+}
+
+function applyUcStep(stepIdx, data){
+  const uc = data.useCases[activeUc]
+  if(stepIdx >= uc.steps.length){ ucState = 'done'; syncButtons(); return }
+  ucStepIdx = stepIdx
+  const step = uc.steps[stepIdx]
+  canvas.classList.add('dimmed')
+  // Mark previous steps done
+  for(let i = 0; i < stepIdx; i++){
+    uc.steps[i].nodes.forEach(id => {
+      if(nodeEl[id]){ nodeEl[id].classList.remove('uc-active'); nodeEl[id].classList.add('uc-done') }
+    })
+    if(uc.steps[i].edge){
+      const [ef, et] = uc.steps[i].edge
+      const pp = pathByPair.get(pairKey(ef, et))
+      if(pp){ pp.classList.remove('uc-active'); pp.classList.add('uc-done') }
+    }
+  }
+  // Activate current step nodes
+  step.nodes.forEach(id => {
+    if(nodeEl[id]) nodeEl[id].classList.add('uc-active', 'hot')
+  })
+  // Activate current edge
+  if(step.edge){
+    const [ef, et] = step.edge
+    const pp = pathByPair.get(pairKey(ef, et))
+    if(pp) pp.classList.add('uc-active', 'hot')
+  }
+  // Update step list
+  const items = ucStepsList.querySelectorAll('li')
+  items.forEach((li, i) => {
+    li.classList.remove('step-active', 'step-done')
+    if(i < stepIdx)   li.classList.add('step-done')
+    if(i === stepIdx) li.classList.add('step-active')
+  })
+  sbHeader.innerHTML = `<h4>${step.label}</h4>`
+  ucTimer = setTimeout(() => applyUcStep(stepIdx + 1, data), 900)
+}
+
+function wireUseCaseUI(data){
+  document.querySelectorAll('.uc-btn').forEach(b => {
+    b.addEventListener('click', () => selectUc(Number(b.dataset.uc), data))
+  })
+  ucPlay.addEventListener('click', () => {
+    if(activeUc === null) return
+    if(ucState === 'playing'){
+      stopTimer(); ucState = 'paused'; syncButtons()
+    } else if(ucState === 'done' || ucState === 'ready'){
+      resetUcVisuals(); ucStepIdx = 0; ucState = 'playing'; syncButtons(); applyUcStep(0, data)
+    } else if(ucState === 'paused'){
+      ucState = 'playing'; syncButtons(); applyUcStep(ucStepIdx, data)
+    }
+  })
+  ucReset.addEventListener('click', () => {
+    stopTimer(); resetUcVisuals(); ucStepIdx = 0; ucState = 'ready'; syncButtons()
+  })
+}
+
+// ---- bootstrap ----
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init)
+} else {
+  init()
+}
+
+}())
+</script>
+</body>
+</html>

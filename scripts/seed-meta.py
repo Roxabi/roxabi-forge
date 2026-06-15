@@ -59,7 +59,6 @@ DATA = [
     {'f':'forgeflow.html',                  't':'Forgeflow',                                          'd':'2026-03-13', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},
     {'f':'fractals.html',                   't':'Fractals',                                           'd':'2026-03-13', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},
     {'f':'get-shit-done.html',              't':'Get Shit Done',                                      'd':'2026-03-13', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},
-    {'f':'gstack.html',                     't':'gstack',                                             'd':'2026-03-13', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},
     {'f':'jido.html',                       't':'Jido',                                               'd':'2026-03-13', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},
     {'f':'library-meta-skill-recap.html',   't':'The Library Meta-Skill — Video Recap',               'd':'2026-03-16', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},
     {'f':'mission-control.html',            't':'Mission Control',                                    'd':'2026-03-13', 'cat':'ext', 'cl':'External', 'c':'green', 'b':[]},

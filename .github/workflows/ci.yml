@@ -14,9 +14,23 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4
-      - uses: oven-sh/setup-bun@ecf28ddc73e819eb6fa29df6b34ef8921c743461  # v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6  # v2
       - run: bun install
       - name: Lint
         run: bun lint
       - name: Syntax-check Python scripts
         run: python3 -m py_compile scripts/*.py
+      - name: Mermaid guard
+        run: |
+          matches=$(grep -rn '\bmermaid\b' plugins/forge/ 2>/dev/null || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Mermaid references detected — blocked by #21. Use fgraph templates from plugins/forge/references/graph-templates/ instead."
+            echo "$matches"
+            exit 1
+          fi
+      - name: Validate fgraph SVG
+        # Auto-discovers all graph-template HTML (mirrors the lefthook **/*.html glob)
+        # so new subdirs can't slip past CI; fgraph-base.css passed explicitly (not *.html).
+        run: |
+          find plugins/forge/references/graph-templates -name '*.html' -print0 \
+            | xargs -0 bash plugins/forge/scripts/validate-svg.sh plugins/forge/references/graph-templates/fgraph-base.css

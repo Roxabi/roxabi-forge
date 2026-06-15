@@ -23,26 +23,60 @@ fi
 echo "▸ Generating image gallery manifests…"
 python3 "$SCRIPT_DIR/gen-image-manifests.py"
 
+echo "▸ Rendering per-artifact OG images…"
+if command -v uv >/dev/null 2>&1; then
+  # non-fatal: playwright absent / hang -> OG cards fall back to banner
+  timeout 120 uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
+    || echo "  ⚠ OG image render skipped (rc=$?) — cards fall back to banner"
+else
+  echo "  ⚠ uv not found — skipping OG image render (cards fall back to banner)"
+fi
+
 echo "▸ Injecting Open Graph meta tags…"
 python3 "$SCRIPT_DIR/gen-og-tags.py"
 
 echo "▸ Syncing to _dist/…"
 mkdir -p "$DIST"
+# Cloudflare Pages caps files at 25 MiB. Warn on oversize files so they're
+# visible in build output before rsync silently skips them via --max-size.
+MAX_SIZE_BYTES=$((25 * 1024 * 1024))
+LARGE_FILES=$(find "$FORGE_DIR" -type f -size +${MAX_SIZE_BYTES}c \
+  -not -path "*/_dist/*" -not -path "*/.git/*" -not -path "*/__pycache__/*" \
+  -printf '  %s\t%p\n' 2>/dev/null | sort -rn || true)
+if [ -n "$LARGE_FILES" ]; then
+  echo "  ⚠ Excluding files > 25M (Cloudflare Pages limit):"
+  echo "$LARGE_FILES" | awk -F'\t' '{printf "    %6.1f MB  %s\n", $1/1048576, $2}'
+fi
 # -L dereferences symlinks as real files so deployed _dist/ ships actual
 # content rather than dangling symlinks. Required for galleries that
 # symlink into external directories (e.g. ai-toolkit training output).
 rsync -aL --delete --delete-excluded \
+  --max-size=25M \
   --exclude='_dist/' \
   --exclude='*.py' \
   --exclude='__pycache__/' \
   --exclude='.git/' \
   --exclude='.stversions/' \
   --exclude='lyra/brand/prompts/' \
+  --exclude='lyra/avatar/prompts/' \
+  --exclude='lyra/avatar/embeddings*/' \
+  --exclude='lyra/avatar/lora-training-set/' \
+  --exclude='lyra/avatar/generated/' \
+  --exclude='lyra/avatar/workflows/' \
+  --exclude='lyra/avatar/scripts/' \
+  --exclude='*.safetensors' \
+  --exclude='*.pt' \
+  --exclude='*.npz' \
+  --exclude='*.mp4' \
   "$FORGE_DIR/" "$DIST/" || {
     RC=$?
     # exit code 23 = partial transfer (e.g. dangling symlinks) — non-fatal
     [ $RC -eq 23 ] && echo "  ⚠ rsync: skipped some files (broken symlinks?) — continuing" || exit $RC
   }
+
+# Purge oversize files left over in _dist/ from previous runs — rsync's
+# --max-size skips transfer but doesn't delete existing receiver files.
+find "$DIST" -type f -size +${MAX_SIZE_BYTES}c -delete 2>/dev/null || true
 
 # Copy gallery UI from canonical forge location into _dist
 cp "$FORGE_DIR/index.html" "$DIST/index.html"

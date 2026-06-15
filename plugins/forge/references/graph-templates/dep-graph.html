@@ -104,6 +104,31 @@
        Corridors are sorted by source node --y so paths don't overlap.
 
      All coordinate injection is Python-side. This HTML is pure scaffold.
+
+     MANUAL FILL — Small Graphs (≤ 6 nodes, no gen-deps.py)
+     ───────────────────────────────────────────────────────
+     When filling this template by hand for a small static graph,
+     use even-stride horizontal distribution (R1) and fixed
+     vertical spacing (R2/R3):
+
+       N cards per row → centres at (100 / 2N) × (2i+1) for i = 0..N-1
+       Row height      → --y = 18 + (row_index × 20)
+       Card width      → max 18% (so stride − width ≥ 2%)
+       Card height     → ≈ 3% + (N_lines × 2%)
+
+     Example — 4 phases × 2 rows (5 tasks):
+       phase columns : --x = 12.5, 37.5, 62.5, 87.5  (R1: 4-card row)
+       row 1 cards   : --y = 24, 24, 24, 24
+       row 2 cards   : --y = 54, 54, 54, 54
+
+     Edge routing (manual):
+       Cross-phase → elbow: M x1,y1 L x1,y_corridor L x2,y_corridor L x2,y2
+       y_corridor  = 18 + edge_index × 2  (between the two rows)
+
+     Alternative: for hand-crafted small dependency graphs (≤ 6 nodes),
+     prefer `layered.html` with `--x/--y` custom props — it gives
+     better visual results without corridor math and avoids the
+     gen-deps.py dependency entirely.
      ══════════════════════════════════════════════════════════════════ -->
 
 <div class="fgraph-wrap dep-graph green" role="img" aria-label="{{DIAGRAM_ARIA_LABEL}}">

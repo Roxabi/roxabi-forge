@@ -41,7 +41,9 @@
   border: 1px dashed var(--border-bright);
   border-radius: 10px;
   pointer-events: none;
-  opacity: 0.5;
+  /* was opacity:0.5 — too faint to read as a tier boundary. Full-strength
+     dashed border + a faint neutral band tint so each tier reads as a group. */
+  background: rgba(148, 163, 184, 0.05);
 }
 .layer-lbl {
   position: absolute;

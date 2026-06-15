@@ -1,4 +1,5 @@
 @.claude/stack.yml
+@~/.claude/shared/global-patterns.md
 
 # Roxabi Forge
 
@@ -8,15 +9,8 @@ HTML visual artifacts for Claude Code — diagrams, galleries, guides, epics.
 
 - **Project:** roxabi-forge (marketplace with 1 plugin: forge)
 - **Before work:** Use `/dev #N` as the single entry point
-- **Decisions:** summarize context → numbered options + recommendation → wait for reply
 - **Never** use `--force`/`--hard`/`--amend`
 - **Always** use appropriate skill even without slash command
-
-### Git
-
-Format: `<type>(<scope>): <desc>` + `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
-Types: feat|fix|refactor|docs|style|test|chore|ci|perf
-Never force/hard/amend. Hook fail → fix + NEW commit.
 
 ## Structure
 
@@ -27,14 +21,16 @@ roxabi-forge/
 │   └── plugin.json              # plugin metadata (version, author)
 ├── plugins/
 │   └── forge/
-│       ├── skills/              # 7 skills: forge-init, forge-chart, forge-epic, forge-gallery, forge-guide, forge-md, forge-slides
+│       ├── skills/              # 8 skills: forge-init, forge-chart, forge-epic, forge-gallery, forge-guide, forge-md, forge-presentation, forge-slides
 │       ├── references/          # HTML/CSS/JS templates, design docs, aesthetics
 │       │   ├── slide-templates/ # scroll-snap deck engine (generation source, always inlined)
+│       │   ├── showcases/       # per-skill reference demos (chart/epic/gallery/guide/md/presentation/slides)
+│       │   ├── device-frames/   # iOS/Android device frame CSS for mobile mockups
+│       │   ├── aesthetics/      # brand presets (lyra-v2, cool-dark, …) — inlined into output
 │       ├── runtime/             # Makefile + .env.example for ~/.roxabi/forge/
 │       ├── supervisor/          # supervisord config + wrapper script
 │       └── Makefile             # deploy + register targets
 ├── scripts/                     # Build scripts (build.sh, gen-manifest.py, gen-plugin-manifest.py, render-md{,-tabs}.py, etc.)
-├── sync-plugins.sh              # Sync to local/remote plugin caches
 └── CLAUDE.md                    # this file
 ```
 
@@ -59,13 +55,12 @@ make -C ~/.roxabi/forge deploy
 
 Source of truth: `plugins/forge/` in this repo.
 
-```bash
-# After editing, sync to all local cache dirs
-./sync-plugins.sh --local
+Workflow to ship plugin changes to users:
 
-# Sync local + remote (Machine 1)
-./sync-plugins.sh
-```
+1. Edit under `plugins/forge/`.
+2. Bump `version` in `.claude-plugin/plugin.json` (run `scripts/gen-plugin-manifest.py` to mirror it into `marketplace.json`).
+3. Push to `staging` → merge to `main`.
+4. Users run `claude plugin update forge` (or `claude plugin install forge` on first install via `claude plugin marketplace add Roxabi/roxabi-forge`). Claude Code's marketplace updater fetches the new version from GitHub keyed on `plugin.json` → `version`.
 
 ## Plugin manifests (generated)
 
@@ -97,6 +92,7 @@ Each `references/` sub-tree has a distribution profile. Skills inline or link it
 |---|---|---|
 | `base/`, `aesthetics/` | **inline** into output `<style>` | generation source, not runtime |
 | `graph-templates/` (fgraph) | **inline** for single-file OR **link** `_shared/fgraph-base.css` for multi-tab docs with ≥ 2 fgraph diagrams | matches gallery-base precedent |
+| `graph-templates/*.js` (fgraph-auto, fgraph-interact) | **inline** into output `<script>` — live mode only | runtime, file://-safe, strict no-op without a `data-fgraph="live"` wrap |
 | `gallery-templates/` | **link** `_shared/gallery-base.{css,js}` | runtime-shared across gallery outputs |
 | `slide-templates/` | **always inline** into single-file `<style>`/`<script type="module">` | `forge-slides` produces `file://`-safe offline decks; no `_shared/slide-templates/` mirror |
 | `plugins/forge/skills/<name>/references/` (per-skill) | **Read on-demand** via `Read ${CLAUDE_PLUGIN_ROOT}/skills/<name>/references/<file>.md before <action>.` directive in the skill body | skill-scoped prose offloaded to cut SKILL.md bulk; not inlined into output, not linked at runtime |

@@ -124,6 +124,78 @@ Reference consumer: `tab-target.html` M3 (dual-hub lyra_hub-1 + lyra_hub-2 shari
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-project-ring.html`
 (6 active projects — voiceCLI, lyra, 2ndBrain, imageCLI, roxabi-plugins, roxabi-forge — as peers in a ring showing cross-consume dependencies).
 
+### System Architecture
+
+> Full-system architecture diagram — request lifecycle top-to-bottom, platform lanes
+> left-to-right. Composes users → cloud APIs → adapter processes → NATS bus strip
+> → nested hub interior (with security-group overlay) → data stores → optional
+> Phase 2 / remote band. Ships a 3-card executive summary row below the diagram.
+>
+> Use when `radial-hub` is too small and `layered` is too thin — specifically when
+> the diagram has ≥ 15 specific components across ≥ 4 lifecycle layers and the
+> reader needs to follow a request end-to-end. Uses `.fg-bus-strip` for the bus
+> (full-width pill band) and `.fgraph-group.{cluster,security-group}` for nested
+> sub-regions. Pulsing `.fg-live-dot` in the header conveys "live system".
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│   ┌──────┐         ┌──────┐         ┌──────┐   ← ROW 1 users       │
+│   │user-1│         │user-2│         │user-3│                        │
+│   └──┬───┘         └──┬───┘         └──┬───┘                        │
+│   ┌──▼───┐         ┌──▼───┐         ┌──▼───┐   ← ROW 2 cloud APIs   │
+│   │api-1 │         │api-2 │         │api-3 │    (amber)            │
+│   └──┬───┘         └──┬───┘         └──┬───┘                        │
+│┌─── Machine 1 ──────────────────────────────────────────────────┐  │
+││  ┌──▼────┐        ┌──▼────┐        ┌──▼────┐   ← ROW 3 adapters││
+││  │adpt-1 │        │adpt-2 │        │adpt-3 │    (green proc)   ││
+││  └──┬────┘        └──┬────┘        └──┬────┘                   ││
+││╔════════════════════ BUS STRIP ════════════════════════════════╗││
+││║  NATS · lyra.inbound.*.<bot> · lyra.outbound.*.<bot>          ║││
+││╚═══════════════════════════════════════════════════════════════╝││
+││┌─── hub cluster ─────────────────────┐ ┌── side cluster ────┐  ││
+│││ ┌───┐ ┌───┐ ┌───┐                    │ │ ┌──────────────┐   │  ││
+│││ │p-1│ │p-2│ │p-3│  ← sub-row 4a      │ │ │  voice tts   │   │  ││
+│││ └───┘ └───┘ └───┘                    │ │ └──────────────┘   │  ││
+│││ ┌───┐ ┌───┐ ┌───┐                    │ │ ┌──────────────┐   │  ││
+│││ │a  │ │mem│ │llm│  ← sub-row 4b      │ │ │  voice stt   │   │  ││
+│││ └───┘ └───┘ └───┘                    │ │ └──────────────┘   │  ││
+│││ ╭─── security overlay (rose dashed)──╮                       │  ││
+│││ │ auth + guard      │                                        │  ││
+│││ ╰────────────────────╯                                        │  ││
+││└──────────────────────────────────────┘ └────────────────────┘  ││
+││  ┌────┐        ┌────┐        ┌────┐       ← ROW 5 stores        ││
+││  │s-1 │        │s-2 │        │s-3 │         (purple)            ││
+││  └────┘        └────┘        └────┘                              ││
+│└────────────────────────────────────────────────────────────────┘  │
+│                                          ┌─────────────┐            │
+│                                          │ phase-2 band│ (dashed)  │
+│                                          └─────────────┘            │
+└────────────────────────────────────────────────────────────────────┘
+
+┌ Runtime ─────────┐  ┌ Data ──────────┐  ┌ Transport ────┐
+│ • bullet 1       │  │ • bullet 1     │  │ • bullet 1    │
+│ • bullet 2       │  │ • bullet 2     │  │ • bullet 2    │
+└──────────────────┘  └────────────────┘  └───────────────┘
+  3-card info row · .info-card-grid from base/components.css
+```
+
+Reference example (standalone, fgraph-base.css inlined):
+[`examples/system-architecture.html`](./examples/system-architecture.html)
+
+Reference consumer (Mode B, links to `_shared/fgraph-base.css`):
+`~/.roxabi/forge/lyra/visuals/architecture.html` (full Lyra system —
+users · Telegram/Discord/Admin · Cloud APIs · adapters · NATS bus · hub
+with nested MessagePipeline/Pool/Agent/Memory/LLM · voice daemons · data
+stores · Machine 2 Phase 2 band).
+
+**Layout Rules baked in:** the template (`system-architecture.html`)
+ships as a correct worked example — all `--x`/`--y` coords, widths,
+tones, and arrow paths follow the 7 Layout Rules in
+`forge-chart/SKILL.md § Layout Rules (CRITICAL)`. Copy the file, then
+replace **content only** (titles, sublabels, card bullets) — do not
+touch coordinates unless you re-compute R1 (even stride) or R3 (row
+clearance) for the new node count.
+
 ### Layered
 
 > 4 horizontal layers stacked vertically — ingress → hub → workers → storage.
@@ -215,209 +287,23 @@ Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-two-machine-deploym
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html`
 (lyra dev → staging → prod promotion flow via `make deploy` + pytest gate).
 
-### Gantt · legacy (Mermaid)
+### Retired legacy types → fd-engine
 
-> Timeline / schedule rendered via Mermaid `gantt`. Declare dates + durations
-> per task, group tasks into sections (team, phase, track). Auto-layout — you
-> only declare data, Mermaid places the bars. States: `done`, `active`, `crit`
-> (critical-path), plain, `milestone` (diamond at zero-duration).
->
-> Use for roadmaps, release schedules, multi-workstream project plans.
+The following five types have been removed as static fgraph templates and are now
+implemented via the **fd-engine descriptor path** (see `forge-chart/SKILL.md §
+fd-engine diagram types`). Use `fd-engine descriptor type:"<t>"` instead.
 
-```
-┌──────────────────────── Q2 Roadmap ────────────────────────┐
-│ Section: Infra                                             │
-│   migrate-db   ███░░░░░    done                            │
-│   tls-rotate         ████░░░░    active                    │
-│   observability            ██████    crit                  │
-│ Section: Product                                           │
-│   auth-rewrite      ██████░░░░                             │
-│   ship-1.0                         ◆ milestone             │
-└────────────────────────────────────────────────────────────┘
-```
+| Former template | fd-engine type | bun elk step? | Example |
+|---|---|---|---|
+| `gantt.html` (deleted) | `type:"gantt"` | NO | `examples/fd-gantt.html` |
+| `pie.html` (deleted) | `type:"pie"` | NO | `examples/fd-pie.html` |
+| `er.html` (deleted) | `type:"er"` | YES | `examples/fd-er.html` |
+| `sequence.html` (deleted) | `type:"sequence"` | YES | `examples/fd-sequence.html` |
+| `state.html` (deleted) | `type:"state"` | YES | `examples/fd-state.html` |
 
-Template: [`gantt-mermaid.html`](./gantt-mermaid.html). Mermaid-rendered, self-contained. Scheduled for deletion in #24 — new work should use the native [`gantt.html`](./gantt.html) below.
-
-### Pie · legacy (Mermaid)
-
-> Proportion / share rendered via Mermaid `pie`. Declare slices as
-> `"label" : number`, one per line. Mermaid assigns colors from `pie1`…`pie12`
-> themable via `themeVariables`. `showData` prints the numeric value with the
-> slice label.
->
-> Use for cost / traffic / storage breakdowns, composition snapshots, or
-> before/after pie pairs. Aim for 3–7 slices — beyond that, group small
-> values into "Other" or switch to a stacked bar.
-
-```
-            ╭─────────────╮
-       ╭────┤   Backend   ├─────╮   42%
-     ╭─┤    ╰─────────────╯     ╰─╮
-    ╭┤  ╭──────────╮               │ Frontend  28%
-    ││  │ Database │               │
-    │╰──┤          ├──╮     Infra  18%
-    ╰─  ╰──────────╯  ╰──── Other  12%
-```
-
-Template: [`pie-mermaid.html`](./pie-mermaid.html). Mermaid-rendered, self-contained. Scheduled for deletion in #24 — new work should use the native [`pie.html`](./pie.html) below.
-
-### ER · legacy (Mermaid)
-
-> Entity-relationship schema rendered via Mermaid `erDiagram`. Declare entities
-> with attribute lists (type, name, key markers `PK`/`FK`/`UK`, comment) and
-> relationships with crow's-foot cardinality (`||--o{` for 1:many, `}o--o{`
-> for many:many, `||--||` for 1:1, dotted `..` for non-identifying).
->
-> Use for DB schemas, domain models, aggregate references. Keep entities ≤ 12
-> per diagram; split into auth / billing / inventory sub-diagrams above that
-> threshold.
-
-```
-┌─────────┐         ┌─────────┐         ┌─────────┐
-│  USER   │──┐  1:N │  ORDER  │  1:1    │ PAYMENT │
-│  id PK  │  ├─────▶│  id PK  │────────▶│  id PK  │
-│  email  │  │      │ user_id │         │order_id │
-└─────────┘  │      │ total   │         │ status  │
-             │      └─────────┘         └─────────┘
-             │  M:N
-             └────────▶ TAG
-```
-
-Template: [`er-mermaid.html`](./er-mermaid.html). Mermaid-rendered, self-contained. Scheduled for deletion in #24 — new work should use the native [`er.html`](./er.html) below.
-
-### Gantt
-
-> Timeline / schedule rendered natively with pre-computed bar positions.
-> Each bar is a `.fg-gantt-bar` positioned via `--x` / `--w` / `--y` in the
-> 0..100 % space; dates map to `--x` via a date → % formula documented in the
-> template header. Sections group bars by project / team / phase.
->
-> Use for roadmaps, release schedules, and multi-workstream plans that need
-> offline-safe rendering (no `mermaid@11` CDN). Cap at ~12 bars per diagram.
-
-```
-┌─────────── Mermaid purge · 4 phases ────────────┐
-│ Cycle 1 · P1                                     │
-│   V1 primitives  █░░░░░░░░░░░░░░░░░░░░░░░░       │
-│   V2 native x 3     ██░░░░░░░░░░░░░░░░░░░░       │
-│   V3 new shapes        █░░░░░░░░░░░░░░░░░░       │
-│ Cycle 2 · P2                                     │
-│   SKILL.md migr       ░░░██░░░░░░░░░░░░░░       │
-│   gen-deps.py         ░░░░███░░░░░░░░░░░░       │
-│ Cycle 2 · P3+P4                                  │
-│   delete + guard           ░░░░░█████░░░░       │
-│  Apr 15    Apr 22    Apr 29    May 06    May 13  │
-└──────────────────────────────────────────────────┘
-```
-
-Template: [`gantt.html`](./gantt.html) · demo: [`examples/gantt.html`](./examples/gantt.html).
-Native, no CDN, file://-safe.
-
-### Pie
-
-> Proportion / share rendered as an inline SVG pie in a `0 0 100 100`
-> viewBox. Author pre-computes each slice's `<path d="M 50,50 L x1,y1
-> A 40 40 0 large sweep x2,y2 Z">` — formula in the template header.
-> Legend lives in a right-hand column with swatch + label + value rows.
->
-> Use for cost / traffic / storage breakdowns and before/after pairs.
-> Aim for 3–7 slices.
-
-```
-         ╭─────────────╮       references/  38%
-     ╱───┤ references  ├───╲   skills/      27%
-    ╱    ╰─────────────╯    ╲  scripts/     18%
-   │  ╭──────────╮            │ runtime/    11%
-   │  │  skills  │            │ supervisor/  6%
-   │  ╰──────────╯            │
-    ╲    ╭──────╮           ╱
-     ╲───┤scripts├──────────╱
-         ╰──────╯
-```
-
-Template: [`pie.html`](./pie.html) · demo: [`examples/pie.html`](./examples/pie.html).
-Native, no CDN, file://-safe.
-
-### ER
-
-> Entity-relationship schema as HTML entity boxes with attribute rows
-> connected by SVG relationship paths ending in crow's-foot markers
-> (`fg-er-one`, `fg-er-zero-one`, `fg-er-many`, `fg-er-one-many`,
-> `fg-er-zero-many`). Endpoint-offset lookup (attrs → anchor offset)
-> documented in the template header.
->
-> Use for DB schemas, domain models, and aggregate references. Keep
-> entities ≤ 8 per diagram (vs. ≤ 12 for the old Mermaid version —
-> hand-positioned cards get crowded faster).
-
-```
-┌─────────┐         ┌─────────┐         ┌───────────┐
-│  LABEL  │ ⪪────⪫ │  ISSUE  │ ──1:N──▶│ PullRequest│
-│  id PK  │   M:N   │  num PK │          │  num PK   │
-│  name   │         │author_id│          │issue_num  │
-└─────────┘         │  state  │          │  state    │
-                    └────┬────┘          └───────────┘
-                         │ 0,N:1
-                         ▼
-                    ┌─────────┐
-                    │  USER   │
-                    │  id PK  │
-                    └─────────┘
-```
-
-Template: [`er.html`](./er.html) · demo: [`examples/er.html`](./examples/er.html).
-Native, no CDN, file://-safe.
-
-### Sequence
-
-> Actors along the top, lifelines dropping vertically, horizontal
-> message arrows between lifelines. `.fg-lifeline` for the dashed
-> vertical rule; `.fg-lifeline-activation` overlays a solid rectangle
-> to show "this participant is processing a message during this span".
-> Height adapts to message count via `--msg-count` custom prop.
->
-> Use for protocol exchanges, pipeline flows, request/response
-> interactions. Cap at 15 messages — denser sequences become illegible.
-
-```
-  User        /dev        /plan       /implement→/pr
-   │           │            │               │
-   │──/dev────▶│            │               │
-   │           │──plan─────▶│               │
-   │           │◀──approved─│               │
-   │           │───implement + open PR ────▶│
-   │◀──────────────────── PR URL ───────────│
-   │           │            │               │
-```
-
-Template: [`sequence.html`](./sequence.html) · demo: [`examples/sequence.html`](./examples/sequence.html).
-Native, no CDN, file://-safe.
-
-### State
-
-> Finite-state machine: state nodes (circles for start/end, pills or
-> cards for named states, diamonds for decisions) connected by transition
-> arrows with event / guard labels. Semantic edge classes
-> (`.fg-edge.control` for normal transitions, `.feedback` for rework
-> loops, `.async` for timer-driven) carry meaning.
->
-> Use for lifecycle diagrams, protocol states, review workflows.
-> Cap at 6 states per diagram.
-
-```
-   ●──new──▶ backlog ──triage──▶ todo ──/dev──▶ in-progress
-                                                  │
-                                            open-PR
-                                                  ▼
-   ◉◀──merge── [in-review] ◀──────────────────────┘
-                  │
-              changes
-                  ▼
-              in-progress  (loop back)
-```
-
-Template: [`state.html`](./state.html) · demo: [`examples/state.html`](./examples/state.html).
-Native, no CDN, file://-safe.
+The `fgraph-base.css` rules for `.fg-gantt-bar`, `.fg-lifeline`, `.fg-lifeline-activation`,
+and `.mk-er-stroke` are retained — they are consumed by the fd-engine output HTML at runtime
+via the inlined `fgraph-base.css` block.
 
 ### Dep-Graph
 
@@ -445,6 +331,106 @@ Native, no CDN, file://-safe.
 Template: [`dep-graph.html`](./dep-graph.html) · demo: [`examples/dep-graph.html`](./examples/dep-graph.html).
 Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 
+### Lane-swim
+
+> N vertical lanes (fixed x-positions) × N rows — **one node per row**, any
+> lane. Flow runs top-to-bottom. Phases are visual groupings marked by faint
+> horizontal separator lines, **not** by shared y-coordinates. Connectors are
+> git-graph-style cubic bezier S-curves for cross-lane hops and straight
+> verticals for same-lane hops. Parallel edges from the same source bend with
+> a perpendicular offset so XOR splits read distinctly.
+>
+> Use for message-flow pipelines, request lifecycle diagrams, clean-arch layer
+> traces, or any process that crosses multiple horizontal domains over several
+> sequential phases. Container height is driven by `--fg-lane-min-height`
+> (default 900px) — no aspect-ratio constraint.
+
+```
+  Presentation   Application     Kernel      Infrastructure
+  ─────────────────────────────────────────────────────────── ← header strip
+       │               │             │               │
+  ① Receive  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ← phase separator
+  ●─ AdapterIn         │             │               │
+  ● STT (opt)          │             │               │    ← dashed circle
+  ●─ Normalize         │             │               │
+       │               │             │               │
+  ② Gate  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+       │               │         ● Guards             │
+       │           ●─ RateLimit      │               │
+       │           ●─ Session        │               │
+  ③ Dispatch ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+       │           ●─ Router         │               │
+       │         ╭─● Command[cmd]    │               │  ← right-bulge fork
+       │         ╰─● LLM [llm]       │               │  ← left-bulge fork
+       │               └────────────▶●─ StreamProc   │
+       │                             ●─ RenderEvent  │
+  ④ Respond ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+       │                             └──────────────▶●─ Persist
+       │                             └─ ─ ─ ─ ─ ─ ─▶●─ TTS? (opt)
+       │                                             ●─ AdapterOut
+```
+
+Template: [`lane-swim.html`](./lane-swim.html) · demo: [`examples/lane-swim.html`](./examples/lane-swim.html).
+Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
+
+### Scatter
+
+> Inline SVG data-chart plotting X↔Y pairs as circle marks in a
+> labelled axis box. Each point maps to one observation; axis ticks
+> and grid lines are pre-computed and emitted as `<line>` elements.
+>
+> Use when you need to visualise the correlation (or absence of it)
+> between two continuous variables — e.g. latency vs payload size,
+> score vs tokens, CPU vs memory. Cap at ~200 points before the SVG
+> becomes illegible at normal viewport widths.
+
+Template: [`scatter.html`](./scatter.html) · demo: [`examples/scatter.html`](./examples/scatter.html).
+Native, no CDN, file://-safe.
+
+### Bubble
+
+> Extends scatter with a third dimension encoded as circle radius.
+> Each datum has (x, y, size) — x and y map to the axis space, size
+> maps to `r` on the rendered circle.
+>
+> Use when a third continuous variable (magnitude, volume, weight)
+> needs to be visible alongside the two-axis correlation — e.g.
+> request latency × error-rate × traffic volume. Keep bubbles
+> non-overlapping or use low opacity to prevent occlusion.
+
+Template: [`bubble.html`](./bubble.html) · demo: [`examples/bubble.html`](./examples/bubble.html).
+Native, no CDN, file://-safe.
+
+### Radar
+
+> N-axis spider/radar chart in an inline SVG. Each axis radiates from
+> a shared centre; a dataset is a polygon connecting one value per
+> axis. Multiple datasets overlay as semi-transparent polygons for
+> direct comparison.
+>
+> Use for multi-axis comparison where all metrics share a common
+> scale — e.g. comparing agent capabilities, benchmark profiles,
+> or feature coverage across N dimensions. Cap at 8 axes before
+> label spacing collapses.
+
+Template: [`radar.html`](./radar.html) · demo: [`examples/radar.html`](./examples/radar.html).
+Native, no CDN, file://-safe.
+
+### Funnel
+
+> Decreasing-width horizontal bars stacked vertically, one per
+> conversion stage. Each bar's width encodes the stage value as a
+> proportion of the entry value; a right-hand label shows the absolute
+> count and drop-off percentage.
+>
+> Use for pipeline / stage-conversion visualisation — e.g. marketing
+> funnel (visits → signups → trials → paid), CI stages (triggered →
+> built → tested → deployed), or any sequential process where tracking
+> attrition between steps matters.
+
+Template: [`funnel.html`](./funnel.html) · demo: [`examples/funnel.html`](./examples/funnel.html).
+Native, no CDN, file://-safe.
+
 ---
 
 ## Templates
@@ -455,32 +441,30 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 | `linear-flow.html` | 3-stage pipeline (source → middle → sink) | ~3K | 3 horizontal cards, single-direction arrows, labels above, 16/6 aspect, middle pill or wide, any-tone edges |
 | `dual-cluster.html` | 2 peers sharing 2 central resources (HA pair + session + bus) | ~4K | 2 top peers + center resource + bottom bus, 4 bidirectional arrows with wide-bulge routing, single centered labels, square aspect |
 | `radial-ring.html` | Peer-to-peer mesh / ring buffer / consensus ring (no center hub) | ~4K | 6 nodes in a circle, clockwise inter-peer edges, labels outside ring, square aspect |
+| `system-architecture.html` | Full-system architecture (≥ 15 components, ≥ 4 lifecycle layers, request-lifecycle view with bus + nested hub) | ~11K | Rows for users/cloud APIs/adapters/bus/hub-interior/stores/phase-2; full-width `.fg-bus-strip` between adapter row and hub; `.fgraph-group.cluster` wraps hub sub-components; `.fgraph-group.security-group` overlay for auth; `.fg-live-dot` in header; built-in 3-card `.info-card-grid` footer; wide aspect (14/10) |
 | `layered.html` | 3–4 horizontal layers (ingress → hub → workers → storage) | ~5K | 4 stacked layers with dashed frames, vertical fan-out/fan-in arrows, tall aspect (3/4), optional 3-layer variant |
 | `machine-clusters.html` | Multi-host deployment / distributed services across machines | ~5K | 3 machine frames side-by-side, cross-machine edge routing, wide aspect (16/9), per-machine labels |
 | `deployment-tiers.html` | CI/CD pipeline / dev → staging → prod promotion | ~5K | 3 colored tier stripes, promotion arrows upward, data sync arrows, tall aspect (4/5), tier-specific tones |
-| `gantt.html` | Timeline / schedule / roadmap — dated tasks grouped by section | ~5K | Native fgraph, `.fg-axis-date` + `.fg-gantt-bar`, pre-computed bar positions in 0..100 %, 5 tone variants, no CDN |
-| `pie.html` | Proportion / share / composition snapshot — 3–7 slices | ~4K | Inline SVG pie (`viewBox 0 0 100 100`), pre-computed arc paths, right-column legend with swatches, hover highlight, no CDN |
-| `er.html` | Entity-relationship schema — DB tables or domain model — ≤ 8 entities | ~5K | HTML entity boxes + SVG relationship paths, 5 inline `<marker id="fg-er-*">` defs (crow's-foot), PK/FK attribute markers, no CDN |
-| `sequence.html` | Protocol exchange / request-response / pipeline message flow — ≤ 15 messages | ~4K | Participant pill row + `.fg-lifeline` verticals + `.fg-lifeline-activation` box, aspect-ratio override via `--msg-count`, 5 tone variants |
-| `state.html` | Finite-state machine / lifecycle — ≤ 6 states | ~4K | `.fgraph-node.circle`/`.diamond` shapes, semantic `.fg-edge.control`/`.feedback` classes, start/end circles, no CDN |
+| *(deleted)* `gantt.html` | → fd-engine descriptor `type:"gantt"` | — | Replaced by fd-engine; see `examples/fd-gantt.html` |
+| *(deleted)* `pie.html` | → fd-engine descriptor `type:"pie"` | — | Replaced by fd-engine; see `examples/fd-pie.html` |
+| *(deleted)* `er.html` | → fd-engine descriptor `type:"er"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-er.html` |
+| *(deleted)* `sequence.html` | → fd-engine descriptor `type:"sequence"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-sequence.html` |
+| *(deleted)* `state.html` | → fd-engine descriptor `type:"state"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-state.html` |
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
-| `gantt-mermaid.html` | (Legacy — scheduled for deletion in #24) | ~4K | Mermaid `gantt`, auto-layout, `done`/`active`/`crit`/`milestone` states, `.diagram-shell` + pan/zoom · requires `mermaid@11` CDN |
-| `pie-mermaid.html` | (Legacy — scheduled for deletion in #24) | ~4K | Mermaid `pie showData`, 6 themed `pie1..pie6` slice colors, `.diagram-shell` + pan/zoom · requires `mermaid@11` CDN |
-| `er-mermaid.html` | (Legacy — scheduled for deletion in #24) | ~4K | Mermaid `erDiagram`, crow's-foot cardinality, `PK`/`FK` markers, `.diagram-shell` + pan/zoom · requires `mermaid@11` CDN |
+| `lane-swim.html` | Message flow / request lifecycle across N architectural lanes, one node per row | ~6K | Lane header strip (`.fg-lane-header`/`.fg-lane-title`), phase separator lines (`.fg-lane-phase-line`/`.fg-lane-phase-lbl`), 18 px circle nodes (`.fg-lane-node`), inline tag pills (`.fg-lane-tag`), S-curve + parallel-bend connectors (`.fg-lane-curve`), chip-on-wire edge labels (`.fg-edge-lbl`), `--fg-lane-min-height` knob |
+| `scatter.html` | Scatter — X↔Y correlation between two continuous variables | ~3K | Inline SVG axis box, pre-computed tick marks and grid lines, labelled axes, circle marks per datum |
+| `bubble.html` | Bubble — X, Y + magnitude encoded as bubble radius (3-variable) | ~3K | Extends Scatter; `r` attribute on circles encodes a third dimension; low-opacity fills prevent occlusion |
+| `radar.html` | Radar — multi-axis comparison (N metrics, spider/spider chart) | ~3K | Inline SVG N-axis radials from shared centre, dataset polygons as semi-transparent overlays, axis labels |
+| `funnel.html` | Funnel — pipeline / stage conversion, sequential attrition | ~3K | Decreasing-width bars per stage, right-hand count + drop-off % labels, single-file inline SVG |
 
-All **13 native fgraph** templates (`radial-hub`, `linear-flow`,
+All **14 native fgraph** templates (`radial-hub`, `linear-flow`,
 `dual-cluster`, `radial-ring`, `layered`, `machine-clusters`,
-`deployment-tiers`, `gantt`, `pie`, `er`, `sequence`, `state`, `dep-graph`)
+`deployment-tiers`, `dep-graph`, `lane-swim`, `system-architecture`,
+`scatter`, `bubble`, `radar`, `funnel`)
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
 
-The three **Mermaid legacy** templates (`gantt-mermaid`, `pie-mermaid`,
-`er-mermaid`) are self-rendering via the mermaid CDN — they share the
-`.diagram-shell` + zoom-control pattern (inherited from `base/components.css`
-/ `explainer-base.css`) and do not depend on `fgraph-base.css`. These are
-**scheduled for deletion in #24** and retained only for backwards
-compatibility during the Mermaid purge (#21) coexistence window. New work
-should use the native versions.
+`gantt`, `pie`, `er`, `sequence`, `state` are retired — use the fd-engine path.
 
 ### Primitives (`fgraph-base.css`)
 
@@ -509,6 +493,8 @@ should use the native versions.
 | `.fgraph-sub` / `.muted` / `.warn` / `.ok` | Node subtitles (default / muted / red / green) |
 | `.fgraph-lbl.{tone}` | Absolute HTML edge label via `--x` / `--y` |
 | `.fgraph-legend` | Bottom legend strip |
+| `.fg-bus-strip.{tone}` | Full-width horizontal pill band — use when a message bus / event bus spans the diagram between two node rows. Positioned via `--y` (top %) + `--h` (height %). Default tone is `.orange` (message-bus semantic); `.amber`/`.cyan`/`.purple`/`.green`/`.red` available. Contains `.fg-bus-strip__title` + `.fg-bus-strip__sub`. |
+| `.fg-live-dot.{tone}` | Pulsing status indicator. Inline element; sits next to a title to signal "live system". Default green (healthy); `.amber` (warn), `.red` (down). Pure CSS animation, no JS. |
 
 ### Coordinate system
 
@@ -663,6 +649,40 @@ This is the same pattern galleries already use:
 
 ---
 
+## Edge/marker SSoT and drift gate
+
+### Where the canonical block lives
+
+`fgraph-base.css` is the single source of truth for the edge/marker config.
+It contains two coupled sections:
+
+- The SVG marker `<defs>` (arrow `<marker>` elements, each with
+  `markerWidth="6" markerHeight="6"`, no `markerUnits` override).
+- The `.fgraph-edges .fg-edge` CSS rule, which carries
+  `vector-effect: non-scaling-stroke`.
+
+### The `{{FGRAPH_BASE}}` placeholder contract
+
+Raw templates carry **no inline `non-scaling-stroke`** and **no `<marker>`
+defs** — these are injected at generation time by replacing the
+`{{FGRAPH_BASE}}` placeholder with the full `fgraph-base.css` content.
+The validator is placeholder-aware: a template that contains `{{FGRAPH_BASE}}`
+is exempt from the missing-NSS check; a rendered output HTML is not.
+
+### Enforcement gates
+
+Two gates prevent drift from reaching the runtime artifacts:
+
+1. **lefthook pre-commit** — runs `validate-svg` on every staged file under
+   `graph-templates/**/*.html`. Commit is blocked if a rendered output is
+   missing `vector-effect: non-scaling-stroke` or carries
+   `markerUnits="userSpaceOnUse"`.
+
+2. **CI "Validate fgraph SVG" step** — same check on the full tree, runs on
+   every pull request. Fails the build on any violation.
+
+---
+
 ## Shape picker — which template?
 
 Pick by layout intent, not by domain. Any template can be re-tinted
@@ -677,30 +697,31 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | 3–4 horizontal layers stacked vertically | `layered.html` | service architecture |
 | 2–3 machine frames side-by-side | `machine-clusters.html` | distributed deployment |
 | Dev / staging / prod tiers stacked | `deployment-tiers.html` | CI/CD pipeline |
-| Timeline / schedule / roadmap with dated tasks | `gantt.html` | release plan, multi-workstream project |
-| Proportion / share / composition — 3–7 slices | `pie.html` | cost or traffic breakdown |
-| Entity-relationship schema — tables + FK/cardinality | `er.html` | DB schema, domain model |
-| Protocol exchange / message flow / pipeline — ≤ 15 messages | `sequence.html` | `/dev` pipeline interaction, API handshake |
-| Finite-state machine / lifecycle — ≤ 6 states | `state.html` | issue lifecycle, review workflow, connection states |
+| Timeline / schedule / roadmap with dated tasks | fd-engine descriptor `type:"gantt"` → `examples/fd-gantt.html` | release plan, multi-workstream project |
+| Proportion / share / composition — 3–7 slices | fd-engine descriptor `type:"pie"` → `examples/fd-pie.html` | cost or traffic breakdown |
+| Entity-relationship schema — tables + FK/cardinality | fd-engine descriptor `type:"er"` + bun elk step → `examples/fd-er.html` | DB schema, domain model |
+| Protocol exchange / message flow / pipeline — ≤ 15 messages | fd-engine descriptor `type:"sequence"` + bun elk step → `examples/fd-sequence.html` | `/dev` pipeline interaction, API handshake |
+| Finite-state machine / lifecycle — ≤ 6 states | fd-engine descriptor `type:"state"` + bun elk step → `examples/fd-state.html` | issue lifecycle, review workflow, connection states |
 | Issue dependency graph — phase columns × issue cards | `dep-graph.html` | roadmap backlog, blocks/depends-on visualisation (via `gen-deps.py` in #23) |
-| Timeline with auto-layout (declarative dates + durations, no manual positioning) — **legacy** | `gantt-mermaid.html` | scheduled for deletion in #24 — prefer `gantt.html` |
-| Pie with Mermaid auto-color slices — **legacy** | `pie-mermaid.html` | scheduled for deletion in #24 — prefer `pie.html` |
-| ER via `erDiagram` Mermaid DSL — **legacy** | `er-mermaid.html` | scheduled for deletion in #24 — prefer `er.html` |
+| Message flow / request lifecycle crossing N architectural layers over M phases | `lane-swim.html` | clean-arch layer trace, pipeline walkthrough, process with optional steps |
+| Scatter — X↔Y correlation between two continuous variables | `scatter.html` | latency vs payload, score vs tokens, any 2-var correlation |
+| Bubble — X, Y + third dimension as bubble size | `bubble.html` | traffic × latency × error-rate, 3-axis insight in one chart |
+| Radar — N-axis comparison across entities on a common scale | `radar.html` | benchmark profiles, capability matrix, feature coverage spider |
+| Funnel — sequential pipeline with per-stage conversion / drop-off | `funnel.html` | marketing funnel, CI pipeline attrition, onboarding steps |
 | Something that doesn't fit | start from the closest template, reposition nodes via `--x`/`--y`, repaint arrow paths to match |
 
-All 13 native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
-`radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`, `gantt`,
-`pie`, `er`, `sequence`, `state`, `dep-graph`) share the same
+All 14 remaining native fgraph templates (`radial-hub`, `linear-flow`, `dual-cluster`,
+`radial-ring`, `layered`, `machine-clusters`, `deployment-tiers`,
+`dep-graph`, `lane-swim`, `system-architecture`,
+`scatter`, `bubble`, `radar`, `funnel`) share the same
 `fgraph-base.css` primitives — differences live only in layout coordinates
 and a few shape-specific extensions (`.fg-axis-date`, `.fg-gantt-bar`,
-`.fg-lifeline`, `.fg-er-*` markers), so mixing features (e.g. a linear-flow
-with a dashed machine frame borrowed from radial-hub) is just copy-paste.
+`.fg-lifeline`, `.fg-er-*` markers, `.fg-lane-*` swimlane primitives), so
+mixing features (e.g. a linear-flow with a dashed machine frame borrowed from
+radial-hub) is just copy-paste.
 
-The three legacy Mermaid templates (`gantt-mermaid`, `pie-mermaid`,
-`er-mermaid`) are self-rendering via the mermaid CDN and do not consume
-`fgraph-base.css` — customise by editing the `<script type="text/plain"
-data-mermaid>` block's Mermaid source and tuning `themeVariables` in
-`mermaid.initialize({...})`. These are scheduled for deletion in #24.
+Note: `gantt`, `pie`, `er`, `sequence`, `state` have moved to the fd-engine path — see
+the "Retired legacy types → fd-engine" section above.
 
 ---
 
@@ -1130,40 +1151,16 @@ Remove the dev tier for a staging → prod view:
 
 | If your diagram is… | Use instead |
 |--------------------|-------------|
-| Linear flow / pipeline | `flowchart LR` via Mermaid (see `mermaid-guide.md`) — dagre auto-layout wins |
-| Sequence / message exchange | `sequenceDiagram` via Mermaid |
-| State machine | `stateDiagram-v2` via Mermaid |
-| Dependency graph > 8 nodes | Mermaid `flowchart TD` — dagre handles N peers, fgraph caps at ~6 satellites before labels collide |
-| Tree / hierarchy | Mermaid `flowchart TD` with `subgraph` |
+| Linear flow / pipeline | `linear-flow.html` — 3-stage horizontal |
+| Sequence / message exchange | fd-engine descriptor `type:"sequence"` — participant strips + DOM-measured arrows |
+| State machine | fd-engine descriptor `type:"state"` — circle/diamond shapes + bezier edges |
+| Dependency graph > 8 nodes | `dep-graph.html` — phase columns + issue cards (via `gen-deps.py`) |
+| Tree / hierarchy | Start from `layered.html` and adapt |
 | Rich cards stacked vertically (no hub) | `architecture.html` pattern from visual-explainer — CSS Grid cards + tiny inline SVG connectors |
 
 `fgraph` is optimized for the specific case where **one center node connects
 N peers** and the peers deserve **rich HTML card content** (pills, pill shapes,
-warn lines, wrapped text). For anything else, Mermaid is almost always lower
-effort.
-
----
-
-## Decision matrix: fgraph vs Mermaid vs pure SVG
-
-| Criterion | `fgraph` (HTML cards + SVG overlay) | Mermaid | Pure inline SVG |
-|-----------|-------------------------------------|---------|-----------------|
-| Radial / hub-and-spoke layout | ✅ natural | ❌ dagre flattens to linear | ✅ but tedious |
-| Rich card content (pills, warn, wrap) | ✅ native HTML | ⚠ `<br>` only, no CSS flex | ❌ no text wrap |
-| Auto-layout for N > 8 nodes | ❌ manual | ✅ dagre / ELK | ❌ manual |
-| Labels on edges | ✅ HTML `<div>` | ✅ native syntax | ⚠ `<text>` + positioning |
-| Pixel-perfect control | ✅ | ❌ | ✅ |
-| One-shot authoring cost (new diagram) | low (fill placeholders) | low (write graph LR …) | high (recompute all coords) |
-| Runtime dependencies | none | Mermaid 11 ESM from CDN | none |
-| Dark/light theme | ✅ CSS vars | ⚠ re-render needed | ✅ CSS vars |
-| Hover / interactivity | ✅ CSS | ⚠ needs bindFunctions | ⚠ SVG filter |
-| Works in fetched tab fragment (`innerHTML`) | ✅ | ⚠ `mermaid.run()` after inject | ✅ |
-| Accessibility | ✅ real HTML | ✅ Mermaid emits SVG + titles | ⚠ `role="img"` + aria-label only |
-
-**Rule of thumb:**
-- 6 nodes, radial, rich cards → **fgraph**
-- 8+ nodes, linear/topology → **Mermaid**
-- Fallback when neither fits → **pure SVG** (last resort)
+warn lines, wrapped text).
 
 ---
 
@@ -1181,7 +1178,203 @@ effort.
 - [ ] Tested hover glow works (card lifts + box-shadow)
 - [ ] Tested dark + light theme toggle (if shell includes one)
 
+### Live mode (`gen-fgraph.py` / `data-fgraph="live"`)
+
+- [ ] Wrap carries `data-fgraph="live"` **and** `data-interactive="true"` (interact.js needs the latter for spotlight + legend)
+- [ ] Each node is `.fgraph-node` with a unique `data-node` (+ `data-group` to enable group filtering)
+- [ ] Edges live in one `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; every `f`/`t` references an existing `data-node` id
+- [ ] `<svg class="fgraph-edges" data-coord="px">` left **empty** — the runtime fills it (px coords, no `preserveAspectRatio`)
+- [ ] `fgraph-auto.js` + `fgraph-interact.js` inlined into `<script>` (file://-safe, no CDN); they no-op without a live wrap
+- [ ] Tones limited to the 7 reserved (`cyan/orange/purple/green/amber/red/dim`); unknown tones fall back to `dim`
+- [ ] For print / PDF / JS-less embed: regenerate the same JSON with `--mode static`
+
 ---
+
+## How to customise `lane-swim.html`
+
+N vertical lanes (fixed x) × N rows — one node per row, any lane.
+Phases are visual separators, not y-coordinate constraints.
+
+### Step 1 — Diagram-meta placeholders
+
+| Placeholder | Example | Notes |
+|-------------|---------|-------|
+| `{{TITLE}}` / `{{DATE}}` / `{{CATEGORY}}` / `{{CAT_LABEL}}` / `{{COLOR}}` | standard diagram-meta | |
+| `{{WRAP_TONE}}` | `teal` / `amber` / `green` | container border tone |
+| `{{SLUG}}` | `lyra-flow` | unique suffix for arrowhead marker IDs — prevents collisions when multiple diagrams share a page |
+| `{{CATEGORY_LABEL}}` | `ARCHITECTURE` | header eyebrow |
+| `{{TITLE_PLAIN}}` / `{{TITLE_ACCENT}}` | `Lyra` / `Message Flow` | h1 split for accent color |
+| `{{SUBTITLE}}` | `4 lanes · 14 rows · dashed = optional` | header sub |
+| `{{DIAGRAM_ARIA}}` | `Lyra message flow swimlane` | `role="img"` aria-label |
+
+### Step 2 — Lane placeholders
+
+| Placeholder | Example | Notes |
+|-------------|---------|-------|
+| `{{LANE_N_LABEL}}` | `Presentation` / `Application` / `Kernel` / `Infrastructure` | title in header strip |
+| `{{LANE_N_TONE}}` | `teal` / `amber` / `accent` / `green` | tone class on `.fg-lane-title` |
+| `{{LANE_N_X}}` | `22` / `41` / `62` / `82` | x-position as a bare integer (no `%`) |
+
+Default x-positions for 4 lanes: `22, 41, 62, 82`.
+Add/remove lane entries in the header strip, lane rules, and all node/label positions.
+
+### Step 3 — Phase separators (visual only)
+
+Each phase gets a `.fg-lane-phase-line` (horizontal rule) and a `.fg-lane-phase-lbl` (name):
+
+```html
+<div class="fg-lane-phase-lbl"  style="top:10%">① Receive</div>
+<div class="fg-lane-phase-line" style="top:8%"></div>
+```
+
+The label `top` is the y of the first row in the phase. The line `top` is 2% above it.
+Phases are purely decorative — they do not constrain node y-coordinates.
+
+| Placeholder | Example | Notes |
+|-------------|---------|-------|
+| `{{PHASE_N_LABEL}}` | `① Receive` | text of the phase label |
+| `{{PHASE_N_Y}}` | `10` | top% for the label (first row y) |
+| `{{PHASE_N_Y_LINE}}` | `8` | top% for the horizontal rule (2 below label) |
+
+### Step 4 — Rows (one node per row)
+
+**Row-per-node layout rule:** every node gets its own y. Never place two nodes at
+the same `top` value, even if they belong to the same phase.
+
+Each row is two elements — node circle + label block — kept in sync on the same `top`:
+
+```html
+<!-- Row N — NodeName (lane x=41%) -->
+<div class="fg-lane-node amber"
+     style="left:41%; top:36%;"
+     title="Rate Limit"></div>
+<div class="fg-lane-label" style="left:calc(41% + 12px); top:36%;">
+  <div class="fg-lane-title amber">
+    Rate Limit <span class="fg-lane-tag">state</span>
+  </div>
+  <div class="fg-lane-sig">hub state read</div>
+</div>
+```
+
+Tag variants:
+
+| Class | Use for |
+|-------|---------|
+| *(none)* | generic tag |
+| `.pure` | pure / kernel (orange) |
+| `.opt` | optional / dashed |
+
+Optional node: add `.optional` to `.fg-lane-node` — dashed border, 72% opacity.
+
+**Row spacing:** 6 units per row (e.g. 10, 16, 22, 30...). Typical 14-row diagram
+fits in `--fg-lane-min-height: 900px`. Scale: `≈ 60px × row_count + 120px`.
+
+### Step 5 — Connector paths
+
+**Same-lane vertical:**
+
+```
+M x,y1  L x,y2
+```
+
+**Cross-lane S-curve:**
+
+```
+M x1,y1  C x1,ymid  x2,ymid  x2,y2    where ymid = (y1 + y2) / 2
+```
+
+The control points share the same y (ymid). The curve departs x1 heading straight
+down, crosses the lane gap smoothly at mid-height, and arrives at x2 heading straight
+down — no kink. Classic git-graph rounding.
+
+**Worked example** — Normalize (x=22, y=16) → Guards (x=62, y=30):
+
+```
+ymid = (16 + 30) / 2 = 23
+path: M 22,16  C 22,23  62,23  62,30
+```
+
+### Step 6 — Parallel edges in the same lane (XOR / fork bend rule)
+
+**Never draw two branches from the same source as coincident straight lines.**
+Bend one with a perpendicular offset of ±2–3 units at the apex so both branches
+read as distinct paths:
+
+```
+Branch A (right bulge, apex x+2):  M x,y1 C (x+2),cy1 (x+2),cy2 x,y2
+Branch B (left bulge,  apex x−3):  M x,y1 C (x-3),cy1 (x-3),cy2 x,y2
+```
+
+**Worked example** — Router (x=41, y=50) splits to Command (y=56) and LLM (y=62):
+
+```
+Branch A → Command:  M 41,50 C 43,52 43,54 41,56    (right bulge, apex x=43)
+Branch B → LLM:      M 41,50 C 38,54 38,58 41,62    (left bulge, apex x=38)
+```
+
+Edge labels sit at the apex of each branch (see next step).
+
+### Step 7 — Edge labels (bulge-apex rule)
+
+**Labels sit at the visible midpoint of the curve — for a bezier that is the BULGE
+APEX, not the straight-line midpoint between endpoints.**
+
+For a cubic `M x1,y1 C cx,cy1 cx,cy2 x2,y2`:
+
+```
+label --x = cx
+label --y = (cy1 + cy2) / 2
+```
+
+**Worked example** — Branch B (Router→LLM): `M 41,50 C 38,54 38,58 41,62`
+
+```
+cx = 38,  cy1 = 54,  cy2 = 58
+label: --x:38;  --y:56   (= (54+58)/2)
+```
+
+HTML:
+
+```html
+<div class="fg-edge-lbl amber" style="--x:38; --y:56">llm</div>
+```
+
+The `currentColor` border trick: the caller sets the tone class (e.g. `amber`), and
+both the text color and the `border:1px solid currentColor` follow it automatically —
+no extra per-tone rule is needed.
+
+### Step 8 — Min-height knob
+
+```html
+<div class="fgraph-wrap lane-swim teal"
+     style="--fg-lane-min-height: 900px;">
+```
+
+Default 900px suits 14 rows. Scale: `≈ 60px × row_count + 120px`.
+
+### Step 9 — Add / remove lanes
+
+To remove lane 4 (x=82): delete its `.fg-lane-title`, `.fg-lane-rule`, all nodes at `left:82%`, all connector paths ending at x=82. Spread remaining lanes: e.g. 3 lanes at 22, 50, 78.
+
+To add lane 5: insert a title at `left:88%`, a rule at `left:88%`, and nodes/paths as needed. Compress existing lanes: e.g. 5 lanes at 18, 34, 50, 66, 82.
+
+### Step 10 — Inline fgraph-base.css
+
+Replace `{{FGRAPH_BASE}}` with the full content of `fgraph-base.css`.
+Forge directive: inline, never link (Mode A).
+
+---
+
+## Live mode (JS-routed edges, opt-in)
+
+Static templates hand-author every `<path>` and lean on layout rules R1–R7 to avoid overlap. **Live mode** keeps nodes declarative (`--x`/`--y`) but lets a small inlined runtime route the edges from the rendered node rectangles — anchors land on borders by construction (R4 / arrow-routing / R6 become automatic), it is resize-safe (no `preserveAspectRatio` stretch), and it adds hover-spotlight + tone/group filtering.
+
+- **Runtime:** `fgraph-auto.js` (edge router) + `fgraph-interact.js` (spotlight + legend), inlined into the output `<script>` like `theme-toggle.js`. Live styling ships inside `fgraph-base.css`. The runtime is a strict no-op without a `data-fgraph="live"` wrap, so the static templates are unaffected.
+- **Data-driven:** `scripts/gen-fgraph.py --in <graph>.json --out <file>.html [--mode live|static]` generalizes `gen-deps.py` to any node/edge graph (DAG-layered rows, R1 even-stride). `--mode static` emits Python-routed paths (print/PDF-safe); `--mode live` emits the contract below.
+- **Contract:** wrap carries `data-fgraph="live"` and `data-interactive="true"` (interact.js requires it for spotlight/legend); nodes are `.fgraph-node` with `data-node` (+ optional `data-group`); edges are a `<script type="application/json" class="fgraph-edge-data">[{f,t,tone,mods,label}]</script>`; the `<svg class="fgraph-edges" data-coord="px">` is left empty for the runtime to fill.
+- **When:** dense architecture (> 8 nodes) that must stay one diagram AND be explorable. For print / PDF / embed, use static mode (live needs JS).
+
+> **`file://`-safety.** The inlined runtime (`fgraph-auto.js`, `fgraph-interact.js`) and every diagram style are CDN-free — a generated file renders fully offline by double-click. Web fonts (Inter / Outfit / Space Mono) still load from Google Fonts via `<link>`, exactly like every other forge template and `render-md.py`; with no network they degrade to the `system-ui` / `monospace` fallbacks declared in each `font-family` stack. Layout, tones, and edge routing are unaffected — only the typeface changes. Embedding the fonts is an ecosystem-wide decision (every template + the renderers), out of scope for a single generator.
 
 ## Extending the template set
 

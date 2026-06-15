@@ -1,0 +1,360 @@
+/* fd-engine.css — static rules for the fd-engine canvas, nodes, edges, card variants
+ * Inlined into generated HTML output at generation time (not linked at runtime).
+ * No viewBox / no preserveAspectRatio on the SVG overlay (AC-10).
+ * Self-bootstrapping: the :root block below maps each internal short-name token to a
+ *   universal forge aesthetic token with a hard fallback. Works on lyra-v2, cool-dark,
+ *   editorial, and all other aesthetics — no per-aesthetic shim needed.
+ * Plane CSS vars (--fd-plane-{name}) default below; aesthetic layer may override.
+ */
+
+/* ---- Token contract: self-bootstrapping short-name aliases ---- */
+/* fd-engine.css is inlined AFTER the aesthetic, so these :root declarations run last.
+ *
+ * Two mapping strategies:
+ *   A) fd short-name ≠ aesthetic token name → var(--universal-name, #hex)
+ *      The aesthetic's universal token wins; hard hex = lyra-v2 dark fallback.
+ *   B) fd short-name = aesthetic token name (--cyan, --amber, --slate, …) →
+ *      hard hex fallback only (no self-referential var()); aesthetics that already
+ *      declare the token will have their value replaced by the same hex here — safe
+ *      because we target the same colour. Aesthetics that omit the token get the
+ *      fallback, which is what we want.
+ *
+ * Regression note for roxabi.css (defines --panel:#13191f, no --bg-panel):
+ *   --panel → var(--bg-panel, #13191f) → bg-panel absent → #13191f = unchanged. ✓ */
+:root {
+  /* Strategy A: fd name ≠ aesthetic universal name */
+  --panel:  var(--bg-panel,   #13191f);
+  --panel2: var(--bg-card,    #161b22);
+  --bd2:    var(--border-hi,  #30363d);
+  --mut:    var(--text-muted, #8b93a1);
+  --mut2:   var(--text-dim,   #6b7280);
+  --mono:   var(--font-mono,  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  --sans:   var(--font-sans,  "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif);
+  --vio:    var(--plum,       #a855f7);
+  --emer:   var(--green,      #10b981);
+  /* Strategy B: fd name = aesthetic token name — hard fallback, no self-ref var() */
+  --slate:  #64748b;
+  --amber:  #f59e0b;
+  --cyan:   #22d3ee;
+  --sky:    #58a6ff;
+  --orng:   #fb923c;
+  --rose:   #fb7185;
+}
+
+/* ---- Plane color defaults (overridden by aesthetic inlines) ---- */
+:root {
+  --fd-plane-control:  #38bdf8;
+  --fd-plane-write:    #34d399;
+  --fd-plane-read:     #64748b;
+  --fd-plane-data:     #a78bfa;
+  --fd-plane-async:    #fb923c;
+  --fd-plane-feedback: #fb7185;
+  --fd-plane-message:  #38bdf8;
+  --fd-plane-media:    #fbbf24;
+  --fd-plane-llm:      #a78bfa;
+  --fd-canvas-h:       720px;
+}
+
+/* ---- Canvas container ---- */
+.fd-canvas {
+  position: relative;
+  width: 100%;
+  height: var(--fd-canvas-h, 720px);
+}
+
+/* ---- SVG overlay (AC-10: no viewBox, no preserveAspectRatio) ---- */
+.fd-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 1;
+}
+
+/* ---- Edge path base rules ---- */
+.fd-edges path {
+  fill: none;
+  stroke-width: 1.8;
+  opacity: .62;
+  transition: opacity .15s, stroke-width .15s;
+}
+
+/* ---- Per-plane stroke colors ---- */
+.fd-edges path.control  { stroke: var(--fd-plane-control);  }
+.fd-edges path.write    { stroke: var(--fd-plane-write);    }
+.fd-edges path.read     { stroke: var(--fd-plane-read);     }
+.fd-edges path.data     { stroke: var(--fd-plane-data);     }
+.fd-edges path.async    { stroke: var(--fd-plane-async);    }
+.fd-edges path.feedback { stroke: var(--fd-plane-feedback); }
+.fd-edges path.message  { stroke: var(--fd-plane-message);  }
+.fd-edges path.media    { stroke: var(--fd-plane-media);    }
+.fd-edges path.llm      { stroke: var(--fd-plane-llm);      }
+
+/* ---- Edge state classes (dimmed / hot) ---- */
+.fd-edges path.hot {
+  opacity: 1;
+  stroke-width: 3;
+}
+.fd-canvas.dimmed .fd-edges path:not(.hot) {
+  opacity: .06;
+}
+
+/* ---- Use-case edge states ---- */
+.fd-edges path.uc-active {
+  opacity: 1 !important;
+  stroke-width: 2.8 !important;
+}
+.fd-edges path.uc-done {
+  opacity: .48 !important;
+  stroke-width: 2 !important;
+}
+
+/* ---- Edge label ---- */
+.fd-elabel {
+  font-family: var(--mono);
+  font-size: 9px;
+  fill: var(--mut);
+  opacity: 0;
+}
+.fd-elabel.hot {
+  opacity: 1;
+}
+
+/* ---- Particle dot wrapper ---- */
+.fd-edges g.fd-particle-wrap {
+  filter: drop-shadow(0 0 6px var(--pcol, #38bdf8));
+}
+
+/* ---- Node base (.fd-node extends fgraph-base .fgraph-node conventions) ---- */
+/* % coordinate system: --x and --y in 0..100 range, matching fgraph-base.css */
+.fd-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  z-index: 2;
+}
+
+/* ---- Premium card (.fd-card-premium) ---- */
+/* Extracted and generalized from lyra-stack-v2.html lines 135-195.
+ * Applied to nodes with cardStyle:"premium" (architecture / hub-spoke types by default). */
+.fd-card-premium {
+  width: 154px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--bd2);
+  border-radius: 11px;
+  padding: 9px 11px 9px 13px;
+  cursor: default;
+  transition: transform .12s, box-shadow .15s, border-color .15s;
+  box-shadow: 0 3px 14px #00000055;
+  position: relative;
+}
+
+.fd-card-premium:hover {
+  transform: translate(-50%, -50%) translateY(-2px);
+  border-color: #3d567a;
+  box-shadow: 0 8px 26px #000a;
+}
+
+/* Accent bar (.fd-accent) — left side color stripe */
+.fd-card-premium .fd-accent {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--slate);
+}
+
+/* Node header row */
+.fd-card-premium .fd-nh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Node name — cards.js emits .fd-title; .fd-nn kept for legacy reference output */
+.fd-card-premium .fd-title,
+.fd-card-premium .fd-nn {
+  font-weight: 700;
+  font-size: 12px;
+  font-family: var(--mono);
+  letter-spacing: -.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Subtitle / image line (.fd-sub) */
+.fd-card-premium .fd-sub {
+  color: var(--mut);
+  font-size: 10px;
+  font-family: var(--mono);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Description line */
+.fd-card-premium .fd-desc {
+  color: var(--mut2);
+  font-size: 10px;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+/* Tag badge (.fd-tag) */
+.fd-tag {
+  font-size: 8.5px;
+  font-family: var(--mono);
+  font-weight: 700;
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* Tag color variants (plane-aware) */
+.fd-tag-control  { background: #38bdf822; color: var(--fd-plane-control,  #38bdf8); }
+.fd-tag-write    { background: #34d39922; color: var(--fd-plane-write,    #34d399); }
+.fd-tag-read     { background: #64748b22; color: #9fb3cc; }
+.fd-tag-data     { background: #a78bfa22; color: var(--fd-plane-data,     #a78bfa); }
+.fd-tag-async    { background: #fb923c22; color: var(--fd-plane-async,    #fb923c); }
+.fd-tag-feedback { background: #fb718522; color: var(--fd-plane-feedback, #fb7185); }
+.fd-tag-message  { background: #38bdf822; color: var(--fd-plane-message,  #38bdf8); }
+.fd-tag-media    { background: #fbbf2422; color: var(--fd-plane-media,    #fbbf24); }
+.fd-tag-llm      { background: #a78bfa22; color: var(--fd-plane-llm,      #a78bfa); }
+.fd-tag-base     { background: #34d39922; color: var(--emer); }
+.fd-tag-base-svc { background: #38bdf822; color: var(--sky);  }
+.fd-tag-ml-base  { background: #a78bfa22; color: var(--vio);  }
+.fd-tag-cuda     { background: #fb923c22; color: var(--orng); }
+.fd-tag-upstream { background: #64748b22; color: #9fb3cc;     }
+.fd-tag-internal { background: #38bdf814; color: #7dd3fc; border: 1px solid #38bdf822; }
+
+/* Host badge (.fd-host) — bottom-right corner */
+.fd-host {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  font-size: 8px;
+  font-family: var(--mono);
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 20px;
+}
+.fd-host.M1 { background: #34d39915; color: var(--emer); }
+.fd-host.M2 { background: #fbbf2415; color: var(--amber); border: 1px dashed #fbbf2255; }
+
+/* ---- Node state classes ---- */
+.fd-card-premium.hot {
+  border-color: #fff3;
+  box-shadow: 0 0 0 1px #ffffff22, 0 10px 30px #000c;
+}
+
+.fd-canvas.dimmed .fd-card-premium:not(.hot) {
+  opacity: .28;
+}
+
+/* Use-case node states */
+.fd-card-premium.uc-active {
+  border-color: var(--amber) !important;
+  box-shadow: 0 0 0 2px #fbbf2444, 0 0 22px #fbbf2433, 0 6px 24px #000c !important;
+  z-index: 5;
+}
+.fd-card-premium.uc-done {
+  border-color: #fbbf2466 !important;
+  opacity: 1 !important;
+}
+
+/* Dormant node */
+.fd-card-premium.dormant {
+  opacity: .62;
+}
+.fd-card-premium.dormant .fd-title::after,
+.fd-card-premium.dormant .fd-nn::after {
+  content: " ⊘";
+  color: var(--rose);
+}
+
+/* ---- Node kind variants ---- */
+
+/* Bus node (wide horizontal bar) */
+.fd-card-premium.fd-kind-bus {
+  width: 62%;
+  max-width: 820px;
+  background: linear-gradient(90deg, #0e2233, #10283c, #0e2233);
+  border: 1.5px solid #2a6b8f;
+  box-shadow: 0 0 26px #38bdf820, inset 0 0 30px #38bdf80f;
+  padding: 11px 18px;
+}
+.fd-card-premium.fd-kind-bus .fd-accent { display: none; }
+.fd-card-premium.fd-kind-bus .fd-title,
+.fd-card-premium.fd-kind-bus .fd-nn { font-size: 13px; color: var(--cyan); }
+.fd-card-premium.fd-kind-bus .fd-nh { justify-content: flex-start; gap: 9px; }
+.fd-card-premium.fd-kind-bus .fd-subj {
+  color: var(--mut);
+  font-size: 9.5px;
+  font-family: var(--mono);
+  margin-top: 5px;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fd-card-premium.fd-kind-bus .fd-subj b { color: #bfe6ff; font-weight: 600; }
+
+/* Store node */
+.fd-card-premium.fd-kind-store {
+  width: 142px;
+  background: linear-gradient(180deg, #140e24, #110c20);
+  border-color: #2d1e4a;
+}
+.fd-card-premium.fd-kind-store .fd-accent { background: var(--vio); }
+
+/* Hub-interior sub-node */
+.fd-card-premium.fd-kind-hub-int {
+  width: 136px;
+  padding: 7px 9px 7px 11px;
+  background: linear-gradient(180deg, #0d1a2e, #0b1526);
+  border-color: #1e3555;
+}
+.fd-card-premium.fd-kind-hub-int .fd-accent { background: var(--hub-c, var(--cyan)); }
+.fd-card-premium.fd-kind-hub-int .fd-title,
+.fd-card-premium.fd-kind-hub-int .fd-nn { font-size: 11px; }
+.fd-card-premium.fd-kind-hub-int .fd-desc { font-size: 9.5px; }
+
+/* External / cloud node */
+.fd-card-premium.fd-kind-ext {
+  width: 154px;
+  background: repeating-linear-gradient(
+    135deg,
+    #0e1420, #0e1420 7px,
+    #101826 7px, #101826 14px
+  );
+  border: 1.5px dashed var(--bd2);
+}
+.fd-card-premium.fd-kind-ext .fd-accent { display: none; }
+.fd-card-premium.fd-kind-ext .fd-title,
+.fd-card-premium.fd-kind-ext .fd-nn { color: #cbd6e6; }
+
+/* ---- Zone regions ---- */
+.fd-zone {
+  position: absolute;
+  z-index: 0;
+  border-radius: 14px;
+  border: 1px dashed;
+  pointer-events: none;
+}
+.fd-zone .fd-zone-label {
+  position: absolute;
+  top: 7px;
+  left: 11px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}

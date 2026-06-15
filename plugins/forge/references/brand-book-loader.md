@@ -111,11 +111,11 @@ brand book — aesthetic file's font defaults remain.
 
 **`components`**
 Store the full object as the Style phase pre-fill map. Each key corresponds to a Style slot
-(hero, section_label, card_default, timeline, badges, mermaid_theme_bias). Pre-fill those slots
+(hero, section_label, card_default, timeline, badges). Pre-fill those slots
 before running Style judgment.
 
 **`structure_defaults`**
-Store as the Structure phase tiebreaker set. Keys: `prefer_fgraph_under`, `prefer_mermaid_over`,
+Store as the Structure phase tiebreaker set. Keys: `prefer_fgraph_under`,
 `comparison_as_table`. Used only when content topology is ambiguous between two equally valid
 choices.
 
@@ -245,7 +245,7 @@ execute the full Apply logic for their relevant phases.
 | Phase 1 — Context | `aesthetic`, `palette`, `typography` | Inject aesthetic CSS file from `references/aesthetics/{value}` into the HTML shell. Then overlay `palette` tokens as CSS custom properties in `:root` and theme blocks, overriding matching tokens in the aesthetic file. Emit `typography` as Google Fonts links + font-family rules, overriding aesthetic defaults. |
 | Frame (Phase 1) | `deliver_must_match` (voice / vocabulary rules that pre-constrain tone) | If brand book is present (Track A): tone is pre-constrained — no tone inference needed. Read tone axes from the brand book's voice rules embedded in `deliver_must_match` (banned vocab, voice register, passive-voice rules). Infer Signal 1 (reader-action) and Signal 2 (takeaway) from the prompt — these are content-driven, not brand-driven. In Track B: infer all four Frame signals from prompt and content. Note: the schema has no dedicated `tone` override key — voice constraints live in `deliver_must_match` by convention. |
 | Phase 2 — Structure | `structure_defaults`, `allow_override.structure` | Apply `structure_defaults` as tiebreakers only when content topology is genuinely ambiguous between two equally valid choices. If `allow_override.structure: open`, content topology always wins regardless of tiebreakers. If `locked`, the brand default always wins even when content suggests a different topology. |
-| Phase 3 — Style | `components`, `allow_override.components` | Pre-fill each Style slot (hero, section_label, card_default, timeline, badges, mermaid_theme_bias) from `components`. If `allow_override.components: partial`, content may substitute a specific slot only when there is no valid option using the brand default (see override rule below). If `locked`, brand component values are immutable. |
+| Phase 3 — Style | `components`, `allow_override.components` | Pre-fill each Style slot (hero, section_label, card_default, timeline, badges) from `components`. If `allow_override.components: partial`, content may substitute a specific slot only when there is no valid option using the brand default (see override rule below). If `locked`, brand component values are immutable. |
 | Phase 4 — Deliver | `examples`, `deliver_must_match` | Before writing the output file: (1) run each `deliver_must_match` rule against the generated output and report pass/fail per rule; (2) if `examples` list is non-empty and at least one example path resolves, offer to diff the generated output against one example for visual consistency spot-check. |
 
 ### Rule for `components: partial` override

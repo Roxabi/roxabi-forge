@@ -6,14 +6,18 @@
    base/components.css and base/typography.css respectively.
    ══════════════════════════════════════════════════════════════════ */
 
-/* ── Brand Tokens — Dark (default) ── */
+/* ── Brand Tokens — Dark (default) ──
+   v1.5 cool-dark migration (2026-04-20). Warm text #f0ede6 + amber #f0b429
+   retained as signatures against the cool ground. See
+   ~/.roxabi/forge/roxabi-site/brand/BRAND-BOOK.md v1.5 §6. */
 :root, [data-theme="dark"] {
   color-scheme: light dark;
-  --bg:           #111210;
-  --surface:      #1a1b18;
-  --surface2:     #222320;
-  --border:       #2e3028;
-  --border-bright: #3e4038;
+  --bg:           #0d1117;
+  --panel:        #13191f;
+  --surface:      #161b22;
+  --surface2:     #1f252d;
+  --border:       #21262d;
+  --border-bright: #30363d;
   --text:         #f0ede6;
   --text-muted:   #9ca3af;
   --text-dim:     #7a7468;
@@ -56,7 +60,7 @@
 
 /* ══════════════════════════════════════════════════════════════════
    Slide mode — roxabi aesthetic (used by forge-slides)
-   House brand: warm black bg, forge-gold accent, geometric feel.
+   House brand: cool-dark bg, forge-gold accent, geometric feel.
    ══════════════════════════════════════════════════════════════════ */
 
 .deck .slide--title {

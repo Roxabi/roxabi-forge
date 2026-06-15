@@ -8,7 +8,9 @@
 #   2. Attribute quotes     — rg for unquoted attributes in SVG/HTML open tags
 #   3. Marker refs          — every url(#id) must have a matching id="id"
 #   4. Path data            — each <path d="..."> has ≥ 2 points
-#   5. rsvg-convert smoke   — render to /dev/null (skipped if rsvg-convert absent)
+#   5. Marker units         — fail markerUnits="userSpaceOnUse" on a stretched SVG (giant arrowheads)
+#   6. Non-scaling stroke   — fail marker edges on a stretched SVG without vector-effect:non-scaling-stroke (giant arrowheads)
+#   7. rsvg-convert smoke   — render to /dev/null (skipped if rsvg-convert absent)
 #
 # Behavior:
 #   - Pass        → exit 0
@@ -77,10 +79,18 @@ check_attrs() {
 
 check_markers() {
   local f=$1
-  local refs ids missing=0
-  refs=$(grep -oE 'url\(#[A-Za-z0-9_-]+\)' "$f" 2>/dev/null | sed -E 's/url\(#(.*)\)/\1/' | sort -u)
+  local refs ids missing=0 src
+  # Strip /* */ and <!-- --> comments first: a url(#id) or id="" living inside a
+  # documentation comment (e.g. an ER-marker usage example) is not a live edge,
+  # and must not trip the dangling-ref check. Falls back to raw text if perl absent.
+  if have perl; then
+    src=$(perl -0777 -pe 's{/\*.*?\*/}{}gs; s{<!--.*?-->}{}gs' "$f" 2>/dev/null)
+  else
+    src=$(cat "$f" 2>/dev/null)
+  fi
+  refs=$(printf '%s' "$src" | grep -oE 'url\(#[A-Za-z0-9_-]+\)' 2>/dev/null | sed -E 's/url\(#(.*)\)/\1/' | sort -u)
   [ -z "$refs" ] && { note_ok "markers ($f): no url() refs"; return 0; }
-  ids=$(grep -oE '\bid="[A-Za-z0-9_-]+"' "$f" 2>/dev/null | sed -E 's/id="(.*)"/\1/' | sort -u)
+  ids=$(printf '%s' "$src" | grep -oE '\bid="[A-Za-z0-9_-]+"' 2>/dev/null | sed -E 's/id="(.*)"/\1/' | sort -u)
   while IFS= read -r r; do
     [ -z "$r" ] && continue
     if ! grep -qxF "$r" <<<"$ids"; then
@@ -97,6 +107,7 @@ check_paths() {
   local bad=0
   # A path d="" must contain at least 2 coordinate pairs (min M+one more op).
   while IFS= read -r d; do
+    case "$d" in *'{{'*'}}'*) continue ;; esac
     local coords
     coords=$(printf '%s' "$d" | grep -oE '[-0-9.]+' | wc -l)
     if [ "$coords" -lt 4 ]; then
@@ -107,6 +118,60 @@ check_paths() {
   done < <(grep -oE '[[:space:]]d="[^"]+"' "$f" 2>/dev/null | sed -E 's/.*d="(.*)"/\1/')
   [ "$bad" -eq 0 ] && note_ok "path-data ($f)"
   return "$bad"
+}
+
+check_marker_units() {
+  local f=$1
+  # GIANT-ARROWHEAD BUG: markerUnits="userSpaceOnUse" on a stretched SVG
+  # (preserveAspectRatio="none", as every fgraph edge layer uses) sizes the
+  # marker in the 0..100 user space, which the non-uniform scale blows up to
+  # ~60-80px and distorts. Canonical markers omit markerUnits (→ strokeWidth
+  # default) so they stay small + proportional via vector-effect:non-scaling-stroke.
+  if grep -q 'preserveAspectRatio="none"' "$f" 2>/dev/null \
+     && grep -q 'markerUnits="userSpaceOnUse"' "$f" 2>/dev/null; then
+    note_fail "marker-units ($f): markerUnits=\"userSpaceOnUse\" on a preserveAspectRatio=\"none\" SVG → giant/distorted arrowheads. Remove markerUnits (use strokeWidth default), markerWidth/Height=6."
+    return 1
+  fi
+  note_ok "marker-units ($f)"
+  return 0
+}
+
+check_nonscaling_stroke() {
+  local f=$1
+  # GIANT-ARROWHEAD BUG (sibling of marker-units): on a stretched SVG
+  # (preserveAspectRatio="none"), markers default to markerUnits="strokeWidth",
+  # so marker size = markerWidth × stroke-width. Without
+  # vector-effect:non-scaling-stroke the stroke-width is scaled by the non-uniform
+  # viewport (×8+) → strokeWidth-relative markers blow up to giant distorted heads.
+  # The fix that swaps userSpaceOnUse → strokeWidth (check 5) ONLY holds if the
+  # stroke is non-scaling. So: any marker-ended edge on a stretched SVG MUST carry
+  # vector-effect:non-scaling-stroke. (No marker edges → not applicable; pie/gantt.)
+  # {{FGRAPH_BASE}} is a generation-time placeholder: the real non-scaling-stroke
+  # CSS is injected when fgraph-base.css is inlined (convention shared with the
+  # authoring comment `/* {{FGRAPH_BASE}} — inline fgraph-base.css here */`).
+  if grep -q 'preserveAspectRatio="none"' "$f" 2>/dev/null \
+     && grep -qE 'marker-(end|start)=' "$f" 2>/dev/null \
+     && ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null \
+     && ! grep -q '{{FGRAPH_BASE}}' "$f" 2>/dev/null; then
+    note_fail "non-scaling-stroke ($f): marker-ended edges on a preserveAspectRatio=\"none\" SVG but no vector-effect:non-scaling-stroke → giant/distorted arrowheads. Add \`.fg-edge { vector-effect: non-scaling-stroke; }\`."
+    return 1
+  fi
+  note_ok "non-scaling-stroke ($f)"
+  return 0
+}
+
+check_base_contract() {
+  local f=$1
+  case "$(basename "$f")" in
+    fgraph-base.css)
+      if ! grep -q 'non-scaling-stroke' "$f" 2>/dev/null; then
+        note_fail "base-contract ($f): fgraph-base.css is the SSoT for edge strokes but contains no 'non-scaling-stroke' — restore vector-effect:non-scaling-stroke on .fg-edge."
+        return 1
+      fi
+      note_ok "base-contract ($f)"
+      ;;
+    *) return 0 ;;
+  esac
 }
 
 check_rsvg() {
@@ -146,6 +211,9 @@ main() {
     check_attrs   "$f" || overall=1
     check_markers "$f" || overall=1
     check_paths   "$f" || overall=1
+    check_marker_units "$f" || overall=1
+    check_nonscaling_stroke "$f" || overall=1
+    check_base_contract "$f" || overall=1
     check_rsvg    "$f" || overall=1
   done
   return "$overall"

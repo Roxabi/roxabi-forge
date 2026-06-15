@@ -1,0 +1,204 @@
+/**
+ * iOS Frame — iPhone 15 Pro Device Bezels
+ *
+ * Precise specifications:
+ * - Viewport: 393×852 (iPhone 15 Pro)
+ * - Dynamic Island: 124×36 @ top:12, centered
+ * - Status bar: 54px total height, 44px content + 10px padding
+ * - Home indicator: 34px height at bottom
+ * - Bezel: 47px radius corners, 2px black border
+ *
+ * Usage:
+ *   <div class="ios-frame">
+ *     <div class="ios-frame__island"></div>
+ *     <div class="ios-frame__status">
+ *       <span class="ios-frame__time">9:41</span>
+ *       <span class="ios-frame__icons">●●●●●</span>
+ *       <span class="ios-frame__battery">85%</span>
+ *     </div>
+ *     <div class="ios-frame__content">
+ *       <!-- Your app content here -->
+ *     </div>
+ *     <div class="ios-frame__home-indicator"></div>
+ *   </div>
+ */
+
+.ios-frame {
+  --ios-frame-width: 393px;
+  --ios-frame-height: 852px;
+  --ios-bezel-radius: 47px;
+  --ios-border-width: 2px;
+  --ios-island-width: 124px;
+  --ios-island-height: 36px;
+  --ios-island-top: 12px;
+  --ios-status-height: 54px;
+  --ios-home-indicator-height: 34px;
+  --ios-content-top: var(--ios-status-height);
+  --ios-content-bottom: var(--ios-home-indicator-height);
+
+  position: relative;
+  width: var(--ios-frame-width);
+  height: var(--ios-frame-height);
+  background: #000;
+  border-radius: var(--ios-bezel-radius);
+  border: var(--ios-border-width) solid #1a1a1a;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  box-sizing: border-box;
+}
+
+/* Dynamic Island */
+.ios-frame__island {
+  position: absolute;
+  top: var(--ios-island-top);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--ios-island-width);
+  height: var(--ios-island-height);
+  background: #000;
+  border-radius: calc(var(--ios-island-height) / 2);
+  z-index: 100;
+}
+
+/* Status Bar */
+.ios-frame__status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--ios-status-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  padding-top: calc(var(--ios-island-top) + var(--ios-island-height) + 4px);
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.ios-frame__time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.ios-frame__icons {
+  font-size: 12px;
+  letter-spacing: -0.5px;
+}
+
+.ios-frame__battery {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ios-frame__battery::after {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    #34c759 0%,
+    #34c759 85%,
+    transparent 85%
+  );
+}
+
+/* Content Area */
+.ios-frame__content {
+  position: absolute;
+  top: var(--ios-content-top);
+  left: 0;
+  right: 0;
+  bottom: var(--ios-content-bottom);
+  overflow: auto;
+  background: var(--ios-content-bg, #f8f8f8);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Home Indicator */
+.ios-frame__home-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--ios-home-indicator-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.ios-frame__home-indicator::before {
+  content: '';
+  width: 134px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 3px;
+}
+
+/* Dark mode content support */
+.ios-frame[data-theme="dark"] .ios-frame__content {
+  --ios-content-bg: #000;
+}
+
+.ios-frame[data-theme="dark"] .ios-frame__home-indicator::before {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Light mode content support */
+.ios-frame[data-theme="light"] .ios-frame__status {
+  color: #1c1c1e;
+}
+
+.ios-frame[data-theme="light"] .ios-frame__battery::after {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.ios-frame[data-theme="light"] .ios-frame__home-indicator::before {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive scaling for small viewports */
+@media (max-width: 450px) {
+  .ios-frame {
+    --ios-frame-width: 100%;
+    --ios-frame-height: auto;
+    aspect-ratio: 393 / 852;
+  }
+}
+
+/* Side-by-side layout for multiple frames */
+.ios-frame-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 48px;
+  align-items: flex-start;
+  justify-content: center;
+  background: #0d1117;
+}
+
+.ios-frame-grid > * {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ios-frame-grid__label {
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+}

@@ -90,15 +90,14 @@ visual is about or who its reader is.
 
 ## Structure in Track A vs Track B
 
-Structure chooses a topology (Mermaid flowchart, fgraph, HTML table, steps timeline, etc.). The
+Structure chooses a topology (flowchart, fgraph, HTML table, steps timeline, etc.). The
 choice is always content-driven — the structure of the data determines the structure of the visual.
 Brand can only adjust tiebreakers.
 
 | Sub-step | Track A (branded) | Track B (exploration) |
 |---|---|---|
 | Topology decision | Content-driven; `structure_defaults` act as tiebreakers when content is ambiguous | Content-driven; plugin defaults act as tiebreakers |
-| `structure_defaults.prefer_fgraph_under` | Applied — hub-and-spoke with N or fewer peers → fgraph over Mermaid | Plugin default (6) |
-| `structure_defaults.prefer_mermaid_over` | Applied — more than N nodes → Mermaid regardless | Plugin default (8) |
+| `structure_defaults.prefer_fgraph_under` | Applied — hub-and-spoke with N or fewer peers → fgraph | Plugin default (6) |
 | `structure_defaults.comparison_as_table` | Applied if `true` — matrix content uses HTML table, not Grid cards | Plugin default (`true`) |
 | `allow_override.structure: open` (typical) | Content topology always wins; brand default is advisory | n/a |
 | `allow_override.structure: locked` (rare) | Brand default wins even if content analysis points elsewhere | n/a |
@@ -107,8 +106,7 @@ Brand can only adjust tiebreakers.
 graph regardless of brand. A four-node hub-and-spoke is a radial topology regardless of brand. The
 brand book can only break ties — cases where two valid topologies exist and the content does not
 strongly favor either. The `allow_override.structure: locked` setting is rare and reserved for
-projects with a strict layout mandate (e.g., always use Mermaid for consistency in a documentation
-system). Most projects leave structure `open`.
+projects with a strict layout mandate. Most projects leave structure `open`.
 
 ---
 

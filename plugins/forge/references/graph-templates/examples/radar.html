@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="API Gateway — performance comparison">
+<meta name="diagram:date"      content="2026-06-02">
+<meta name="diagram:category"  content="forge">
+<meta name="diagram:cat-label" content="Forge · benchmark">
+<meta name="diagram:color"     content="cyan">
+<!-- diagram-meta:end -->
+<title>API Gateway — performance comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── design tokens ── */
+  :root {
+    --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+    --border: #1f252e; --border-bright: #2b3340;
+    --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+    --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+    --cyan:  #22d3ee; --cyan-dim:  rgba(34,211,238,0.12);
+    --purple:#c084fc; --purple-dim:rgba(192,132,252,0.12);
+    --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+    --red:   #f87171; --red-dim:   rgba(248,113,113,0.12);
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 32px 24px 40px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  header { margin-bottom: 20px; }
+  .header-eyebrow {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+  }
+  h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+  h1 .accent { color: var(--cyan); }
+  .header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+  /* ── chart wrap (square aspect for undistorted polygons) ── */
+  .fgraph-wrap.radar {
+    position: relative;
+    width: 100%;
+    max-width: 540px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+  .fgraph-wrap.radar svg {
+    width: 100%; height: 100%; display: block; overflow: visible;
+  }
+
+  /* ── series polygons ── */
+  .fg-radar-series {
+    vector-effect: non-scaling-stroke;
+    transition: opacity 0.15s;
+  }
+  .fg-radar-series:hover { opacity: 0.6; }
+
+  /* ── grid ── */
+  .fg-radar-ring  { fill: none; stroke: var(--border-bright); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+  .fg-radar-axis  { stroke: var(--border-bright); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
+
+  /* ── labels ── */
+  .fg-radar-axis-label  { font-family: 'Space Mono', monospace; font-size: 4px; fill: var(--text-dim); }
+  .fg-radar-scale-label { font-family: 'Space Mono', monospace; font-size: 2.8px; fill: var(--text-muted); text-anchor: start; }
+
+  /* ── in-SVG legend (SC3: all text inside <svg>) ── */
+  .fg-legend-swatch { vector-effect: non-scaling-stroke; }
+  .fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Forge · benchmark</div>
+  <h1>API Gateway <span class="accent">performance comparison</span></h1>
+  <p class="header-subtitle">Kong v3 vs. Envoy 1.29 across 5 dimensions — score out of 100.</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     5-axis, 2-series radar.  Axes: Speed, Reliability, Scalability,
+     Security, Ease of Use.  axisMax = 100.  scaleLevels = 4.
+     Centre = (50,50). Outer radius R = 36.
+
+     Axis angles (-90 + i*72 deg, 0-indexed, starting at 12 o'clock):
+       axis 0  Speed        −90°  → (50.00, 14.00)
+       axis 1  Reliability  −18°  → (84.24, 38.88)
+       axis 2  Scalability   54°  → (71.16, 79.12)
+       axis 3  Security     126°  → (28.84, 79.12)
+       axis 4  Ease of Use  198°  → (15.76, 38.88)
+
+     Ring polygon points at f = 0.25 / 0.50 / 0.75 / 1.00 (×R):
+       25%: 50.00,41.00 58.56,47.22 55.29,57.28 44.71,57.28 41.44,47.22
+       50%: 50.00,32.00 67.12,44.44 60.58,64.56 39.42,64.56 32.88,44.44
+       75%: 50.00,23.00 75.68,41.66 65.87,71.84 34.13,71.84 24.32,41.66
+      100%: 50.00,14.00 84.24,38.88 71.16,79.12 28.84,79.12 15.76,38.88
+
+     Series A (Kong v3):    Speed=80, Reliability=75, Scalability=90, Security=65, EaseOfUse=70
+       vertex = (50 + 36*(v/100)*cos(angle), 50 + 36*(v/100)*sin(angle))
+       50.00,21.20  75.68,41.66  69.04,76.21  36.25,68.93  26.03,42.21
+
+     Series B (Envoy 1.29): Speed=65, Reliability=85, Scalability=70, Security=80, EaseOfUse=55
+       50.00,26.60  79.10,40.54  64.81,70.39  33.07,73.30  31.17,43.88
+
+     Scale labels along axis 0 (pointing up, x offset +1.5 to avoid overlap):
+       25 at (51.50, 41.00) | 50 at (51.50, 32.00) | 75 at (51.50, 23.00) | 100 at (51.50, 14.00)
+
+     Axis labels at radius 41 (36 + 5 clearance):
+       Speed       (50.00,  9.00) text-anchor=middle, dominant-baseline=auto
+       Reliability (88.99, 37.33) text-anchor=start,  dominant-baseline=auto
+       Scalability (74.10, 83.17) text-anchor=middle, dominant-baseline=hanging   [50+41*cos(54°), 50+41*sin(54°)]
+       Security    (25.90, 83.17) text-anchor=middle, dominant-baseline=hanging   [50+41*cos(126°), 50+41*sin(126°)]
+       Ease of Use (11.01, 37.33) text-anchor=end,    dominant-baseline=hanging   [50+41*cos(198°), 50+41*sin(198°)]
+
+     DEGENERATE NOTE — 2-axis radar: polygon degenerates to a line (both
+     ring polygons and series polygons collapse to a 2-vertex back-and-forth
+     segment). Grid and axes still render; series overlaps as a sliver. No
+     special-casing needed; document in the template comment only.
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fgraph-wrap radar" role="img"
+     aria-label="Radar chart comparing Kong v3 and Envoy 1.29 across 5 dimensions: Speed, Reliability, Scalability, Security, Ease of Use.">
+
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="rd-title">
+
+    <title id="rd-title">API Gateway performance comparison</title>
+
+    <!-- ── SCALE RINGS (4 concentric polygons at 25/50/75/100%) ─── -->
+    <polygon class="fg-radar-ring" points="50.00,41.00 58.56,47.22 55.29,57.28 44.71,57.28 41.44,47.22"/>
+    <polygon class="fg-radar-ring" points="50.00,32.00 67.12,44.44 60.58,64.56 39.42,64.56 32.88,44.44"/>
+    <polygon class="fg-radar-ring" points="50.00,23.00 75.68,41.66 65.87,71.84 34.13,71.84 24.32,41.66"/>
+    <polygon class="fg-radar-ring" points="50.00,14.00 84.24,38.88 71.16,79.12 28.84,79.12 15.76,38.88"/>
+
+    <!-- ── AXIS SPOKES (centre to each perimeter point) ─────────── -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="50.00" y2="14.00"/><!-- axis 0 Speed      −90° -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="84.24" y2="38.88"/><!-- axis 1 Reliability −18° -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="71.16" y2="79.12"/><!-- axis 2 Scalability  54° -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="28.84" y2="79.12"/><!-- axis 3 Security    126° -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="15.76" y2="38.88"/><!-- axis 4 Ease of Use 198° -->
+
+    <!-- ── SCALE LABELS (along axis 0, offset right by 1.5 u) ───── -->
+    <text class="fg-radar-scale-label" x="51.50" y="41.50">25</text>
+    <text class="fg-radar-scale-label" x="51.50" y="32.50">50</text>
+    <text class="fg-radar-scale-label" x="51.50" y="23.50">75</text>
+    <text class="fg-radar-scale-label" x="51.50" y="14.50">100</text>
+
+    <!-- ── SERIES A — Kong v3 (cyan, data: 80,75,90,65,70) ──────── -->
+    <polygon class="fg-radar-series"
+             fill="var(--cyan)" fill-opacity="0.15"
+             stroke="var(--cyan)" stroke-width="0.7"
+             points="50.00,21.20 75.68,41.66 69.04,76.21 36.25,68.93 26.03,42.21"/>
+
+    <!-- ── SERIES B — Envoy 1.29 (amber, data: 65,85,70,80,55) ─── -->
+    <polygon class="fg-radar-series"
+             fill="var(--amber)" fill-opacity="0.12"
+             stroke="var(--amber)" stroke-width="0.7"
+             points="50.00,26.60 79.10,40.54 64.81,70.39 33.07,73.30 31.17,43.88"/>
+
+    <!-- ── AXIS LABELS (r=41, inside <svg> in user-unit coords) ─── -->
+    <!-- Speed: angle −90° → top centre -->
+    <text class="fg-radar-axis-label" x="50.00" y="9.00"
+          text-anchor="middle" dominant-baseline="auto">Speed</text>
+    <!-- Reliability: angle −18° → right side, slightly below centre -->
+    <text class="fg-radar-axis-label" x="88.99" y="37.33"
+          text-anchor="start" dominant-baseline="auto">Reliability</text>
+    <!-- Scalability: angle 54° → lower right; 50+41*cos(54°)=74.10, 50+41*sin(54°)=83.17 -->
+    <text class="fg-radar-axis-label" x="74.10" y="83.17"
+          text-anchor="middle" dominant-baseline="hanging">Scalability</text>
+    <!-- Security: angle 126° → lower left; 50+41*cos(126°)=25.90, 50+41*sin(126°)=83.17 -->
+    <text class="fg-radar-axis-label" x="25.90" y="83.17"
+          text-anchor="middle" dominant-baseline="hanging">Security</text>
+    <!-- Ease of Use: angle 198° → left side; 50+41*cos(198°)=11.01, 50+41*sin(198°)=37.33 -->
+    <text class="fg-radar-axis-label" x="11.01" y="37.33"
+          text-anchor="end" dominant-baseline="hanging">Ease of Use</text>
+
+    <!-- ── IN-SVG LEGEND (SC3: all text inside <svg>; bottom-centre band y≈93..99) ── -->
+    <!-- Series 0 — Kong v3 (cyan) -->
+    <rect class="fg-legend-swatch" x="26" y="93" width="3" height="3"
+          fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="30.5" y="94.6" dominant-baseline="middle">Kong v3</text>
+    <!-- Series 1 — Envoy 1.29 (amber) -->
+    <rect class="fg-legend-swatch" x="55" y="93" width="3" height="3"
+          fill="var(--amber)" stroke="var(--amber)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="59.5" y="94.6" dominant-baseline="middle">Envoy 1.29</text>
+
+  </svg>
+
+</div>
+
+</main>
+
+</body>
+</html>

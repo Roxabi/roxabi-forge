@@ -13,3 +13,11 @@ node_modules/
 
 # Keep example
 !.claude/stack.yml.example
+# CocoIndex Code (ccc)
+/.cocoindex_code/
+
+# forge-chart QA loop (transient harness + generated artifacts) — local-only, never tracked
+.claude/fc-loop/
+
+# Generated QA frames (screenshots/renders) — local-only output
+/artifacts/frames/

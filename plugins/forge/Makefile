@@ -39,9 +39,12 @@ deploy:
 	@cp -v $(REPO_ROOT)/scripts/seed-meta.py $(FORGE_DIR)/scripts/seed-meta.py
 	@cp -v $(REPO_ROOT)/scripts/update-meta.py $(FORGE_DIR)/scripts/update-meta.py
 	@cp -v $(REPO_ROOT)/scripts/gen-og-tags.py $(FORGE_DIR)/scripts/gen-og-tags.py
+	@cp -v $(REPO_ROOT)/scripts/gen-og-images.py $(FORGE_DIR)/scripts/gen-og-images.py
+	@cp -v $(REPO_ROOT)/scripts/_og_common.py $(FORGE_DIR)/scripts/_og_common.py
 	@cp -v $(REPO_ROOT)/scripts/render-md.py $(FORGE_DIR)/scripts/render-md.py
 	@cp -v $(REPO_ROOT)/scripts/render-md-tabs.py $(FORGE_DIR)/scripts/render-md-tabs.py
 	@chmod +x $(FORGE_DIR)/scripts/build.sh
+	# gen-og-images.py / _og_common.py: invoked via 'uv run python3', no chmod +x needed
 	@chmod +x $(FORGE_DIR)/scripts/render-md.py
 	@chmod +x $(FORGE_DIR)/scripts/render-md-tabs.py
 	@echo "Done."
