@@ -38,6 +38,42 @@ sha256( render(skill, input) | normalize-whitespace )
 
 Normalization collapses runs of whitespace within text nodes and strips trailing newlines — so that cosmetic reformatting doesn't trigger false diffs.
 
+## fd-engine fixtures
+
+| File | Exercises |
+|---|---|
+| `lyra-stack-v2.json` | Lyra-scale architecture: 26 nodes, 32 edges, 6 use-cases — input for `scripts/gen-fd.py` |
+
+Generate HTML from the fixture:
+
+```bash
+python3 scripts/gen-fd.py \
+  --in plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json \
+  --out /tmp/lyra-stack-v2-gen.html \
+  --title "Lyra — Architecture"
+```
+
+Validate layout before shipping (static + Playwright):
+
+```bash
+python3 scripts/validate-fd.py \
+  --html /tmp/lyra-stack-v2-gen.html \
+  --expect plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.expect.json
+```
+
+One-shot generate + validate:
+
+```bash
+bun run gen-fd:check
+# or
+python3 scripts/validate-fd.py \
+  --in plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json \
+  --out /tmp/lyra-stack-v2-gen.html \
+  --title "Lyra · Architecture"
+```
+
+Expectations file: `lyra-stack-v2.expect.json` (node counts, min gaps, canvas bounds).
+
 ## This issue scope
 
 Infrastructure only. No validation runner executes in CI yet. Fixtures exist today so that:

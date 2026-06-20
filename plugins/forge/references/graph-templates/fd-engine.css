@@ -149,7 +149,11 @@
   cursor: default;
   transition: transform .12s, box-shadow .15s, border-color .15s;
   box-shadow: 0 3px 14px #00000055;
-  position: relative;
+}
+
+/* Keep canvas placement — .fd-card-premium must not override .fd-node absolute coords */
+.fd-node.fd-card-premium {
+  position: absolute;
 }
 
 .fd-card-premium:hover {

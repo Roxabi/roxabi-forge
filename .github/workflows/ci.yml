@@ -20,6 +20,17 @@ jobs:
         run: bun lint
       - name: Syntax-check Python scripts
         run: python3 -m py_compile scripts/*.py
+      - name: Unit tests
+        run: bun run test
+      - name: Install Playwright (fd layout gate)
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+          uv run --with playwright python3 -m playwright install chromium
+      - name: fd-engine regression (gen-fd + validate)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          bun run gen-fd:check
       - name: Mermaid guard
         run: |
           matches=$(grep -rn '\bmermaid\b' plugins/forge/ 2>/dev/null || true)

@@ -35,6 +35,23 @@ fi
 echo "▸ Injecting Open Graph meta tags…"
 python3 "$SCRIPT_DIR/gen-og-tags.py"
 
+if [ -x "$SCRIPT_DIR/gen-fd.py" ] && [ -f "$SCRIPT_DIR/validate-fd.py" ]; then
+  FIXTURE="$SCRIPT_DIR/fixtures/lyra-stack-v2.json"
+  EXPECT="$SCRIPT_DIR/fixtures/lyra-stack-v2.expect.json"
+  if [ -f "$FIXTURE" ] && [ -f "$EXPECT" ]; then
+    echo "▸ Validating fd-engine toolchain (lyra fixture)…"
+    python3 "$SCRIPT_DIR/validate-descriptor.py" --in "$FIXTURE" --expect "$EXPECT"
+    OUT="/tmp/forge-fd-check-$$.html"
+    python3 "$SCRIPT_DIR/gen-fd.py" --in "$FIXTURE" --out "$OUT" --title "Lyra · Architecture"
+    python3 "$SCRIPT_DIR/validate-fd.py" --html "$OUT" --expect "$EXPECT" --static-only
+    rm -f "$OUT"
+  else
+    echo "  ⚠ fd fixtures missing — skipping gen-fd gate"
+  fi
+else
+  echo "▸ Skipping gen-fd gate (tooling not deployed)"
+fi
+
 echo "▸ Syncing to _dist/…"
 mkdir -p "$DIST"
 # Cloudflare Pages caps files at 25 MiB. Warn on oversize files so they're
