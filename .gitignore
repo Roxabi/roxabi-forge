@@ -6,6 +6,10 @@ __pycache__/
 node_modules/
 .cache/
 
+# pnpm (local tooling only — repo uses bun)
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
 # Dev-core (DO NOT commit)
 .claude/stack.yml
 .claude/dev-core.yml
