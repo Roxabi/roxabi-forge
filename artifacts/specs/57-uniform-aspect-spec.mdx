@@ -3,14 +3,13 @@ title: "Spec: lock the fgraph edge/marker config against drift (anti giant-arrow
 issue: 57
 status: approved
 tier: F-lite
-spec_of: artifacts/frames/57-uniform-aspect-frame.mdx
 generated: 2026-06-02
 revised: 2026-06-02
 ---
 
 ## Context
 
-Source: [frame #57](../frames/57-uniform-aspect-frame.mdx). Validator path throughout this spec: **`plugins/forge/scripts/validate-svg.sh`**.
+Source: frame #57 (closed). Validator path throughout this spec: **`plugins/forge/scripts/validate-svg.sh`**.
 
 **Premise correction #1 (Shape-phase).** The frame proposed "switch relational templates `preserveAspectRatio="none"` → `xMidYMid meet`." Investigation **invalidated** it: relational templates render **HTML `<div>` nodes** in % space (`left: calc(var(--x)*1%)`) + a **separate SVG edge overlay** (`viewBox="0 0 100 100" preserveAspectRatio="none"`). The `none` stretch maps SVG `(x,y)` onto the HTML node at `left:x%; top:y%` — **the stretch is the load-bearing node↔edge alignment mechanism**; `meet` would detach edges on non-square containers. The #20 data-charts use `meet` only because they are 100 % SVG. **Re-diagnosis: with the correct config (`vector-effect: non-scaling-stroke` + default `markerUnits` + `markerWidth=6`), markers render undistorted even under the stretch. Giant-arrowhead incidents were config DRIFT, not the stretch.** Chosen direction = **Option A: make the correct config impossible to drift from**; geometric purity (pure-SVG `meet`, JS-routed edges) is deferred to sibling **#58** (blocked-by this).
 
