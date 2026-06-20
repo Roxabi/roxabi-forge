@@ -50,6 +50,8 @@ deploy:
 	@cp -v $(REPO_ROOT)/scripts/validate-descriptor.py $(FORGE_DIR)/scripts/validate-descriptor.py
 	@cp -v $(REPO_ROOT)/scripts/audit-forge-diagrams.py $(FORGE_DIR)/scripts/audit-forge-diagrams.py
 	@cp -v $(REPO_ROOT)/scripts/migrate-fd-batch.py $(FORGE_DIR)/scripts/migrate-fd-batch.py
+	@cp -v $(REPO_ROOT)/scripts/validate-descriptor.test.sh $(FORGE_DIR)/scripts/validate-descriptor.test.sh
+	@cp -v $(REPO_ROOT)/scripts/forge_paths.test.sh $(FORGE_DIR)/scripts/forge_paths.test.sh
 	@cp -v $(REPO_ROOT)/scripts/fd-layout.mjs $(FORGE_DIR)/scripts/fd-layout.mjs
 	@mkdir -p $(FORGE_DIR)/scripts/fixtures
 	@cp -v $(REPO_ROOT)/plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json $(FORGE_DIR)/scripts/fixtures/
@@ -61,7 +63,7 @@ deploy:
 	@cp -v $(PLUGIN_DIR)references/graph-templates/fd-bootstrap.js $(FORGE_DIR)/references/graph-templates/
 	@cp -v $(PLUGIN_DIR)references/graph-templates/fgraph-base.css $(FORGE_DIR)/references/graph-templates/
 	@rsync -a --delete $(PLUGIN_DIR)references/graph-templates/fd/ $(FORGE_DIR)/references/graph-templates/fd/
-	@rsync -a $(PLUGIN_DIR)references/aesthetics/ $(FORGE_DIR)/references/aesthetics/
+	@rsync -a --delete $(PLUGIN_DIR)references/aesthetics/ $(FORGE_DIR)/references/aesthetics/
 	@chmod +x $(FORGE_DIR)/scripts/build.sh
 	@chmod +x $(FORGE_DIR)/scripts/gen-fd.py
 	@chmod +x $(FORGE_DIR)/scripts/validate-fd.py

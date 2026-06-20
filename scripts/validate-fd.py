@@ -114,22 +114,32 @@ def static_checks(html_path: Path, expect: dict[str, Any]) -> list[Finding]:
 
 
 def browser_checks(html_path: Path, expect: dict[str, Any]) -> list[Finding]:
-    proc = subprocess.run(
-        [
-            "uv",
-            "run",
-            "--with",
-            "playwright",
-            "python3",
-            str(BROWSER_SCRIPT),
-            str(html_path),
-            json.dumps(expect),
-        ],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            [
+                "uv",
+                "run",
+                "--with",
+                "playwright",
+                "python3",
+                str(BROWSER_SCRIPT),
+                str(html_path),
+                json.dumps(expect),
+            ],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            check=False,
+            timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        return [
+            Finding(
+                "error",
+                "playwright-timeout",
+                "browser validation timed out after 180s",
+            )
+        ]
     if proc.returncode not in (0, 1):
         stderr = (proc.stderr or proc.stdout or "").strip()
         return [

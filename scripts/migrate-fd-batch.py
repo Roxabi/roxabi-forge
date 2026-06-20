@@ -43,10 +43,30 @@ def title_from_path(html_path: Path) -> str:
     return stem.title()
 
 
-def migrate_entry(entry: dict, *, apply: bool, validate: bool) -> dict:
+def confined_path(path: Path, root: Path) -> Path | None:
+    try:
+        resolved = path.resolve()
+        root_resolved = root.resolve()
+    except OSError:
+        return None
+    if not resolved.is_relative_to(root_resolved):
+        return None
+    return resolved
+
+
+def migrate_entry(entry: dict, *, forge_root: Path, apply: bool, validate: bool) -> dict:
     html_path = Path(entry["path"])
     json_path = Path(entry["json_path"]) if entry.get("json_path") else html_path.with_suffix(".json")
     result = {"html": str(html_path), "json": str(json_path), "status": "skipped"}
+
+    html_confined = confined_path(html_path, forge_root)
+    json_confined = confined_path(json_path, forge_root)
+    if html_confined is None or json_confined is None:
+        result["status"] = "path-outside-forge"
+        return result
+
+    html_path = html_confined
+    json_path = json_confined
 
     if not json_path.exists():
         result["status"] = "no-json"
@@ -110,7 +130,11 @@ def main() -> None:
     if args.limit > 0:
         candidates = candidates[: args.limit]
 
-    results = [migrate_entry(e, apply=args.apply, validate=args.validate) for e in candidates]
+    forge_root = args.forge_dir.expanduser().resolve()
+    results = [
+        migrate_entry(e, forge_root=forge_root, apply=args.apply, validate=args.validate)
+        for e in candidates
+    ]
     ok = sum(1 for r in results if r["status"] in {"dry-run", "generated", "validated"})
     failed = [r for r in results if r["status"].endswith("failed")]
 

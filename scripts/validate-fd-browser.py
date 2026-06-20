@@ -94,9 +94,25 @@ def fail(findings: list, code: str, message: str, detail=None) -> None:
     findings.append({"level": "error", "code": code, "message": message, "detail": detail})
 
 
+def emit_errors(findings: list[dict], code: str, message: str, detail=None) -> None:
+    findings.append({"level": "error", "code": code, "message": message, "detail": detail})
+    print(json.dumps(findings, ensure_ascii=False))
+    sys.exit(2)
+
+
 def main() -> None:
+    if len(sys.argv) != 3:
+        emit_errors([], "usage", "usage: validate-fd-browser.py <html> <expect-json>")
+
     html_path = Path(sys.argv[1]).resolve()
-    expect = json.loads(sys.argv[2])
+    if not html_path.is_file():
+        emit_errors([], "html-missing", f"HTML file not found: {html_path}")
+
+    try:
+        expect = json.loads(sys.argv[2])
+    except json.JSONDecodeError as exc:
+        emit_errors([], "expect-json", f"invalid expect JSON: {exc}")
+
     url = html_path.as_uri()
 
     findings: list[dict] = []
@@ -107,7 +123,8 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page(viewport=viewport)
-        page.goto(url, wait_until="load")
+        page.set_default_timeout(30_000)
+        page.goto(url, wait_until="load", timeout=30_000)
         time.sleep(1.2)
         stats = page.evaluate(EVALUATE_JS, layout)
         browser.close()

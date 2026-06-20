@@ -79,6 +79,23 @@ def eprint(*args: object) -> None:
     print(*args, file=sys.stderr)
 
 
+def sanitize_theme(theme: str) -> str:
+    if not theme or "/" in theme or "\\" in theme or ".." in theme:
+        eprint(f"gen-fd: invalid theme name: {theme!r}")
+        sys.exit(1)
+    stem = Path(theme).stem if theme.endswith(".css") else theme
+    if not stem or Path(stem).name != stem:
+        eprint(f"gen-fd: invalid theme name: {theme!r}")
+        sys.exit(1)
+    return stem
+
+
+def json_for_script_tag(data: object) -> str:
+    """Serialize descriptor JSON safe for embedding in <script id=\"fd-data\">."""
+    raw = json.dumps(data, ensure_ascii=False, indent=2)
+    return raw.replace("<", "\\u003c")
+
+
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -246,7 +263,12 @@ def build_subtitle(desc: dict) -> str:
 
 
 def resolve_aesthetic(theme: str) -> Path:
-    path = AESTHETICS_DIR / f"{theme}.css"
+    theme = sanitize_theme(theme)
+    path = (AESTHETICS_DIR / f"{theme}.css").resolve()
+    base = AESTHETICS_DIR.resolve()
+    if not path.is_relative_to(base):
+        eprint(f"gen-fd: theme path escapes aesthetics dir: {theme}")
+        sys.exit(1)
     if path.exists():
         return path
     fallback = AESTHETICS_DIR / "lyra-v2.css"
@@ -299,7 +321,7 @@ def assemble_html(desc: dict) -> str:
         "{ZONE_HTML}": build_zone_html(desc.get("zones")),
         "{STAGE_CLASS}": "" if show_sidebar else " full-width",
         "{SIDEBAR_CLASS}": "" if show_sidebar else " hidden",
-        "{FD_DATA_JSON}": json.dumps(desc, ensure_ascii=False, indent=2),
+        "{FD_DATA_JSON}": json_for_script_tag(desc),
         "{FD_ENGINE_BUNDLE}": bundle,
         "{FD_BOOTSTRAP_JS}": bootstrap_js,
     }
@@ -331,7 +353,7 @@ def main() -> None:
         eprint(f"gen-fd: invalid JSON: {exc}")
         sys.exit(1)
 
-    desc = normalize_descriptor(raw, theme=args.theme, title=args.title)
+    desc = normalize_descriptor(raw, theme=sanitize_theme(args.theme), title=args.title)
 
     if desc["layout"] == "auto" and desc["type"] in AUTO_LAYOUT_TYPES:
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
