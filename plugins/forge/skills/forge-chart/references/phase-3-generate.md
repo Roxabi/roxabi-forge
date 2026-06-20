@@ -62,7 +62,8 @@ Template picker — see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README
 
 | Shape | Template |
 |---|---|
-| Hub-and-spoke (≤ 6 peers) | `radial-hub.html` |
+| **Architecture / hub-spoke (≥ 7 nodes OR interactive)** | **fd-engine + `gen-fd.py`** (`type:"architecture"` or `type:"hub-spoke"`) |
+| Hub-and-spoke (≤ 6 peers, static) | `radial-hub.html` |
 | Peer ring | `radial-ring.html` |
 | Linear pipeline | `linear-flow.html` |
 | Two peers sharing resources | `dual-cluster.html` |
@@ -93,7 +94,36 @@ For process flows with distinct phases, use phase cards:
 </div>
 ```
 
-### fd-engine page shell + bootstrap (canonical pattern)
+### fd-engine generation pipeline (preferred — use `gen-fd.py`)
+
+For all fd-engine types, **do not hand-assemble HTML**. Write descriptor JSON, then run:
+
+```bash
+python3 scripts/gen-fd.py --in <descriptor.json> --out <output.html> [--theme lyra-v2] [--title "..."]
+```
+
+`gen-fd.py` assembles `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd-shell.html` with:
+- aesthetic CSS + `fd-engine.css` + `fd-page-shell.css` inlined
+- `fd-data` JSON embedded
+- fd-engine bundle from `fd/bundler.js` (via bun)
+- `fd-bootstrap.js` runtime
+
+Auto-layout types (`flowchart`, `state`, `class`, `er`, `sequence`) with `"layout": "auto"` trigger `scripts/fd-layout.mjs` automatically.
+
+**Regression fixture:** `plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json`
+
+**Validate before deliver (mandatory):**
+
+```bash
+python3 scripts/validate-fd.py --in <descriptor.json> --out /tmp/out.html
+# checks layout via Playwright + static bundle integrity; exit 0 required
+```
+
+Expectations: `fixtures/lyra-stack-v2.expect.json` — extend with `layout.pairs` for new spacing invariants.
+
+Manual assembly below is for debugging only — production output must come from `gen-fd.py`.
+
+### manual fallback (debug only — do not use for deliverables)
 
 For fd-engine types (`architecture`, `hub-spoke`, `er`, `sequence`, etc.), the output HTML follows this structure. Full reference: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/fd-architecture.html`.
 

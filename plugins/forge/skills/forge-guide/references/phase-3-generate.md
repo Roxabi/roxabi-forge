@@ -141,7 +141,16 @@ Multi-tab docs link `fgraph-base.css` from the shell `<head>` (per CLAUDE.md § 
 
 No runtime JS. Coord space is 0..100 for both `--x/--y` node positions and SVG path coords (`viewBox="0 0 100 100" preserveAspectRatio="none"` + `vector-effect: non-scaling-stroke`).
 
-Template picker: see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the decision matrix (11 shapes: radial-hub, radial-ring, linear-flow, dual-cluster, layered, deployment-tiers, machine-clusters, gantt, pie, er, sequence, state, dep-graph).
+**fd-engine tab diagrams (architecture / sequence / er / state / gantt / pie):**
+
+```bash
+python3 scripts/gen-fd.py --in <descriptor.json> --out tabs/<slug>/diagram.html
+python3 scripts/validate-fd.py --html tabs/<slug>/diagram.html
+```
+
+Embed via `<iframe src="diagram.html">` or inline the generated fragment in the tab. Descriptor + `gen-fd.py` only — do not hand-assemble bundles. Routing: `forge-chart/SKILL.md`.
+
+**fgraph static picker** (≤ 6 nodes, print-safe): see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` — radial-hub, radial-ring, linear-flow, dual-cluster, layered, deployment-tiers, machine-clusters, dep-graph.
 
 <!-- DUPE: same block lives in plugins/forge/skills/forge-guide/SKILL.md — keep in sync if edited -->
 
@@ -162,7 +171,7 @@ Tab fragments are loaded into the shell HTML via JS `fetch()`. Relative paths in
 |----------|---------|
 | Overview / intro | Header + `<p>` + `.stat-grid` + `.cards` grid (2–4 cards) |
 | Step-by-step | Section titles + `<ol>` + `<pre><code>` |
-| Architecture | Section title + fgraph diagram (`.fgraph-wrap` with semantic shapes — see `graph-templates/README.md`) + description |
+| Architecture | Section title + fd-engine diagram (`gen-fd.py`; see `forge-chart/SKILL.md`) or fgraph for ≤6 static nodes + description |
 | Comparison | Section title + `.table-wrap > table` with `<thead>` |
 | Status / KPIs | Section title + `.stat-grid` + progress indicators |
 | Decisions / log | `<h3>` entries with date + rationale `<p>` |

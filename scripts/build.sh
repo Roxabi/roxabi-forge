@@ -35,6 +35,31 @@ fi
 echo "▸ Injecting Open Graph meta tags…"
 python3 "$SCRIPT_DIR/gen-og-tags.py"
 
+if [ -x "$SCRIPT_DIR/gen-fd.py" ] && [ -f "$SCRIPT_DIR/validate-fd.py" ]; then
+  FIXTURE="$SCRIPT_DIR/fixtures/lyra-stack-v2.json"
+  EXPECT="$SCRIPT_DIR/fixtures/lyra-stack-v2.expect.json"
+  if [ -f "$FIXTURE" ] && [ -f "$EXPECT" ]; then
+    echo "▸ Validating fd-engine toolchain (lyra fixture)…"
+    python3 "$SCRIPT_DIR/validate-descriptor.py" --in "$FIXTURE" --expect "$EXPECT"
+    OUT="/tmp/forge-fd-check-$$.html"
+    python3 "$SCRIPT_DIR/gen-fd.py" --in "$FIXTURE" --out "$OUT" --title "Lyra · Architecture"
+    VALIDATE_ARGS=(--html "$OUT" --expect "$EXPECT")
+    if command -v uv >/dev/null 2>&1 \
+      && timeout 30 uv run --with playwright python3 -c "import playwright" >/dev/null 2>&1; then
+      echo "  ▸ Running full Playwright fd layout gate…"
+    else
+      echo "  ⚠ Playwright unavailable — fd gate static-only (CI runs full browser checks)"
+      VALIDATE_ARGS+=(--static-only)
+    fi
+    timeout 180 python3 "$SCRIPT_DIR/validate-fd.py" "${VALIDATE_ARGS[@]}"
+    rm -f "$OUT"
+  else
+    echo "  ⚠ fd fixtures missing — skipping gen-fd gate"
+  fi
+else
+  echo "▸ Skipping gen-fd gate (tooling not deployed)"
+fi
+
 echo "▸ Syncing to _dist/…"
 mkdir -p "$DIST"
 # Cloudflare Pages caps files at 25 MiB. Warn on oversize files so they're

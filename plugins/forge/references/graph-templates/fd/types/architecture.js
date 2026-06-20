@@ -17,6 +17,20 @@ const CARD_DEFAULT = 'premium' // RD-3: architecture/hub-spoke default is premiu
 //
 // Zone descriptor id == HTML element id: zone.id = "zone-forge" → getElementById("zone-forge").
 // rect() is declared in core.js scope (concat order: core.js, cards.js, architecture.js).
+function zonePadding(zone) {
+  const p = zone.padding || {}
+  if (zone.class === 'zone-hub') {
+    return { x: p.x ?? 14, yt: p.top ?? 36, yb: p.bottom ?? 12 }
+  }
+  if (zone.class === 'zone-stores') {
+    return { x: p.x ?? 14, yt: p.top ?? 20, yb: p.bottom ?? 10 }
+  }
+  if (zone.class === 'zone-m2') {
+    return { x: p.x ?? 16, yt: p.top ?? 20, yb: p.bottom ?? 12 }
+  }
+  return { x: p.x ?? 16, yt: p.top ?? 20, yb: p.bottom ?? 12 }
+}
+
 function placeZones(descriptor) {
   const zones = descriptor.zones
   if (!zones || zones.length === 0) return
@@ -55,10 +69,11 @@ function placeZones(descriptor) {
     const yMin = Math.min(...rects.map((r) => r.cy - r.h / 2))
     const yMax = Math.max(...rects.map((r) => r.cy + r.h / 2))
 
-    // padding: horizontal 16px, vertical top 20px / bottom 12px (from lyra-stack-v2 reference)
-    const padX = 16
-    const padYT = 20
-    const padYB = 12
+    // Per-zone padding — mirrors lyra-stack-v2.html placeZone() (hub 26/18/14, stores 18/14/10)
+    const pad = zonePadding(zone)
+    const padX = pad.x
+    const padYT = pad.yt
+    const padYB = pad.yb
 
     const left = xMin - padX
     const top = yMin - padYT
