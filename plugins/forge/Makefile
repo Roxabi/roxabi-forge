@@ -47,6 +47,11 @@ deploy:
 	# gen-og-images.py / _og_common.py: invoked via 'uv run python3', no chmod +x needed
 	@chmod +x $(FORGE_DIR)/scripts/render-md.py
 	@chmod +x $(FORGE_DIR)/scripts/render-md-tabs.py
+	@echo "── reference gallery + showcases ──"
+	@cp -v $(PLUGIN_DIR)references/reference-gallery.html $(FORGE_DIR)/reference-gallery.html
+	@mkdir -p "$(FORGE_DIR)/references/showcases" "$(FORGE_DIR)/references/graph-templates/examples"
+	@cp -v $(PLUGIN_DIR)references/showcases/*.html "$(FORGE_DIR)/references/showcases/"
+	@cp -v $(PLUGIN_DIR)references/graph-templates/examples/*.html "$(FORGE_DIR)/references/graph-templates/examples/"
 	@echo "Done."
 	@echo ""
 	@echo "Note: if $(FORGE_DIR)/.env doesn't exist yet, copy .env.example and fill in credentials:"
