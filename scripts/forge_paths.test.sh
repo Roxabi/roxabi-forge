@@ -32,18 +32,23 @@ refs.mkdir(parents=True)
 got = resolve_forge_ref(Path(tmp))
 assert got == Path(tmp) / "references", got
 
-# FORGE_REF override
+# FORGE_REF override (local dev — unset CI flags for this assertion)
 override = tempfile.mkdtemp()
 ov_refs = Path(override) / "graph-templates"
 ov_refs.mkdir(parents=True)
 (ov_refs / "fd-shell.html").write_text("<html></html>")
+saved = {k: os.environ.pop(k, None) for k in ("CI", "GITHUB_ACTIONS")}
 os.environ["FORGE_REF"] = override
 try:
     got2 = resolve_forge_ref(Path("/tmp/unrelated"))
     assert got2 == Path(override), got2
 finally:
     os.environ.pop("FORGE_REF", None)
+    for k, v in saved.items():
+        if v is not None:
+            os.environ[k] = v
 
+# CI / GITHUB_ACTIONS ignore FORGE_REF
 os.environ["CI"] = "true"
 os.environ["FORGE_REF"] = override
 try:
