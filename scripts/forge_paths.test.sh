@@ -44,6 +44,15 @@ try:
 finally:
     os.environ.pop("FORGE_REF", None)
 
+os.environ["CI"] = "true"
+os.environ["FORGE_REF"] = override
+try:
+    got3 = resolve_forge_ref(repo)
+    assert got3 == ref, (got3, ref)
+finally:
+    os.environ.pop("CI", None)
+    os.environ.pop("FORGE_REF", None)
+
 print("ok")
 PY
 rc=$?

@@ -20,10 +20,19 @@ from pathlib import Path
 FD_DATA_RE = re.compile(r'<script[^>]+id="fd-data"', re.IGNORECASE)
 ENGINE_RE = re.compile(r'name="diagram:engine"\s+content="([^"]+)"', re.IGNORECASE)
 SKIP_DIRS = {"_dist", "scripts", "__pycache__", ".git"}
+MAX_READ_BYTES = 2 * 1024 * 1024
+
+
+def read_bounded(path: Path) -> str:
+    with path.open("rb") as handle:
+        data = handle.read(MAX_READ_BYTES + 1)
+    if len(data) > MAX_READ_BYTES:
+        data = data[:MAX_READ_BYTES]
+    return data.decode("utf-8", errors="replace")
 
 
 def classify_html(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = read_bounded(path)
     engine_match = ENGINE_RE.search(text)
     engine = engine_match.group(1) if engine_match else None
     has_fd_data = bool(FD_DATA_RE.search(text))
@@ -54,12 +63,21 @@ def classify_html(path: Path) -> dict:
 
 def walk_forge(forge_dir: Path) -> list[dict]:
     results: list[dict] = []
+    forge_root = forge_dir.resolve()
     for path in sorted(forge_dir.rglob("*.html")):
         if any(part in SKIP_DIRS for part in path.parts):
             continue
         if path.name in {"index.html", "fd-shell.html"}:
             continue
-        results.append(classify_html(path))
+        if path.is_symlink():
+            continue
+        try:
+            resolved = path.resolve()
+        except OSError:
+            continue
+        if not resolved.is_relative_to(forge_root):
+            continue
+        results.append(classify_html(resolved))
     return results
 
 

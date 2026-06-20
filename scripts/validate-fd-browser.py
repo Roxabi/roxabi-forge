@@ -101,12 +101,17 @@ def emit_errors(findings: list[dict], code: str, message: str, detail=None) -> N
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
-        emit_errors([], "usage", "usage: validate-fd-browser.py <html> <expect-json>")
+    if len(sys.argv) not in (3, 4):
+        emit_errors([], "usage", "usage: validate-fd-browser.py <html> <expect-json> [root-dir]")
 
     html_path = Path(sys.argv[1]).resolve()
     if not html_path.is_file():
         emit_errors([], "html-missing", f"HTML file not found: {html_path}")
+
+    if len(sys.argv) == 4:
+        root = Path(sys.argv[3]).resolve()
+        if not html_path.is_relative_to(root):
+            emit_errors([], "html-outside-root", f"HTML path outside root: {html_path}")
 
     try:
         expect = json.loads(sys.argv[2])

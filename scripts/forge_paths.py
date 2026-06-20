@@ -14,7 +14,10 @@ def script_root(script_file: str | Path) -> Path:
 
 
 def forge_ref_candidates(root: Path) -> list[Path]:
+    # FORGE_REF overrides are for trusted local dev only — ignore in CI.
     env = os.environ.get("FORGE_REF")
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        env = None
     candidates: list[Path] = []
     if env:
         candidates.append(Path(env).expanduser().resolve())

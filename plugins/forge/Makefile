@@ -81,6 +81,9 @@ deploy:
 	@cp -v $(PLUGIN_DIR)references/graph-templates/examples/*.html "$(FORGE_DIR)/references/graph-templates/examples/"
 	@echo "Done."
 	@echo ""
+	@echo "Note: rsync --delete on references/graph-templates/fd/ and references/aesthetics/"
+	@echo "      mirrors the plugin — local overrides under those dirs are removed on deploy."
+	@echo ""
 	@echo "Note: if $(FORGE_DIR)/.env doesn't exist yet, copy .env.example and fill in credentials:"
 	@echo "  cp $(FORGE_DIR)/.env.example $(FORGE_DIR)/.env"
 

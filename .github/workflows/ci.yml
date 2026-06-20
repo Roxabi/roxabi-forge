@@ -32,6 +32,8 @@ jobs:
           bash scripts/forge_paths.test.sh
       - name: fd-engine regression (gen-fd + validate)
         timeout-minutes: 5
+        env:
+          FORGE_REF: ""
         run: timeout 180 bun run gen-fd:check
       - name: Mermaid guard
         run: |

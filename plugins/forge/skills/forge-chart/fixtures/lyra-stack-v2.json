@@ -1,7 +1,7 @@
 {
   "nodes": [
     {"id":"tg","n":"lyra-telegram","img":"lyra:staging-svc","base":"bs","h":"M1","x":7,"y":8,"d":"adapter Telegram — aiogram v3, FastAPI webhook, StreamingSession"},
-    {"id":"dc","n":"lyra-discord","img":"lyra:staging-svc","base":"bs","h":"M1","x":24,"y":8,"d":"adapter Discord — discord.py v2, gateway WS, thread tracking"},
+    {"id":"dc","n":"lyra-discord","img":"lyra:staging-svc","base":"bs","h":"M1","x":25,"y":8,"d":"adapter Discord — discord.py v2, gateway WS, thread tracking"},
     {"id":"cloud_kimi","n":"Cloud Kimi","img":"Kimi API","base":"up","h":"EX","x":50,"y":8,"d":"Kimi (Moonshot) — ingress via LiteLLM proxy","kind":"ext"},
     {"id":"cloud_anthropic","n":"Cloud Anthropic","img":"Claude API","base":"up","h":"EX","x":65,"y":8,"d":"Anthropic (Claude) — ingress via clipool subprocess","kind":"ext"},
     {"id":"cloud_xai","n":"Cloud xAI","img":"xAI API","base":"up","h":"EX","x":80,"y":8,"d":"xAI (Grok) — ingress via xAI forwarder","kind":"ext"},
