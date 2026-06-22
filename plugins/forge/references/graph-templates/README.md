@@ -1,12 +1,29 @@
 # Graph Templates
 
-Reusable HTML templates for static architecture / process-map / hub-and-spoke
-diagrams. Consumed by the `forge-chart` skill. Companion to
-`gallery-templates/` but for node-edge graphs instead of image grids.
+Node-edge diagrams for the `forge-chart` and `forge-guide` skills. Companion to
+`gallery-templates/` (image grids).
 
-**Lift, don't rebuild.** Before hand-rolling a new SVG, check if one of these
-templates covers the case. Copy the right template, fill the `{{PLACEHOLDERS}}`,
-tweak coordinates, inline the CSS. Done.
+## fd-engine first (default for node-edge topology)
+
+**Dense or interactive diagrams** (≥ 7 nodes, use-cases, zones, spotlight) → **do not copy templates here**.
+
+1. Write a descriptor JSON (`type`: `architecture`, `hub-spoke`, `flowchart`, `state`, `class`, `er`, `sequence`, `gantt`, `pie`, `xychart`)
+2. Generate: `python3 scripts/gen-fd.py --in descriptor.json --out diagram.html`
+3. Validate: `python3 scripts/validate-fd.py --html diagram.html` (exit 0 required)
+
+Quality bar: `examples/fd-architecture.html`, fixture `forge-chart/fixtures/lyra-stack-v2.json`. Shell: `fd-shell.html` + `fd-bootstrap.js` (assembled by `gen-fd.py` — **do not hand-copy** `examples/fd-*.html`).
+
+| fd-engine type | Example | Layout |
+|---|---|---|
+| `architecture` / `hub-spoke` | `examples/fd-architecture.html` | declarative `x`/`y` 0..100 |
+| `flowchart`, `state`, `class`, `er`, `sequence` | `examples/fd-<type>.html` | `"layout": "auto"` (elk via `fd-layout.mjs`) |
+| `gantt`, `pie`, `xychart` | `examples/fd-gantt.html`, etc. | declarative data arrays |
+
+## fgraph static (legacy — ≤ 6 nodes, print-safe, no JS)
+
+**Lift, don't rebuild** for small static diagrams only. Copy the template, fill
+`{{PLACEHOLDERS}}`, assign `--x`/`--y`, inline `fgraph-base.css`. No runtime JS.
+Do **not** use fgraph for Lyra-scale architecture — use fd-engine above.
 
 > **⚠ Status — these are *propositions*, not the default path.** As of forge-chart 0.4.0
 > the generator's **default** is the **fd-engine premium path** (`forge-chart/SKILL.md §

@@ -70,23 +70,22 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 
 | Content | Rendering |
 |---|---|
-| Layered architecture (3–4 tiers) | fd-engine descriptor `type:"architecture"` (premium); static `layered.html` for print/no-JS |
-| Linear pipeline (2–4 stages) | fd-engine descriptor `type:"architecture"` or `"flowchart"`; static `linear-flow.html` for print/no-JS |
-| Hub-and-spoke ≤ 6 peers with rich cards | fd-engine descriptor `type:"hub-spoke"` (premium); static `radial-hub.html` for print/no-JS |
-| Peer ring (no center hub) | fd-engine descriptor `type:"architecture"`; static `radial-ring.html` for print/no-JS |
-| Multi-host / distributed deployment | fd-engine descriptor `type:"architecture"`; static `machine-clusters.html` for print/no-JS |
-| Timeline / gantt | fd-engine descriptor `type:"gantt"` — declarative bars from `descriptor.bars[]`; no CDN |
-| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step — participant strips, lifelines, DOM-measured arrows |
-| State machine | fd-engine descriptor `type:"state"` + bun elk step — circle/diamond shapes, bezier edges |
-| ER schema | fd-engine descriptor `type:"er"` + bun elk step — entity rows, PK/FK markers, crow's-foot edges |
-| Proportion / share | fd-engine descriptor `type:"pie"` — SVG arc paths from `descriptor.slices[]`; no CDN |
+| **Architecture / hub-spoke / layered / multi-host / linear / ring — any node-edge topology, any scale** | **fd-engine** `type:"architecture"` or `type:"hub-spoke"` + `scripts/gen-fd.py` + `validate-fd.py` (same pipeline as `forge-chart`); add `useCases[]` / `zones[]` as needed |
+| Swimlane / multi-actor pipeline (preferred for lifecycle walkthroughs) | `lane-swim.html` |
+| Flowchart / decision DAG | fd-engine `type:"flowchart"` (`layout:"auto"`) → `gen-fd.py` |
+| State machine | fd-engine `type:"state"` (`layout:"auto"`) → `gen-fd.py` |
+| API sequence | fd-engine `type:"sequence"` (`layout:"auto"`) → `gen-fd.py` |
+| ER / UML class schema | fd-engine `type:"er"` / `type:"class"` (`layout:"auto"`) → `gen-fd.py` |
+| Timeline / gantt | fd-engine `type:"gantt"` → `gen-fd.py` |
+| Proportion / share | fd-engine `type:"pie"` → `gen-fd.py` |
+| **Static fgraph propositions** (print / no-JS only) | `radial-hub` · `radial-ring` · `linear-flow` · `layered` / `deployment-tiers` · `machine-clusters` — hand-assigned `--x/--y`; prefer fd-engine whenever density or interactivity matters |
 | Issue dependency graph | fgraph `dep-graph.html` — fed by `scripts/gen-deps.py` |
-| > 8 nodes or a shape no template covers | Split the diagram, or use `layered.html` with hand-assigned `--x/--y` |
+| Dense topology that does not fit one tab | Split across tab fragments **or** one fd-engine descriptor per diagram |
 | Stacked **text-heavy** pipelines (paragraphs per stage) | CSS Grid cards |
 | Data comparison (≥4 rows or ≥3 cols) | HTML tables |
 | Single-page audit / long-form | TOC sidebar layout |
 
-**Key distinction:** if the content is structural (nodes + edges + labels + badges), use fgraph even inside a guide. CSS Grid cards are for text-heavy content where each stage has paragraphs, not for topology diagrams with slot badges. Read `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` to pick the right shape per node.
+**Key distinction:** structural topology (nodes + edges) → **fd-engine + `gen-fd.py`** when ≥ 7 nodes or interactive; fgraph only for ≤ 6 node static diagrams. CSS Grid cards are for text-heavy stages with paragraphs, not slot-badge topology. Shape vocabulary: `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md`. Full routing: `forge-chart/SKILL.md`.
 
 **Check:** Is the content scannable (headings + lists + tables) or narrative (paragraphs + inline diagrams)? Scannable → TOC sidebar or multi-tab with stat-grid heroes. Narrative → flat long-form with inline diagrams. A guide that is both scannable and narrative is a sign of underspecified Frame Signal 2 — one takeaway can be skimmed *or* read, not both.
 
@@ -342,11 +341,12 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 3. **Inventory diagrams.** For each diagram or architectural visual in the source content:
    - Name it (e.g. "3-layer stack", "model runtime chain")
-   - Count nodes and classify topology (layered / linear / radial / nested / grid / gantt / pie / er / sequence / state / dep-graph)
-   - Pick the matching fgraph template from `graph-templates/` (or CSS Grid cards / HTML table if the content is not a graph)
-   - Note which shapes per node using `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md` (cylinder, hexagon, pill, folded, diamond, circle, default rect)
-   - If > 8 nodes or no template covers the shape: split the diagram across two fragments, or use `layered.html` with hand-assigned `--x/--y`
-   Report the diagram inventory before proceeding to Phase 3. Do not write custom CSS for diagrams that have fgraph equivalents.
+   - Count nodes and classify topology (architecture / hub-spoke / layered / linear / radial / gantt / pie / er / sequence / state / dep-graph)
+   - **≥ 7 nodes OR use-cases OR zones OR spotlight** → fd-engine descriptor + `gen-fd.py` + `validate-fd.py` (see `forge-chart/SKILL.md`)
+   - **≤ 6 nodes, static, print-safe** → fgraph template from `graph-templates/` (or CSS Grid / table if not a graph)
+   - Note shapes per node via `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md`
+   - If one tab cannot hold the topology: split across fragments (each fragment gets its own descriptor or fgraph template)
+   Report the diagram inventory before Phase 3. Do not hand-assemble fd-engine HTML or copy `examples/fd-*.html` wholesale.
 
 4. **Audit type ↔ content semantic match.** Misuse of `sequence` for 1-actor pipelines is the #1 cause of "catastrophic" first-render. Verify each diagram's selected type:
 

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="{LANG}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="diagram:title" content="{TITLE_ESC}">
+<meta name="diagram:category" content="{CATEGORY}">
+<meta name="diagram:color" content="{COLOR}">
+<meta name="diagram:engine" content="fd-engine">
+<meta name="diagram:type" content="{TYPE}">
+<title>{TITLE_ESC}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* reset */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+ul,ol{list-style:none;margin:0;padding:0}
+button{cursor:pointer;font-family:inherit}
+
+{AESTHETIC_CSS}
+
+{FD_ENGINE_CSS}
+
+{PAGE_SHELL_CSS}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="htitle">
+      <h1>{TITLE_HTML}</h1>
+      <p>{SUBTITLE}</p>
+    </div>
+    <div class="badges">
+      <span class="badge cyan">fd-engine</span>
+      <span class="badge amber">{TYPE}</span>
+      <span class="badge">{THEME}</span>
+      <span class="badge">file:// safe</span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      {PLANE_LEGEND}
+      {PLANE_FILTERS}
+    </div>
+    {USE_CASE_BAR}
+  </div>
+
+  <div class="diagram-row">
+    <div class="stage-wrap{STAGE_CLASS}">
+      <div class="fd-canvas" id="fd-canvas">
+        {NET_LABEL}
+        {ZONE_HTML}
+        <svg class="fd-edges" id="fd-edges" aria-hidden="true"><defs></defs></svg>
+      </div>
+    </div>
+
+    <div class="sidebar{SIDEBAR_CLASS}" id="fd-sidebar">
+      <div class="sb-header" id="sbHeader">
+        <h4>Hover = detail</h4>
+        <div class="hint">Hover a node to isolate its edges and see image / host / role.<br>Select a use case to animate the flow.</div>
+      </div>
+      <div class="sb-uc" id="sbUc">
+        <div class="uc-title" id="ucTitle"></div>
+        <ul class="uc-steps-list" id="ucStepsList"></ul>
+        <div class="uc-desc" id="ucDesc"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="application/json" id="fd-data">
+{FD_DATA_JSON}
+</script>
+
+<script>
+{FD_ENGINE_BUNDLE}
+</script>
+
+<script>
+{FD_BOOTSTRAP_JS}
+</script>
+</body>
+</html>

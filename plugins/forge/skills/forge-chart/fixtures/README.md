@@ -38,8 +38,48 @@ sha256( render(skill, input) | normalize-whitespace )
 
 Normalization collapses runs of whitespace within text nodes and strips trailing newlines — so that cosmetic reformatting doesn't trigger false diffs.
 
-## This issue scope
+## fd-engine fixtures
 
-Infrastructure only. No validation runner executes in CI yet. Fixtures exist today so that:
-- regression anchors are authored alongside the prompts that produced them, and
-- the runner, when it lands, has a ready corpus to wire up.
+| File | Exercises |
+|---|---|
+| `lyra-stack-v2.json` | Lyra-scale architecture: 26 nodes, 32 edges, 6 use-cases — input for `scripts/gen-fd.py` |
+
+Generate HTML from the fixture:
+
+```bash
+python3 scripts/gen-fd.py \
+  --in plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json \
+  --out /tmp/lyra-stack-v2-gen.html \
+  --title "Lyra — Architecture"
+```
+
+Validate layout before shipping (static + Playwright):
+
+```bash
+python3 scripts/validate-fd.py \
+  --html /tmp/lyra-stack-v2-gen.html \
+  --expect plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.expect.json
+```
+
+One-shot generate + validate:
+
+```bash
+bun run gen-fd:check
+# or
+python3 scripts/validate-fd.py \
+  --in plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json \
+  --out /tmp/lyra-stack-v2-gen.html \
+  --title "Lyra · Architecture"
+```
+
+Expectations file: `lyra-stack-v2.expect.json` (node counts, min gaps, canvas bounds).
+
+## CI and deploy gates
+
+| Gate | Command | Browser layout |
+|---|---|---|
+| CI (PR) | `bun run gen-fd:check` | Full Playwright |
+| CI (contract) | `scripts/validate-descriptor.test.sh` | N/A (JSON estimate) |
+| Deploy `build.sh` | lyra fixture via `validate-fd.py` | Full when `uv` + Playwright available; else `--static-only` with warning |
+
+`--static-only` skips DOM pair-gap checks defined in `lyra-stack-v2.expect.json` under `layout.*`. Always run `bun run gen-fd:check` before merging fd-engine changes.
