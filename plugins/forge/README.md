@@ -14,7 +14,7 @@ claude plugin install forge
 | Skill | Trigger | What it creates |
 |-------|---------|-----------------|
 | `forge-init` | "init forge", "setup forge" | Set up `~/.roxabi/forge/` with server, shared assets, directory structure |
-| `forge-chart` | "draw", "diagram", "visualize", "quick visual" | fd-engine diagrams via `gen-fd.py` (architecture, sequence, ER, state, gantt, pie…) or fgraph static (≤6 nodes); validated with `validate-fd.py` — `file://` safe |
+| `forge-chart` | "draw", "diagram", "visualize", "quick visual" | fd-engine premium diagrams via `gen-fd.py` (architecture, hub-spoke) or fgraph static templates (topology, flow, timeline, proportion, comparison); validated with `validate-fd.py` — `file://` safe |
 | `forge-epic` | "visualize #N", "epic preview", "illustrate issue" | Issue-linked analysis: overview, scope breakdown, dependency graph, acceptance criteria |
 | `forge-gallery` | "gallery", "showcase", "compare visually", "sprite gallery" | Image or audio gallery with pivot grouping, dynamic filters, search, lightbox, multi-mode datasets |
 | `forge-guide` | "write a guide", "multi-tab doc", "architecture doc", "recap" | Split-file multi-tab HTML document (shell + CSS + JS + tab fragments) |
@@ -147,7 +147,7 @@ make -C ~/.roxabi/forge deploy
 
 `deploy` runs `build` (regenerates manifest + syncs to `_dist/`) then `npx wrangler pages deploy _dist --project-name=forge --branch=main`. It refuses to run on a dirty git tree.
 
-`make -C plugins/forge deploy` also copies diagram scripts to `~/.roxabi/forge/scripts/`: `gen-fd.py`, `validate-fd.py`, `validate-fd-browser.py`, `fd-layout.mjs` (plus `render-md`, `build.sh`, OG helpers).
+`make -C plugins/forge deploy` also copies diagram scripts to `~/.roxabi/forge/scripts/`: `gen-fd.py`, `validate-fd.py`, `validate-fd-browser.py` (plus `render-md`, `build.sh`, OG helpers).
 
 #### Size limits
 

@@ -71,13 +71,7 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 | Content | Rendering |
 |---|---|
 | **Architecture / hub-spoke / layered / multi-host / linear / ring — any node-edge topology, any scale** | **fd-engine** `type:"architecture"` or `type:"hub-spoke"` + `scripts/gen-fd.py` + `validate-fd.py` (same pipeline as `forge-chart`); add `useCases[]` / `zones[]` as needed |
-| Swimlane / multi-actor pipeline (preferred for lifecycle walkthroughs) | `lane-swim.html` |
-| Flowchart / decision DAG | fd-engine `type:"flowchart"` (`layout:"auto"`) → `gen-fd.py` |
-| State machine | fd-engine `type:"state"` (`layout:"auto"`) → `gen-fd.py` |
-| API sequence | fd-engine `type:"sequence"` (`layout:"auto"`) → `gen-fd.py` |
-| ER / UML class schema | fd-engine `type:"er"` / `type:"class"` (`layout:"auto"`) → `gen-fd.py` |
-| Timeline / gantt | fd-engine `type:"gantt"` → `gen-fd.py` |
-| Proportion / share | fd-engine `type:"pie"` → `gen-fd.py` |
+| Flow / pipeline / sequence / lifecycle | `lane-swim.html` (multi-actor / API sequence — preferred) · `layered.html` / `linear-flow.html` for simple layered flow |
 | **Static fgraph propositions** (print / no-JS only) | `radial-hub` · `radial-ring` · `linear-flow` · `layered` / `deployment-tiers` · `machine-clusters` — hand-assigned `--x/--y`; prefer fd-engine whenever density or interactivity matters |
 | Issue dependency graph | fgraph `dep-graph.html` — fed by `scripts/gen-deps.py` |
 | Dense topology that does not fit one tab | Split across tab fragments **or** one fd-engine descriptor per diagram |

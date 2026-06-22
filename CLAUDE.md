@@ -24,7 +24,7 @@ roxabi-forge/
 │       ├── skills/              # 8 skills: forge-init, forge-chart, forge-epic, forge-gallery, forge-guide, forge-md, forge-presentation, forge-slides
 │       ├── references/          # HTML/CSS/JS templates, design docs, aesthetics
 │       │   ├── slide-templates/ # scroll-snap deck engine (generation source, always inlined)
-│       │   ├── showcases/       # per-skill reference demos (chart/epic/gallery/guide/md/presentation/slides)
+│       │   ├── showcases/       # reference demo (showcase-chart — fd-engine premium pipeline)
 │       │   ├── device-frames/   # iOS/Android device frame CSS for mobile mockups
 │       │   ├── aesthetics/      # brand presets (lyra-v2, cool-dark, …) — inlined into output
 │       ├── runtime/             # Makefile + .env.example for ~/.roxabi/forge/

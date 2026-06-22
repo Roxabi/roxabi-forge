@@ -52,7 +52,6 @@ deploy:
 	@cp -v $(REPO_ROOT)/scripts/migrate-fd-batch.py $(FORGE_DIR)/scripts/migrate-fd-batch.py
 	@cp -v $(REPO_ROOT)/scripts/validate-descriptor.test.sh $(FORGE_DIR)/scripts/validate-descriptor.test.sh
 	@cp -v $(REPO_ROOT)/scripts/forge_paths.test.sh $(FORGE_DIR)/scripts/forge_paths.test.sh
-	@cp -v $(REPO_ROOT)/scripts/fd-layout.mjs $(FORGE_DIR)/scripts/fd-layout.mjs
 	@mkdir -p $(FORGE_DIR)/scripts/fixtures
 	@cp -v $(REPO_ROOT)/plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json $(FORGE_DIR)/scripts/fixtures/
 	@cp -v $(REPO_ROOT)/plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.expect.json $(FORGE_DIR)/scripts/fixtures/

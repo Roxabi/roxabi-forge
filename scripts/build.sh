@@ -79,6 +79,7 @@ rsync -aL --delete --delete-excluded \
   --max-size=25M \
   --exclude='_dist/' \
   --exclude='*.py' \
+  --exclude='graph-templates/*.html' \
   --exclude='__pycache__/' \
   --exclude='.git/' \
   --exclude='.stversions/' \

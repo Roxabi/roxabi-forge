@@ -56,22 +56,20 @@ Pick the matching template from `${CLAUDE_PLUGIN_ROOT}/references/graph-template
 </section>
 ```
 
-No runtime JS — fgraph is declarative CSS + SVG. All custom props (`--x`, `--y`) live in the 0..100 coordinate space. Arrow markers (`fg-arr-*`) are defined in `fgraph-base.css`; ER templates also use `fg-er-*` crow's-foot markers.
+No runtime JS — fgraph is declarative CSS + SVG. All custom props (`--x`, `--y`) live in the 0..100 coordinate space. Arrow markers (`fg-arr-*`) are defined in `fgraph-base.css`.
 
-Template picker — **default to the fd-engine premium path**; the static fgraph templates are *propositions* for print / no-JS only (full routing: `forge-chart/SKILL.md § Structure`):
+Template picker — fd-engine covers `architecture` and `hub-spoke` only; all other shapes route to fgraph static templates (full routing: `forge-chart/SKILL.md § Structure`):
 
-| Shape | Path (premium default) |
+| Shape | Path |
 |---|---|
-| Architecture / hub-spoke / layered / multi-host / linear / ring — any node-edge topology | fd-engine descriptor `type:"architecture"` (or `"hub-spoke"`) → `scripts/gen-fd.py` |
-| Flowchart / decision DAG | fd-engine descriptor `type:"flowchart"` (`layout:"auto"`) → `gen-fd.py` |
-| State machine | fd-engine descriptor `type:"state"` (`layout:"auto"`) → `gen-fd.py` |
-| Schema — UML class / ER | fd-engine descriptor `type:"class"` / `type:"er"` (`layout:"auto"`) → `gen-fd.py` |
-| API sequence | fd-engine descriptor `type:"sequence"` (`layout:"auto"`) → `gen-fd.py` |
-| Swimlane / multi-actor pipeline (preferred for lifecycles) | `lane-swim.html` |
-| Timeline / gantt | fd-engine descriptor `type:"gantt"` |
-| Proportion / share | fd-engine descriptor `type:"pie"` |
-| Issue dependency graph (data-driven) | `dep-graph.html` |
-| **Propositions** (print / no-JS, else generate bespoke via `type:"architecture"`) | `radial-hub` · `radial-ring` · `linear-flow` · `dual-cluster` · `layered` · `deployment-tiers` · `machine-clusters` |
+| Architecture / hub-spoke / multi-host / any node-edge topology | fd-engine descriptor `type:"architecture"` (or `"hub-spoke"`) → `scripts/gen-fd.py` |
+| Swimlane / multi-actor pipeline / process / sequence (preferred for lifecycles) | `lane-swim.html` |
+| Layered flow / funnel | `layered.html` · `linear-flow.html` |
+| Radial hub / ring topology | `radial-hub.html` · `radial-ring.html` |
+| Dual cluster / machine clusters | `dual-cluster.html` · `machine-clusters.html` |
+| Deployment tiers | `deployment-tiers.html` |
+| Issue / package dependency graph (data-driven) | `dep-graph.html` |
+| Bubble / radar / scatter | `bubble.html` · `radar.html` · `scatter.html` |
 
 ### Phase Cards (when applicable)
 
@@ -105,8 +103,6 @@ python3 scripts/gen-fd.py --in <descriptor.json> --out <output.html> [--theme ly
 - fd-engine bundle from `fd/bundler.js` (via bun)
 - `fd-bootstrap.js` runtime
 
-Auto-layout types (`flowchart`, `state`, `class`, `er`, `sequence`) with `"layout": "auto"` trigger `scripts/fd-layout.mjs` automatically.
-
 **Regression fixture:** `plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json`
 
 **Validate before deliver (mandatory):**
@@ -122,7 +118,7 @@ Manual assembly below is for debugging only — production output must come from
 
 ### manual fallback (debug only — do not use for deliverables)
 
-For fd-engine types (`architecture`, `hub-spoke`, `er`, `sequence`, etc.), the output HTML follows this structure. Full reference: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/fd-architecture.html`.
+For fd-engine types (`architecture`, `hub-spoke`), the output HTML follows this structure. Full reference: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/fd-architecture.html`.
 
 **CSS inline order (critical — fd-engine.css must come AFTER the aesthetic):**
 ```html

@@ -163,13 +163,9 @@ Produce the deck outline silently (in-memory, no disk write). Each entry: `{inde
 
 If source content includes architecture description, dependency list, or flow description:
 - Architecture / hub-spoke / topology (any scale) → `diagram` slide via fd-engine descriptor `type:"architecture"` (premium); static `radial-hub.html` / `radial-ring.html` + inline `fgraph-base.css` only for print/no-JS
-- Linear 2–3 stage pipeline → `diagram` slide via fd-engine `type:"architecture"` or `"flowchart"`; static `linear-flow.html` for print/no-JS
+- Linear 2–3 stage pipeline → `diagram` slide via fd-engine `type:"architecture"`; static `linear-flow.html` for print/no-JS
 - Layered architecture → `diagram` slide via fd-engine `type:"architecture"`; static `layered.html` / `deployment-tiers.html` for print/no-JS
-- Timeline / gantt → `diagram` slide with fd-engine descriptor `type:"gantt"`
-- Proportion / share → `diagram` slide with fd-engine descriptor `type:"pie"`
-- ER schema → `diagram` slide with fd-engine descriptor `type:"er"` + bun elk step
-- API sequence → `diagram` slide with fd-engine descriptor `type:"sequence"` + bun elk step
-- State machine → `diagram` slide with fd-engine descriptor `type:"state"` + bun elk step
+- Flow / pipeline / API sequence / lifecycle → `diagram` slide with `lane-swim.html` (multi-actor / sequence) or `layered.html` / `linear-flow.html`
 - Issue dependency graph → `diagram` slide with `dep-graph.html`
 - > 8 nodes or a shape no template covers → **split** across two diagram slides, or use `layered.html` with hand-assigned `--x/--y`
 
