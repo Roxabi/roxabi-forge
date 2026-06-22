@@ -138,7 +138,8 @@ function draw() {
     p = document.createElementNS(NS, 'path')
     p.setAttribute('d', dStr)
     // CSS class = plane name → stroke resolved via .fd-edges path.{plane} in fd-engine.css
-    p.setAttribute('class', plane)
+    // edge.flow → append .flow for the ambient marching-dash animation (craft bar)
+    p.setAttribute('class', ref.edge && ref.edge.flow ? `${plane} flow` : plane)
     // Arrowhead marker per plane — no hardcoded hex, color via CSS var in marker's injected style
     p.setAttribute('marker-end', `url(#fd-arr-${plane})`)
     // Data attributes for spotlight + particle matching

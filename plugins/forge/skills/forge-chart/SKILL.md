@@ -8,7 +8,7 @@ description: >-
   "draw" | "diagram" | "visualize" | "sketch" | "map" | "show the flow" |
   "quick visual".
 summary: 'single-file native fgraph / CSS visual'
-version: 0.3.0
+version: 0.4.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 ---
 
@@ -183,9 +183,12 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
 | **nodes[].plane** | string | Semantic plane: `control` \| `write` \| `read` \| `data` \| `async` \| `feedback` \| `message` \| `llm` |
 | **nodes[].h** | string | Host badge: `"M1"` \| `"M2"` \| `"EX"` (external, no badge) |
 | **nodes[].cardStyle** | string | Optional override: `"premium"` (default for architecture/hub-spoke) \| `"simple"` |
+| **nodes[].icon** | string | Optional inline `<svg>…</svg>` string — rendered in the card header icon slot (`.fd-ico`). Craft bar. |
+| **nodes[].glow** | bool | Optional — `true` adds an accent halo (`.fd-glow`) to the premium card. Use on the hub / hero node only. Craft bar. |
 | **edges[].f / t** | string | From / to node IDs |
 | **edges[].plane** | string | Semantic plane (determines edge color from aesthetic tokens) |
 | **edges[].label** | string | Optional edge label (shown at bezier midpoint on hover) |
+| **edges[].flow** | bool | Optional — `true` adds the ambient marching-dash animation (`.flow`, 20s) for passive data/async flow. Craft bar. |
 | **edges[].srcFace / dstFace** | string | Optional face override: `"top"` \| `"bottom"` \| `"left"` \| `"right"` |
 | **zones[].id** | string | Must match the HTML element `id` for the zone div |
 | **zones[].nodes** | string[] | Node IDs whose bounding rect defines the zone |
@@ -209,6 +212,22 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
 | `feedback` | `--accent` | loss signal, correction, eval result |
 | `message` | `--cyan` | NATS / message-bus (alias for control in lyra topology) |
 | `llm` | `--purple` | LLM inference request/response |
+
+### Craft Quality Bar (the reference standard — apply by default)
+
+Distilled from the gold-standard lyra-diagram. Every diagram should reach this bar. Seven primitives, all defined in `fgraph-base.css` + `fd-engine.css`:
+
+| # | Primitive | How to get it | Auto on fd-engine? |
+|---|---|---|---|
+| 1 | **Bézier edges** (Q-curves, not straight lines) | fd-engine computes DOM-measured beziers | ✅ automatic |
+| 2 | **Ambient edge-flow** (slow 20s marching dash on passive data/async) | descriptor `edges[].flow: true` → `.flow` class; or hand-author `.fg-edge.flow` | ✅ via `edge.flow` |
+| 3 | **Dual-font nodes** (Sans title / Mono descriptor) | `.fgraph-title` (Outfit) + `.fgraph-sub` (Space Mono); fd `.fd-title`/`.fd-sub` | ✅ automatic |
+| 4 | **Per-node SVG icon** | descriptor `nodes[].icon: "<svg>…</svg>"` → `.fd-ico` slot; or `.fgraph-node__icon` markup | ✅ via `node.icon` |
+| 5 | **Accent glow** on hub / hero node | descriptor `nodes[].glow: true` → `.fd-glow`; or `.fg-glow` class | ✅ via `node.glow` |
+| 6 | **3-depth palette** (`--bg` → `--panel` → `--surface`) | fd-engine bootstraps `--panel`/`--panel2`; primitives fall back `var(--panel, var(--surface))` | ✅ bootstrapped |
+| 7 | **Edge-label chips** (mono + bg-knockout) | `.fg-edge-label` (fgraph) / fd edge labels | ✅ automatic |
+
+**Default directive:** prefer the **fd-engine path with `cardStyle: premium`** — it delivers primitives 1–7 automatically. Reach for a static fgraph template only for print/PDF/no-JS output (it requires hand-authoring the craft). When generating an fd-engine descriptor, set `glow: true` on the hub, `flow: true` on passive data/async edges, and an `icon` on each node where a recognizable glyph aids scanning.
 
 ### AC-10 guard (mandatory)
 
@@ -484,6 +503,8 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 ## Phase 2 — Visual Type
 
+**Default routing directive (quality bar):** for any node-and-edge diagram, the **fd-engine path with `cardStyle: premium`** is the default — it delivers the Craft Quality Bar (beziers, glow, icons, edge-flow, dual-font) automatically. Treat the static fgraph templates in the table below as **propositions / layout hints**, not the output ceiling: pick the one whose *shape* matches, then render it through the fd-engine descriptor (set `glow`/`flow`/`icon` per the Craft Quality Bar). Use a static template's raw HTML only for print/PDF/no-JS exports, where the craft must be hand-authored.
+
 | Content | Approach |
 |---------|----------|
 | Task / issue dependency graph | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) |
@@ -731,6 +752,10 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
 - [ ] **fgraph inlining:** `fgraph-base.css` is inlined into the output `<style>` (Mode A) — no `<link>` to `_shared/fgraph-base.css`
 - [ ] **Color contrast:** body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`; AA minimum, AAA preferred
+- [ ] **Craft bar — glow:** the hub / hero node carries `.fd-glow` (`node.glow: true`) — exactly one focal glow, not scattered
+- [ ] **Craft bar — edge-flow:** passive data/async edges use `.flow` (`edge.flow: true`); the critical path stays solid (no flow) for contrast
+- [ ] **Craft bar — icons:** node cards carry an `.fd-ico` / `.fgraph-node__icon` glyph where it aids scanning (all-or-none per diagram for consistency)
+- [ ] **Craft bar — dual-font:** titles render Sans, descriptors render Mono (default; verify no override flattened them)
 - [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
 
 $ARGUMENTS

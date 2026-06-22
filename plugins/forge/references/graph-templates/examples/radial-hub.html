@@ -48,6 +48,11 @@
   .mk-purple { fill: var(--purple); }
   .mk-amber  { fill: var(--amber); }
   .mk-green  { fill: var(--green); }
+  /* craft quality bar — ambient edge-flow + accent glow (see fgraph-base.css) */
+  @keyframes fg-flow { to { stroke-dashoffset: -200px; } }
+  .fgraph-edges .fg-edge.flow { stroke-dasharray: 6 4; animation: fg-flow 20s linear infinite; }
+  :root { --glow-radius: 40px; }
+  .fg-glow { box-shadow: 0 0 var(--glow-radius, 40px) var(--accent-glow, transparent); }
 
   /* nodes */
   .fgraph-node { position: absolute; left: calc(var(--x,50)*1%); top: calc(var(--y,50)*1%); width: var(--w,22%); transform: translate(-50%,-50%); background: var(--bg-card); border: 1.5px solid var(--border-bright); border-radius: 12px; padding: 8px 10px 9px; z-index: 2; transition: border-color 0.15s, box-shadow 0.2s, transform 0.2s; }
@@ -130,23 +135,23 @@
     </defs>
 
     <!-- hub ↔ clipool (top) — chat.* -->
-    <path class="fg-edge cyan" d="M 50.0,45.0 L 50.0,25.0"
+    <path class="fg-edge flow cyan" d="M 50.0,45.0 L 50.0,25.0"
           marker-start="url(#fg-arr-cyan)" marker-end="url(#fg-arr-cyan)"/>
 
     <!-- hub ↔ discord (upper-right) — chat.discord.* -->
-    <path class="fg-edge purple" d="M 64.0,45.5 L 70.4,43.4"
+    <path class="fg-edge flow purple" d="M 64.0,45.5 L 70.4,43.4"
           marker-start="url(#fg-arr-purple)" marker-end="url(#fg-arr-purple)"/>
 
     <!-- hub ↔ telegram (lower-right) — chat.telegram.* -->
-    <path class="fg-edge amber" d="M 53.6,55.0 L 63.6,68.7"
+    <path class="fg-edge flow amber" d="M 53.6,55.0 L 63.6,68.7"
           marker-start="url(#fg-arr-amber)" marker-end="url(#fg-arr-amber)"/>
 
     <!-- hub ↔ nats (lower-left) — nats.* -->
-    <path class="fg-edge green" d="M 46.4,55.0 L 36.4,68.7"
+    <path class="fg-edge flow green" d="M 46.4,55.0 L 36.4,68.7"
           marker-start="url(#fg-arr-green)" marker-end="url(#fg-arr-green)"/>
 
     <!-- hub ↔ gh-helper (upper-left) — gh.* -->
-    <path class="fg-edge cyan" d="M 36.0,45.5 L 29.6,43.4"
+    <path class="fg-edge flow cyan" d="M 36.0,45.5 L 29.6,43.4"
           marker-start="url(#fg-arr-cyan)" marker-end="url(#fg-arr-cyan)"/>
   </svg>
 
@@ -199,8 +204,8 @@
     <div class="fgraph-sub">GitHub pod</div>
   </div>
 
-  <!-- hub (center) — pill bus node -->
-  <div class="fgraph-node cyan pill wide" style="--x:50;--y:50;">
+  <!-- hub (center) — pill bus node; .fg-glow = accent halo (craft bar) -->
+  <div class="fgraph-node cyan pill wide fg-glow" style="--x:50;--y:50;">
     <div class="fgraph-title cyan">lyra-hub</div>
     <div class="fgraph-sub">NATS orchestrator</div>
     <div class="fgraph-sub muted">M1 · roxabituwer</div>
