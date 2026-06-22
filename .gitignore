@@ -25,3 +25,6 @@ pnpm-workspace.yaml
 
 # Generated QA frames (screenshots/renders) — local-only output
 /artifacts/frames/
+
+# Impeccable design-hook cache — local PostToolUse artifact, never part of the plugin
+.impeccable/

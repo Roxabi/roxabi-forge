@@ -162,9 +162,9 @@ Produce the deck outline silently (in-memory, no disk write). Each entry: `{inde
 ### Diagram slides
 
 If source content includes architecture description, dependency list, or flow description:
-- ≤ 6 radial peers, rich nodes → `diagram` slide with inline `radial-hub.html` / `radial-ring.html` + inline `fgraph-base.css`
-- Linear 2–3 stage pipeline → `diagram` slide with `linear-flow.html`
-- Layered architecture → `diagram` slide with `layered.html` or `deployment-tiers.html`
+- Architecture / hub-spoke / topology (any scale) → `diagram` slide via fd-engine descriptor `type:"architecture"` (premium); static `radial-hub.html` / `radial-ring.html` + inline `fgraph-base.css` only for print/no-JS
+- Linear 2–3 stage pipeline → `diagram` slide via fd-engine `type:"architecture"` or `"flowchart"`; static `linear-flow.html` for print/no-JS
+- Layered architecture → `diagram` slide via fd-engine `type:"architecture"`; static `layered.html` / `deployment-tiers.html` for print/no-JS
 - Timeline / gantt → `diagram` slide with fd-engine descriptor `type:"gantt"`
 - Proportion / share → `diagram` slide with fd-engine descriptor `type:"pie"`
 - ER schema → `diagram` slide with fd-engine descriptor `type:"er"` + bun elk step

@@ -25,6 +25,17 @@ Quality bar: `examples/fd-architecture.html`, fixture `forge-chart/fixtures/lyra
 `{{PLACEHOLDERS}}`, assign `--x`/`--y`, inline `fgraph-base.css`. No runtime JS.
 Do **not** use fgraph for Lyra-scale architecture — use fd-engine above.
 
+> **⚠ Status — these are *propositions*, not the default path.** As of forge-chart 0.4.0
+> the generator's **default** is the **fd-engine premium path** (`forge-chart/SKILL.md §
+> fd-engine diagram types`): DOM-measured bezier edges, premium cards, glow / edge-flow /
+> per-node icons. Most static templates below are **propositions to consider** — reach for
+> them for **print / PDF / no-JS** output or an explicit static-look request, or as a *layout
+> hint* you then render through an fd-engine descriptor.
+>
+> - **First-class engine types** (premium default): `architecture` · `hub-spoke` · `flowchart` · `state` · `class` · `er` · `sequence` · `gantt` · `pie`. Architecture absorbs radial-hub / system-architecture / layered / machine-clusters / linear-flow / dual-cluster / radial-ring; `class`+`er` are the **schema** family (one type, two notations).
+> - **Kept native** (no engine equivalent): **`lane-swim`** (swimlane — preferred for multi-actor pipelines & lifecycle walkthroughs) · **`dep-graph`** (data-driven, `gen-deps.py`) · **`funnel`** (explainer component).
+> - **Propositions / data-charts** (consider, not auto-templated): `radial-hub` · `system-architecture` · `layered` · `deployment-tiers` · `machine-clusters` · `dual-cluster` · `radial-ring` · `linear-flow` · `scatter` · `bubble` · `radar` · `xychart`.
+
 ## Showcase
 
 ### Radial Hub
@@ -704,6 +715,12 @@ Two gates prevent drift from reaching the runtime artifacts:
 
 Pick by layout intent, not by domain. Any template can be re-tinted
 (tones, pills) to match the domain.
+
+> **Default first.** This picker is for *static* output. For on-screen diagrams,
+> the rows below marked as propositions in the status banner above route to an
+> **fd-engine type** instead — e.g. "1 center + 4–6 peers" → `type:"hub-spoke"`,
+> "3–4 horizontal layers" / "machine frames" / "dev-staging-prod tiers" → `type:"architecture"`.
+> Use a static template only for print / no-JS or an explicit static-look request.
 
 | Your diagram shape | Template | Reference |
 |--------------------|----------|-----------|
@@ -1395,7 +1412,7 @@ Static templates hand-author every `<path>` and lean on layout rules R1–R7 to 
 
 ## Extending the template set
 
-All core topologies are now covered. If you need a new shape:
+All static *proposition* topologies are documented here. For on-screen / interactive output the first-class fd-engine types cover the full topology space (see the status banner at the top). If you need a new static shape:
 
 1. Start from the closest template
 2. Reposition nodes via `--x`/`--y`

@@ -65,12 +65,14 @@ function buildPremiumCard(node) {
   // node.img holds the tag badge text; emits fd-tag-{plane} for colour variant
   const tag = node.img ? `<div class="fd-tag fd-tag-${tagPlane}">${node.img}</div>` : ''
   const sub = node.d ? `<div class="fd-sub">${node.d}</div>` : ''
+  // node.icon holds an inline <svg> string — rendered in the header icon slot (craft bar)
+  const ico = node.icon ? `<span class="fd-ico">${node.icon}</span>` : ''
   // h='EX' = external, no badge (SKILL.md spec)
   const hb = node.h && node.h !== 'EX' ? `<div class="fd-host ${node.h}">${hostLabel(node.h)}</div>` : ''
 
   return (
     `<span class="fd-accent" style="background:${accentVar}"></span>` +
-    `<div class="fd-nh"><div class="fd-title">${node.n}</div>${tag}</div>` +
+    `<div class="fd-nh">${ico}<div class="fd-title">${node.n}</div>${tag}</div>` +
     sub +
     hb
   )
@@ -115,6 +117,8 @@ function renderNode(node, typeDefault) {
 
   if (style === 'premium') {
     el.classList.add('fd-card-premium')
+    // node.glow → accent halo on hub / hero cards (craft bar)
+    if (node.glow) el.classList.add('fd-glow')
     el.innerHTML = buildPremiumCard(node)
   } else {
     el.innerHTML = buildSimpleCard(node)

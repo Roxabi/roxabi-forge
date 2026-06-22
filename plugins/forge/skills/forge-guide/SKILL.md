@@ -70,18 +70,15 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 
 | Content | Rendering |
 |---|---|
-| **Architecture / hub-spoke (≥ 7 nodes OR interactive OR use-cases OR zones)** | **fd-engine** `type:"architecture"` or `type:"hub-spoke"` + `scripts/gen-fd.py` + `validate-fd.py` — same pipeline as `forge-chart` |
-| Layered architecture (3–4 tiers, static print, ≤ 6 nodes/tab) | fgraph `layered.html` — legacy; prefer fd-engine when density or interactivity matters |
-| Linear pipeline (2–4 stages) | fgraph `linear-flow.html` — source → middle → sink |
-| Hub-and-spoke ≤ 6 peers, print-safe static | fgraph `radial-hub.html` — center pill + satellites |
-| Peer ring (no center hub) | fgraph `radial-ring.html` — N nodes in a circle |
-| Multi-host / distributed deployment | fgraph `machine-clusters.html` — side-by-side frames |
-| Timeline / gantt | fd-engine `type:"gantt"` → `gen-fd.py` |
-| API sequence | fd-engine `type:"sequence"` (`layout:"auto"`) → `gen-fd.py` |
+| **Architecture / hub-spoke / layered / multi-host / linear / ring — any node-edge topology, any scale** | **fd-engine** `type:"architecture"` or `type:"hub-spoke"` + `scripts/gen-fd.py` + `validate-fd.py` (same pipeline as `forge-chart`); add `useCases[]` / `zones[]` as needed |
+| Swimlane / multi-actor pipeline (preferred for lifecycle walkthroughs) | `lane-swim.html` |
+| Flowchart / decision DAG | fd-engine `type:"flowchart"` (`layout:"auto"`) → `gen-fd.py` |
 | State machine | fd-engine `type:"state"` (`layout:"auto"`) → `gen-fd.py` |
-| ER schema | fd-engine `type:"er"` (`layout:"auto"`) → `gen-fd.py` |
+| API sequence | fd-engine `type:"sequence"` (`layout:"auto"`) → `gen-fd.py` |
+| ER / UML class schema | fd-engine `type:"er"` / `type:"class"` (`layout:"auto"`) → `gen-fd.py` |
+| Timeline / gantt | fd-engine `type:"gantt"` → `gen-fd.py` |
 | Proportion / share | fd-engine `type:"pie"` → `gen-fd.py` |
-| Flowchart | fd-engine `type:"flowchart"` (`layout:"auto"`) → `gen-fd.py` |
+| **Static fgraph propositions** (print / no-JS only) | `radial-hub` · `radial-ring` · `linear-flow` · `layered` / `deployment-tiers` · `machine-clusters` — hand-assigned `--x/--y`; prefer fd-engine whenever density or interactivity matters |
 | Issue dependency graph | fgraph `dep-graph.html` — fed by `scripts/gen-deps.py` |
 | Dense topology that does not fit one tab | Split across tab fragments **or** one fd-engine descriptor per diagram |
 | Stacked **text-heavy** pipelines (paragraphs per stage) | CSS Grid cards |
@@ -353,13 +350,13 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 4. **Audit type ↔ content semantic match.** Misuse of `sequence` for 1-actor pipelines is the #1 cause of "catastrophic" first-render. Verify each diagram's selected type:
 
-   | fgraph type | Use ONLY when | Common misuse |
+   | diagram type | Use ONLY when | Common misuse |
    |---|---|---|
    | `sequence` | ≥2 actors exchange messages over time | ❌ 1-actor pipelines (use `state` or `dep-graph`) |
    | `state` | Lifecycle phases / transitions of one entity | ❌ multi-actor interactions (use `sequence`) |
-   | `dep-graph` | Linear pipeline with dependencies, 1 actor | ❌ branching trees (use `radial-hub`) |
-   | `radial-hub` | Orchestrator + radial peers, no peer ordering | ❌ ordered steps (use `dep-graph`) |
-   | `linear-flow` | Source → middle → sink, ≤4 stages | ❌ branching outcomes (use decision tree) |
+   | `dep-graph` | Linear pipeline with dependencies, 1 actor | ❌ branching trees (use `hub-spoke`) |
+   | `hub-spoke` | Orchestrator + radial peers, no peer ordering | ❌ ordered steps (use `dep-graph`) |
+   | `flowchart` | Source → middle → sink, or branching decisions | ❌ multi-actor exchange (use `sequence`) |
    | `gantt` | Time-based tasks on date/duration axis | ❌ unordered priorities |
    | `pie` | Proportion of a fixed total | ❌ time evolution (use `gantt`) |
 
