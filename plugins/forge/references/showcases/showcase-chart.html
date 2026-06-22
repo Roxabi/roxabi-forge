@@ -1102,7 +1102,7 @@ header {
   <header>
     <div class="htitle">
       <h1><b>Forge fd-engine</b> — how a premium chart is generated</h1>
-      <p>fd-engine · architecture · lyra-v2 · declarative · 13 nodes · 16 edges · 2 use cases · DOM-measured bezier edges</p>
+      <p>fd-engine · architecture · lyra-v2 · declarative · 12 nodes · 14 edges · 2 use cases · DOM-measured bezier edges</p>
     </div>
     <div class="badges">
       <span class="badge cyan">fd-engine</span>
@@ -1181,7 +1181,7 @@ header {
       "h": "gate",
       "x": 28,
       "y": 24,
-      "d": "Pre-generation schema + layout gate — node ids, edge refs, pair-gap geometry. Nodes-less types exempt."
+      "d": "Pre-generation schema + layout gate — node ids, edge refs, pair-gap geometry."
     },
     {
       "id": "aesth",
@@ -1201,20 +1201,9 @@ header {
       "h": "hub",
       "x": 50,
       "y": 42,
-      "d": "Orchestrator — normalizes descriptor, routes auto-layout, bundles the engine, assembles the self-contained HTML.",
+      "d": "Orchestrator — normalizes the descriptor, bundles the engine, assembles the self-contained HTML.",
       "glow": true,
       "icon": "\u003csvg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6'>\u003ccircle cx='12' cy='12' r='3'/>\u003cpath d='M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2'/>\u003c/svg>"
-    },
-    {
-      "id": "elk",
-      "n": "fd-layout.mjs",
-      "img": "bun · elkjs",
-      "base": "cu",
-      "h": "auto",
-      "x": 15,
-      "y": 42,
-      "d": "Auto-layout for flowchart / state / class / er — elk computes non-overlapping positions at gen-time.",
-      "icon": "\u003csvg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6'>\u003crect x='3' y='3' width='7' height='7'/>\u003crect x='14' y='14' width='7' height='7'/>\u003cpath d='M10 6h4a4 4 0 0 1 4 4v4'/>\u003c/svg>"
     },
     {
       "id": "bundler",
@@ -1250,12 +1239,12 @@ header {
     {
       "id": "types",
       "n": "fd/types/*",
-      "img": "architecture · flowchart · …",
+      "img": "architecture · hub-spoke",
       "base": "int",
       "h": "type",
       "x": 85,
       "y": 61,
-      "d": "Per-type renderers — architecture (premium + spotlight), flowchart, state, class, er, sequence, gantt, pie, xychart."
+      "d": "Per-type renderers — architecture and hub-spoke (declarative premium cards, spotlight, use-cases)."
     },
     {
       "id": "html",
@@ -1320,18 +1309,6 @@ header {
       "t": "genfd",
       "plane": "read",
       "label": "inline preset"
-    },
-    {
-      "f": "genfd",
-      "t": "elk",
-      "plane": "control",
-      "label": "layout:\"auto\"",
-      "flow": true
-    },
-    {
-      "f": "elk",
-      "t": "genfd",
-      "plane": "read"
     },
     {
       "f": "genfd",
@@ -1414,7 +1391,6 @@ header {
       "class": "zone-hub",
       "nodes": [
         "genfd",
-        "elk",
         "bundler",
         "engcss",
         "shell",
@@ -1437,7 +1413,7 @@ header {
     {
       "id": 0,
       "title": "① Generate a premium diagram",
-      "desc": "\u003cb>descriptor.json\u003c/b> → validated → \u003cb>gen-fd.py\u003c/b> normalizes + routes auto-layout (elk) → bundles the engine → assembles \u003cb>fd-shell.html\u003c/b> with the aesthetic + bundle → one self-contained premium \u003cb>.html\u003c/b>.",
+      "desc": "\u003cb>descriptor.json\u003c/b> → validated → \u003cb>gen-fd.py\u003c/b> normalizes the descriptor → bundles the engine → assembles \u003cb>fd-shell.html\u003c/b> with the aesthetic + bundle → one self-contained premium \u003cb>.html\u003c/b>.",
       "steps": [
         {
           "nodes": [
@@ -1467,17 +1443,6 @@ header {
             "genfd"
           ],
           "label": "gen-fd.py normalizes the descriptor"
-        },
-        {
-          "nodes": [
-            "genfd",
-            "elk"
-          ],
-          "edge": [
-            "genfd",
-            "elk"
-          ],
-          "label": "layout:\"auto\" → fd-layout.mjs (elk) computes positions"
         },
         {
           "nodes": [

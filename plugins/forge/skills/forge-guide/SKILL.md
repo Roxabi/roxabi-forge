@@ -219,11 +219,11 @@ Typical 5-agent split for a 20-30 diagram guide:
 
 | Sub-agent | fgraph cluster | Layout idiom |
 |---|---|---|
-| SEQ | true sequences (multi-actor) | swimlanes + lifelines + arrows |
-| STATE | state machines | vertical state boxes + transitions |
-| DEP | dep-graphs / linear flows | linear pipeline with arrows |
-| HUB-DEC | hub-spoke + decision trees | radial / branching |
-| ARCH-VIS | architecture + gantt + pie + er | misc visual idioms |
+| FLOW | flow / pipeline / sequence (multi-actor, lifecycle) | swimlanes + lifelines + arrows (`lane-swim`) |
+| LAYER | layered / linear flows | linear pipeline with arrows (`layered` / `linear-flow`) |
+| DEP | dep-graphs | data-driven dependency columns (`dep-graph`) |
+| HUB | hub-spoke + radial | radial / branching (fd-engine `hub-spoke`, `radial-hub` / `radial-ring`) |
+| ARCH-VIS | architecture + data-charts (bubble / radar / scatter) | premium fd-engine + chart idioms |
 
 Each cluster sub-agent receives:
 - Its diagram list (path + source MD section + content brief per file)
@@ -335,26 +335,24 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 3. **Inventory diagrams.** For each diagram or architectural visual in the source content:
    - Name it (e.g. "3-layer stack", "model runtime chain")
-   - Count nodes and classify topology (architecture / hub-spoke / layered / linear / radial / gantt / pie / er / sequence / state / dep-graph)
+   - Count nodes and classify topology (architecture / hub-spoke / layered / linear / radial / flow / pipeline / dep-graph)
    - **≥ 7 nodes OR use-cases OR zones OR spotlight** → fd-engine descriptor + `gen-fd.py` + `validate-fd.py` (see `forge-chart/SKILL.md`)
    - **≤ 6 nodes, static, print-safe** → fgraph template from `graph-templates/` (or CSS Grid / table if not a graph)
    - Note shapes per node via `${CLAUDE_PLUGIN_ROOT}/references/shape-vocabulary.md`
    - If one tab cannot hold the topology: split across fragments (each fragment gets its own descriptor or fgraph template)
    Report the diagram inventory before Phase 3. Do not hand-assemble fd-engine HTML or copy `examples/fd-*.html` wholesale.
 
-4. **Audit type ↔ content semantic match.** Misuse of `sequence` for 1-actor pipelines is the #1 cause of "catastrophic" first-render. Verify each diagram's selected type:
+4. **Audit type ↔ content semantic match.** Misuse of a multi-actor swimlane (`lane-swim`) for a 1-actor pipeline is the #1 cause of "catastrophic" first-render. Verify each diagram's selected type:
 
    | diagram type | Use ONLY when | Common misuse |
    |---|---|---|
-   | `sequence` | ≥2 actors exchange messages over time | ❌ 1-actor pipelines (use `state` or `dep-graph`) |
-   | `state` | Lifecycle phases / transitions of one entity | ❌ multi-actor interactions (use `sequence`) |
+   | `architecture` / `hub-spoke` (fd-engine) | node-edge system; orchestrator + peers; any scale | ❌ pure linear pipeline (use `dep-graph` / `layered`) |
+   | `lane-swim` (swimlane) | ≥2 actors exchange messages over time / multi-lane process / lifecycle | ❌ 1-actor pipeline (use `dep-graph` / `linear-flow`) |
    | `dep-graph` | Linear pipeline with dependencies, 1 actor | ❌ branching trees (use `hub-spoke`) |
-   | `hub-spoke` | Orchestrator + radial peers, no peer ordering | ❌ ordered steps (use `dep-graph`) |
-   | `flowchart` | Source → middle → sink, or branching decisions | ❌ multi-actor exchange (use `sequence`) |
-   | `gantt` | Time-based tasks on date/duration axis | ❌ unordered priorities |
-   | `pie` | Proportion of a fixed total | ❌ time evolution (use `gantt`) |
+   | `layered` / `linear-flow` | Source → middle → sink layered flow | ❌ multi-actor exchange (use `lane-swim`) |
+   | `radial-hub` / `radial-ring` | Orchestrator + radial peers, no peer ordering | ❌ ordered steps (use `dep-graph`) |
 
-   **Rule:** if `sequence` selected but only ONE entity acts → re-classify before Phase 3. Adding fake actors to fit the format produces unreadable diagrams.
+   **Rule:** if `lane-swim` selected but only ONE entity acts → re-classify to `dep-graph` / `linear-flow` before Phase 3. Adding fake actors to fit the format produces unreadable diagrams.
 
 5. **Determine layout mode:**
    - **Standard multi-tab** — nav with tabs, panels switch on click
@@ -370,7 +368,7 @@ Before mass-producing diagrams, produce ONE reference and validate visually.
 
 **Procedure:**
 
-1. Pick the most representative diagram (typically the core state machine or hub-spoke).
+1. Pick the most representative diagram (typically the core architecture or hub-spoke).
 2. Generate as self-contained SVG via fgraph template.
 3. Convert to PNG for visual inspection:
 
@@ -408,10 +406,10 @@ After Phase 3 generates all SVGs, run a visual QA pass.
 
 | Agent | Cluster |
 |---|---|
-| A | sequences + states (multi-actor + lifecycle) |
-| B | dep-graphs + linear flows |
-| C | hub-spoke + decision trees |
-| D | architecture + gantt + pie + benchmark |
+| A | flow / pipeline / sequence (lane-swim) |
+| B | layered + linear flows + dep-graphs |
+| C | hub-spoke + radial |
+| D | architecture + data-charts (bubble / radar / scatter) + benchmark |
 
 Each agent reads PNGs + benchmark + Anti-Patterns table. Reports verdict 🟢/🟡/🔴 per file + top systemic issues.
 
@@ -514,8 +512,8 @@ Deploy:  make forge deploy
 
 | Anti-Pattern | Fix |
 |---|---|
-| `sequence` template for 1-actor pipelines | Use `state` (lifecycle phases) or `dep-graph` (linear pipeline) |
-| Inventing fake actors to fill a `sequence` swimlane | If only one entity acts, re-classify the diagram type |
+| `lane-swim` (swimlane) for 1-actor pipelines | Use `dep-graph` or `linear-flow` (linear pipeline) |
+| Inventing fake actors to fill a `lane-swim` swimlane | If only one entity acts, re-classify the diagram type |
 | Reference SVG that violates its own anti-patterns | Validate benchmark in Phase 2.5 BEFORE downstream agents imitate |
 
 ### Diagram-level (SVG content)
