@@ -10,12 +10,10 @@ _MARKER = Path("graph-templates") / "fd-shell.html"
 # Diagram types whose descriptor is built from a `nodes` array (+ optional
 # `edges`/`zones`). The generator (gen-fd.py) and the validator
 # (validate-descriptor.py) both gate node-graph requirements on this set —
-# keep it here so the two stay in lockstep. Nodes-less types carry bespoke
-# schemas (sequence: participants/messages, gantt: sections/bars,
-# pie: slices, xychart: series) and must NOT be rejected for lacking nodes.
-NODE_REQUIRED_TYPES = frozenset(
-    {"architecture", "hub-spoke", "flowchart", "state", "class", "er"}
-)
+# keep it here so the two stay in lockstep. Since the 2026-06-22 premium-only
+# purge the premium fd-engine ships exactly these two declarative types; the
+# auto-layout / nodes-less types were removed pending a premium-first rebuild.
+NODE_REQUIRED_TYPES = frozenset({"architecture", "hub-spoke"})
 
 
 def script_root(script_file: str | Path) -> Path:

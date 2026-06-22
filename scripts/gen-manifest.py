@@ -111,6 +111,11 @@ for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
     rel = str(fp.relative_to(DIR))
     if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
         continue
+    # graph-templates/*.html (root) are generation-source placeholders, not
+    # finished artifacts — never index/serve them (rendered demos live in
+    # graph-templates/examples/). Subdirs (examples/, fd/) keep their parent name.
+    if fp.parent.name == 'graph-templates':
+        continue
     entry = parse(fp, rel)
     if entry:
         entry['f'] = rel

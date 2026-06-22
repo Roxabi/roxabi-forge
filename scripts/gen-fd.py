@@ -2,8 +2,8 @@
 """
 gen-fd.py — data-driven generator for fd-engine diagram HTML.
 
-Reads a descriptor JSON, optionally runs elk auto-layout (bun fd-layout.mjs),
-bundles the fd-engine via bun + bundler.js, and emits a self-contained HTML file.
+Reads a descriptor JSON, bundles the fd-engine via bun + bundler.js, and emits a
+self-contained HTML file. Supported types: architecture, hub-spoke (declarative).
 
 Usage:
   python3 scripts/gen-fd.py --in descriptor.json --out diagram.html
@@ -21,7 +21,6 @@ import html
 import json
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -37,13 +36,12 @@ SHELL_PATH = GRAPH_DIR / "fd-shell.html"
 PAGE_SHELL_CSS = GRAPH_DIR / "fd-page-shell.css"
 FD_ENGINE_CSS = GRAPH_DIR / "fd-engine.css"
 BOOTSTRAP_JS = GRAPH_DIR / "fd-bootstrap.js"
-FD_LAYOUT = _SCRIPTS_DIR / "fd-layout.mjs"
 
-AUTO_LAYOUT_TYPES = frozenset({"flowchart", "state", "class", "er", "sequence"})
-CHART_ONLY_TYPES = frozenset({"gantt", "pie", "xychart"})
-NODE_EDGE_TYPES = frozenset(
-    {"architecture", "hub-spoke", "flowchart", "state", "class", "er", "sequence"}
-)
+# Premium fd-engine: declarative node-graph types only. Auto-layout (elk) and
+# standalone chart types were removed (2026-06-22 premium-only purge) — topology
+# / flow / timeline / proportion needs are served by fgraph static templates
+# (graph-templates/*.html). Further types: reconstruct later, premium-first.
+NODE_EDGE_TYPES = frozenset({"architecture", "hub-spoke"})
 
 PLANE_STROKE = {
     "control": "var(--cyan)",
@@ -120,35 +118,19 @@ def run_bun_build_engine(diagram_type: str) -> str:
     return result.stdout
 
 
-def run_fd_layout(descriptor_path: Path) -> dict:
-    result = subprocess.run(
-        ["bun", str(FD_LAYOUT), str(descriptor_path)],
-        capture_output=True,
-        text=True,
-        cwd=ROOT,
-        check=False,
-    )
-    if result.returncode != 0:
-        eprint("gen-fd: fd-layout.mjs failed:")
-        eprint(result.stderr or result.stdout)
-        sys.exit(1)
-    return json.loads(result.stdout)
-
-
 def normalize_descriptor(raw: dict, *, theme: str, title: str | None) -> dict:
     desc = dict(raw)
 
     diagram_type = desc.get("type") or "architecture"
     desc["type"] = diagram_type
 
-    # Node-graph types must carry a `nodes` array; nodes-less types (sequence,
-    # gantt, pie, xychart) use bespoke schemas and are exempt.
+    # All supported types are node-graph types and must carry a `nodes` array.
     if diagram_type in NODE_REQUIRED_TYPES and not isinstance(desc.get("nodes"), list):
         eprint(f"gen-fd: descriptor type '{diagram_type}' requires a 'nodes' array")
         sys.exit(1)
 
     desc.setdefault("theme", theme)
-    desc.setdefault("layout", "auto" if diagram_type in AUTO_LAYOUT_TYPES else "declarative")
+    desc.setdefault("layout", "declarative")
     desc.setdefault("title", title or desc.get("title") or "Diagram")
     desc.setdefault("canvas", {"height": 1040})
     if isinstance(desc["canvas"], (int, float)):
@@ -251,28 +233,13 @@ def build_subtitle(desc: dict) -> str:
     theme = desc.get("theme", "lyra-v2")
     layout = desc.get("layout", "declarative")
     parts = [f"fd-engine · {diagram_type}", theme, layout]
-
-    # Count the descriptor's primary entities — nodes-less types report their
-    # own shape rather than a misleading "0 nodes · 0 edges".
-    if diagram_type == "sequence":
-        parts.append(
-            f"{len(desc.get('participants') or [])} participants "
-            f"· {len(desc.get('messages') or [])} messages"
-        )
-    elif diagram_type == "gantt":
-        sections = desc.get("sections") or []
-        bars = sum(len(s.get("bars") or []) for s in sections)
-        parts.append(f"{len(sections)} sections · {bars} bars")
-    else:
-        parts.append(
-            f"{len(desc.get('nodes') or [])} nodes · {len(desc.get('edges') or [])} edges"
-        )
-
+    parts.append(
+        f"{len(desc.get('nodes') or [])} nodes · {len(desc.get('edges') or [])} edges"
+    )
     uc_count = len(desc.get("useCases") or [])
     if uc_count:
         parts.append(f"{uc_count} use cases")
-    if diagram_type not in CHART_ONLY_TYPES:
-        parts.append("DOM-measured bezier edges")
+    parts.append("DOM-measured bezier edges")
     return html.escape(" · ".join(parts))
 
 
@@ -369,20 +336,11 @@ def main() -> None:
 
     desc = normalize_descriptor(raw, theme=sanitize_theme(args.theme), title=args.title)
 
-    if desc["layout"] == "auto" and desc["type"] in AUTO_LAYOUT_TYPES:
-        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
-            json.dump(desc, tmp, ensure_ascii=False, indent=2)
-            tmp_path = Path(tmp.name)
-        try:
-            desc = run_fd_layout(tmp_path)
-        finally:
-            tmp_path.unlink(missing_ok=True)
-
     diagram_type = desc["type"]
-    if diagram_type not in NODE_EDGE_TYPES and diagram_type not in CHART_ONLY_TYPES:
+    if diagram_type not in NODE_EDGE_TYPES:
         eprint(
             f"gen-fd: unsupported type '{diagram_type}'. "
-            f"Supported: {', '.join(sorted(NODE_EDGE_TYPES | CHART_ONLY_TYPES))}"
+            f"Supported: {', '.join(sorted(NODE_EDGE_TYPES))}"
         )
         sys.exit(1)
 

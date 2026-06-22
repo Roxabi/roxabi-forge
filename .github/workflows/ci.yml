@@ -23,7 +23,7 @@ jobs:
       - name: Unit tests
         run: bun run test
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
-      - name: Install Playwright (fd layout gate)
+      - name: Install Playwright (fd-engine render gate)
         run: |
           uv run --with playwright python3 -m playwright install --with-deps chromium
       - name: fd script contract tests
