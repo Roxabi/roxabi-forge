@@ -63,7 +63,15 @@ function draw() {
     e = EDGES[i]
     k = pairKey(e.f, e.t)
     if (!seenPairs.has(k)) {
-      seenPairs.set(k, { f: e.f, t: e.t, plane: e.plane, lab: e.label || null, edge: e, flow: !!e.flow, edgeIndices: [i] })
+      seenPairs.set(k, {
+        f: e.f,
+        t: e.t,
+        plane: e.plane,
+        lab: e.label || null,
+        edge: e,
+        flow: !!e.flow,
+        edgeIndices: [i],
+      })
     } else {
       seenPairs.get(k).edgeIndices.push(i)
       // upgrade label if this occurrence has one and first didn't
