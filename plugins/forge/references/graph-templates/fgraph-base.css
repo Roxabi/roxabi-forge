@@ -423,14 +423,20 @@
 
 /* 1. Ambient edge-flow — slow marching dashes for passive data/async flow.
    Distinct from .animated (1s fast live-stream). Compose with a tone class
-   (e.g. .fg-edge.cyan.flow). Declared late: overrides any semantic dasharray
-   on purpose — use .flow standalone, not stacked on .async/.write. */
+   (e.g. .fg-edge.cyan.flow). stroke-dasharray uses !important so .flow wins
+   deterministically over .async/.write (identical specificity); the stroke
+   COLOUR still comes from the tone/semantic class, so .flow + .async renders
+   async-coloured marching dashes (intended).
+   NOTE: @keyframes fg-flow is intentionally duplicated in fd-engine.css so that
+   file bootstraps standalone — keep both copies identical if edited. */
 @keyframes fg-flow { to { stroke-dashoffset: -200px; } }
-.fgraph-edges .fg-edge.flow { stroke-dasharray: 6 4; animation: fg-flow 20s linear infinite; }
+.fgraph-edges .fg-edge.flow { stroke-dasharray: 6 4 !important; animation: fg-flow 20s linear infinite; }
 
-/* 2. Accent glow — for hub / hero nodes. Uses the aesthetic's --accent-glow. */
+/* 2. Accent glow — for hub / hero nodes. Uses the aesthetic's --accent-glow.
+   Fallback is a visible ember (not transparent) so the glow still reads even if
+   an aesthetic omits the token. */
 :root { --glow-radius: 40px; }
-.fg-glow { box-shadow: 0 0 var(--glow-radius, 40px) var(--accent-glow, transparent); }
+.fg-glow { box-shadow: 0 0 var(--glow-radius, 40px) var(--accent-glow, rgba(232,93,4,0.22)); }
 
 /* 3. Node icon slot — inline SVG glyph at the top of a node card (~28px).
    Markup: <span class="fgraph-node__icon"><svg>…</svg></span> before .fgraph-title. */

@@ -63,11 +63,13 @@ function draw() {
     e = EDGES[i]
     k = pairKey(e.f, e.t)
     if (!seenPairs.has(k)) {
-      seenPairs.set(k, { f: e.f, t: e.t, plane: e.plane, lab: e.label || null, edge: e, edgeIndices: [i] })
+      seenPairs.set(k, { f: e.f, t: e.t, plane: e.plane, lab: e.label || null, edge: e, flow: !!e.flow, edgeIndices: [i] })
     } else {
       seenPairs.get(k).edgeIndices.push(i)
       // upgrade label if this occurrence has one and first didn't
       if (e.label && !seenPairs.get(k).lab) seenPairs.get(k).lab = e.label
+      // upgrade flow if ANY occurrence of the pair requests it (dedup keeps the first edge only)
+      if (e.flow) seenPairs.get(k).flow = true
     }
   }
   var dedupedEdges = Array.from(seenPairs.values()) // array of unique pairs
@@ -138,8 +140,9 @@ function draw() {
     p = document.createElementNS(NS, 'path')
     p.setAttribute('d', dStr)
     // CSS class = plane name → stroke resolved via .fd-edges path.{plane} in fd-engine.css
-    // edge.flow → append .flow for the ambient marching-dash animation (craft bar)
-    p.setAttribute('class', ref.edge && ref.edge.flow ? `${plane} flow` : plane)
+    // edge.flow → append .flow for the ambient marching-dash animation (craft bar).
+    // ref.flow is set if ANY occurrence of the deduped pair requested flow.
+    p.setAttribute('class', ref.flow ? `${plane} flow` : plane)
     // Arrowhead marker per plane — no hardcoded hex, color via CSS var in marker's injected style
     p.setAttribute('marker-end', `url(#fd-arr-${plane})`)
     // Data attributes for spotlight + particle matching

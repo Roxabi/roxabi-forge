@@ -70,11 +70,11 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 
 | Content | Rendering |
 |---|---|
-| Layered architecture (3–4 tiers) | fgraph `layered.html` — horizontal layers with dashed frames |
-| Linear pipeline (2–4 stages) | fgraph `linear-flow.html` — source → middle → sink |
-| Hub-and-spoke ≤ 6 peers with rich cards | fgraph `radial-hub.html` — center pill + satellites |
-| Peer ring (no center hub) | fgraph `radial-ring.html` — N nodes in a circle |
-| Multi-host / distributed deployment | fgraph `machine-clusters.html` — side-by-side frames |
+| Layered architecture (3–4 tiers) | fd-engine descriptor `type:"architecture"` (premium); static `layered.html` for print/no-JS |
+| Linear pipeline (2–4 stages) | fd-engine descriptor `type:"architecture"` or `"flowchart"`; static `linear-flow.html` for print/no-JS |
+| Hub-and-spoke ≤ 6 peers with rich cards | fd-engine descriptor `type:"hub-spoke"` (premium); static `radial-hub.html` for print/no-JS |
+| Peer ring (no center hub) | fd-engine descriptor `type:"architecture"`; static `radial-ring.html` for print/no-JS |
+| Multi-host / distributed deployment | fd-engine descriptor `type:"architecture"`; static `machine-clusters.html` for print/no-JS |
 | Timeline / gantt | fd-engine descriptor `type:"gantt"` — declarative bars from `descriptor.bars[]`; no CDN |
 | API sequence | fd-engine descriptor `type:"sequence"` + bun elk step — participant strips, lifelines, DOM-measured arrows |
 | State machine | fd-engine descriptor `type:"state"` + bun elk step — circle/diamond shapes, bezier edges |
@@ -350,13 +350,13 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 4. **Audit type ↔ content semantic match.** Misuse of `sequence` for 1-actor pipelines is the #1 cause of "catastrophic" first-render. Verify each diagram's selected type:
 
-   | fgraph type | Use ONLY when | Common misuse |
+   | diagram type | Use ONLY when | Common misuse |
    |---|---|---|
    | `sequence` | ≥2 actors exchange messages over time | ❌ 1-actor pipelines (use `state` or `dep-graph`) |
    | `state` | Lifecycle phases / transitions of one entity | ❌ multi-actor interactions (use `sequence`) |
-   | `dep-graph` | Linear pipeline with dependencies, 1 actor | ❌ branching trees (use `radial-hub`) |
-   | `radial-hub` | Orchestrator + radial peers, no peer ordering | ❌ ordered steps (use `dep-graph`) |
-   | `linear-flow` | Source → middle → sink, ≤4 stages | ❌ branching outcomes (use decision tree) |
+   | `dep-graph` | Linear pipeline with dependencies, 1 actor | ❌ branching trees (use `hub-spoke`) |
+   | `hub-spoke` | Orchestrator + radial peers, no peer ordering | ❌ ordered steps (use `dep-graph`) |
+   | `flowchart` | Source → middle → sink, or branching decisions | ❌ multi-actor exchange (use `sequence`) |
    | `gantt` | Time-based tasks on date/duration axis | ❌ unordered priorities |
    | `pie` | Proportion of a fixed total | ❌ time evolution (use `gantt`) |
 

@@ -1395,7 +1395,7 @@ Static templates hand-author every `<path>` and lean on layout rules R1–R7 to 
 
 ## Extending the template set
 
-All core topologies are now covered. If you need a new shape:
+All static *proposition* topologies are documented here. For on-screen / interactive output the first-class fd-engine types cover the full topology space (see the status banner at the top). If you need a new static shape:
 
 1. Start from the closest template
 2. Reposition nodes via `--x`/`--y`

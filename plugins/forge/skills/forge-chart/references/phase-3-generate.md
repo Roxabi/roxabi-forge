@@ -58,22 +58,20 @@ Pick the matching template from `${CLAUDE_PLUGIN_ROOT}/references/graph-template
 
 No runtime JS — fgraph is declarative CSS + SVG. All custom props (`--x`, `--y`) live in the 0..100 coordinate space. Arrow markers (`fg-arr-*`) are defined in `fgraph-base.css`; ER templates also use `fg-er-*` crow's-foot markers.
 
-Template picker — see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md`:
+Template picker — **default to the fd-engine premium path**; the static fgraph templates are *propositions* for print / no-JS only (full routing: `forge-chart/SKILL.md § Structure`):
 
-| Shape | Template |
+| Shape | Path (premium default) |
 |---|---|
-| Hub-and-spoke (≤ 6 peers) | `radial-hub.html` |
-| Peer ring | `radial-ring.html` |
-| Linear pipeline | `linear-flow.html` |
-| Two peers sharing resources | `dual-cluster.html` |
-| Layered architecture (3–4 tiers) | `layered.html` / `deployment-tiers.html` |
-| Multi-host deployment | `machine-clusters.html` |
+| Architecture / hub-spoke / layered / multi-host / linear / ring — any node-edge topology | fd-engine descriptor `type:"architecture"` (or `"hub-spoke"`) |
+| Flowchart / decision DAG | fd-engine descriptor `type:"flowchart"` + bun elk step |
+| State machine | fd-engine descriptor `type:"state"` + bun elk step |
+| Schema — UML class / ER | fd-engine descriptor `type:"class"` / `type:"er"` + bun elk step |
+| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step |
+| Swimlane / multi-actor pipeline (preferred for lifecycles) | `lane-swim.html` |
 | Timeline / gantt | fd-engine descriptor `type:"gantt"` |
 | Proportion / share | fd-engine descriptor `type:"pie"` |
-| ER schema | fd-engine descriptor `type:"er"` + bun elk step |
-| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step |
-| State machine | fd-engine descriptor `type:"state"` + bun elk step |
-| Issue dependency graph | `dep-graph.html` |
+| Issue dependency graph (data-driven) | `dep-graph.html` |
+| **Propositions** (print / no-JS, else generate bespoke via `type:"architecture"`) | `radial-hub` · `radial-ring` · `linear-flow` · `dual-cluster` · `layered` · `deployment-tiers` · `machine-clusters` |
 
 ### Phase Cards (when applicable)
 

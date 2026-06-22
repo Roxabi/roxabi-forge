@@ -106,11 +106,13 @@ The `theme` field in the descriptor maps to a file under `${CLAUDE_PLUGIN_ROOT}/
 
 | Aesthetic file | `theme` value | Use when |
 |---|---|---|
-| `lyra-v2.css` | `"lyra-v2"` | Lyra / roxabi project diagrams (default) |
-| `cool-dark.css` | `"cool-dark"` | High-contrast dark diagrams |
-| `editorial.css` | `"editorial"` | Neutral, no-brand contexts |
-| `warm-light.css` | `"warm-light"` | Presentation / slides contexts |
-| `mono-slate.css` | `"mono-slate"` | Minimal monochrome |
+| `lyra-v2.css` | `"lyra-v2"` | Lyra / Roxabi project diagrams — **default**, reference look |
+| `lyra.css` | `"lyra"` | Lyra v1 (warm ember) |
+| `roxabi.css` | `"roxabi"` | Roxabi brand (amber / gold) |
+| `editorial.css` | `"editorial"` | Neutral / no-brand, editorial contexts |
+| `blueprint.css` | `"blueprint"` | Technical / schematic (blueprint) |
+| `terminal.css` | `"terminal"` | Terminal / cyan aesthetic |
+| `caveman.css` | `"caveman"` | Bold / high-energy |
 
 Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to select the `theme` value. Both the descriptor `theme` field and the inlined aesthetic CSS must use the same aesthetic. `fd-engine.css` is self-bootstrapping: its `:root` block provides fallback values for all required tokens (`--panel`, `--panel2`, `--bd2`, `--mut`, `--mut2`, `--mono`, `--sans`, `--slate`, `--amber`, `--cyan`, `--vio`, `--emer`, `--sky`, `--orng`, `--rose`) by mapping them from universal forge tokens or hard lyra-v2 fallbacks. All aesthetics render correctly — `lyra-v2` is the default and produces the reference look.
 
@@ -138,14 +140,17 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
       "d": "JetStream · 4222/4223",
       "plane": "message",
       "h": "M1",
-      "cardStyle": "premium"
+      "cardStyle": "premium",
+      "glow": true,
+      "icon": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='9'/><path d='M12 3v18M3 12h18'/></svg>"
     }
   ],
   "edges": [
     {
       "f": "telegram", "t": "hub",
       "plane": "message",
-      "label": "lyra.inbound.*"
+      "label": "lyra.inbound.*",
+      "flow": true
     }
   ],
   "zones": [
@@ -172,7 +177,7 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
 
 | Field | Type | Notes |
 |---|---|---|
-| `type` | string | First-class: `"architecture"` \| `"hub-spoke"` (declarative) \| `"flowchart"` \| `"state"` \| `"class"` \| `"er"` \| `"sequence"` (auto-layout, bun elk step) \| `"gantt"` \| `"pie"` (SVG/declarative). `"xychart"` still resolves but is a **proposition** (data-chart, not first-class) |
+| `type` | string | First-class: `"architecture"` \| `"hub-spoke"` (declarative) \| `"flowchart"` \| `"state"` \| `"class"` \| `"er"` \| `"sequence"` (auto-layout, bun elk step) \| `"gantt"` \| `"pie"` (SVG/declarative). `"xychart"` may be generated bespoke as a **proposition** (data-chart, not first-class — no routing-table row) |
 | `title` | string | Diagram title (used in `<title>` + hero) |
 | `theme` | string | Aesthetic name — matches `references/aesthetics/*.css` filename stem (see aesthetic→theme mapping above) |
 | `layout` | string | `"declarative"` — LLM encodes `x`/`y` in 0..100 % space; `"auto"` — bun elk step injects positions |
@@ -227,13 +232,13 @@ Distilled from the gold-standard lyra-diagram. Every diagram should reach this b
 |---|---|---|---|
 | 1 | **Bézier edges** (Q-curves, not straight lines) | fd-engine computes DOM-measured beziers | ✅ automatic |
 | 2 | **Ambient edge-flow** (slow 20s marching dash on passive data/async) | descriptor `edges[].flow: true` → `.flow` class; or hand-author `.fg-edge.flow` | ✅ via `edge.flow` |
-| 3 | **Dual-font nodes** (Sans title / Mono descriptor) | `.fgraph-title` (Outfit) + `.fgraph-sub` (Space Mono); fd `.fd-title`/`.fd-sub` | ✅ automatic |
+| 3 | **Node typography** — Mono title+sub on fd-engine (terminal look); Sans title + Mono sub on static fgraph | fd `.fd-title`/`.fd-sub` = `var(--mono)`; fgraph `.fgraph-title` (Outfit) + `.fgraph-sub` (Space Mono) | ⚠️ fd-engine is **mono-only** — genuine dual-font is static fgraph; a sans-title upgrade for fd-engine is planned (golden-regen) |
 | 4 | **Per-node SVG icon** | descriptor `nodes[].icon: "<svg>…</svg>"` → `.fd-ico` slot; or `.fgraph-node__icon` markup | ✅ via `node.icon` |
 | 5 | **Accent glow** on hub / hero node | descriptor `nodes[].glow: true` → `.fd-glow`; or `.fg-glow` class | ✅ via `node.glow` |
 | 6 | **3-depth palette** (`--bg` → `--panel` → `--surface`) | fd-engine bootstraps `--panel`/`--panel2`; primitives fall back `var(--panel, var(--surface))` | ✅ bootstrapped |
-| 7 | **Edge-label chips** (mono + bg-knockout) | `.fg-edge-label` (fgraph) / fd edge labels | ✅ automatic |
+| 7 | **Edge labels** — mono | fd `.fd-elabel` (SVG text, revealed on hover/spotlight — no chip); hand-authored `.fg-edge-label` or auto `.fg-edge-lbl` (fgraph-auto live) add the bg-knockout chip | fd-engine = mono label on hover; **bg-knockout chips are fgraph-only** |
 
-**Default directive:** prefer the **fd-engine path with `cardStyle: premium`** — it delivers primitives 1–7 automatically. Reach for a static fgraph template only for print/PDF/no-JS output (it requires hand-authoring the craft). When generating an fd-engine descriptor, set `glow: true` on the hub, `flow: true` on passive data/async edges, and an `icon` on each node where a recognizable glyph aids scanning.
+**Default directive:** prefer the **fd-engine path with `cardStyle: premium`** — it delivers primitives 1, 2, 4, 5, 6 automatically (bézier · edge-flow · icon · glow · 3-depth palette). For 3 (typography) it renders mono-tech title+sub, and for 7 (edge-labels) hover-revealed mono text — **genuine dual-font and always-on bg-knockout chips remain static-fgraph only.** Reach for a static fgraph template for print/PDF/no-JS output (hand-author the craft), or when you specifically need dual-font / always-on label chips. When generating an fd-engine descriptor, set `glow: true` on the hub, `flow: true` on passive data/async edges, and an `icon` on each node where a recognizable glyph aids scanning.
 
 ### AC-10 guard (mandatory)
 
@@ -515,7 +520,7 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 ## Phase 2 — Visual Type
 
-**Default routing directive (quality bar):** for any node-and-edge diagram, the **fd-engine path with `cardStyle: premium`** is the default — it delivers the Craft Quality Bar (beziers, glow, icons, edge-flow, dual-font) automatically. Treat the static fgraph templates in the table below as **propositions / layout hints**, not the output ceiling: pick the one whose *shape* matches, then render it through the fd-engine descriptor (set `glow`/`flow`/`icon` per the Craft Quality Bar). Use a static template's raw HTML only for print/PDF/no-JS exports, where the craft must be hand-authored.
+**Default routing directive (quality bar):** for any node-and-edge diagram, the **fd-engine path with `cardStyle: premium`** is the default — it delivers the Craft Quality Bar (beziers, glow, icons, edge-flow, mono-tech typography) automatically. Treat the static fgraph templates in the table below as **propositions / layout hints**, not the output ceiling: pick the one whose *shape* matches, then render it through the fd-engine descriptor (set `glow`/`flow`/`icon` per the Craft Quality Bar). Use a static template's raw HTML only for print/PDF/no-JS exports, where the craft must be hand-authored.
 
 | Content | Path (premium default) |
 |---------|----------|
@@ -755,7 +760,7 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Craft bar — glow:** the hub / hero node carries `.fd-glow` (`node.glow: true`) — exactly one focal glow, not scattered
 - [ ] **Craft bar — edge-flow:** passive data/async edges use `.flow` (`edge.flow: true`); the critical path stays solid (no flow) for contrast
 - [ ] **Craft bar — icons:** node cards carry an `.fd-ico` / `.fgraph-node__icon` glyph where it aids scanning (all-or-none per diagram for consistency)
-- [ ] **Craft bar — dual-font:** titles render Sans, descriptors render Mono (default; verify no override flattened them)
+- [ ] **Craft bar — typography:** static fgraph renders Sans title + Mono descriptor; fd-engine renders Mono title+descriptor (terminal look) — verify no override flattened the intended pairing
 - [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
 
 $ARGUMENTS
