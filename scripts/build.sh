@@ -82,6 +82,10 @@ rsync -aL --delete --delete-excluded \
   --exclude='graph-templates/*.html' \
   --exclude='__pycache__/' \
   --exclude='.git/' \
+  --exclude='.env' \
+  --exclude='.env.*' \
+  --exclude='.stignore' \
+  --exclude='Makefile' \
   --exclude='.stversions/' \
   --exclude='lyra/brand/prompts/' \
   --exclude='lyra/avatar/prompts/' \
@@ -99,6 +103,13 @@ rsync -aL --delete --delete-excluded \
     # exit code 23 = partial transfer (e.g. dangling symlinks) — non-fatal
     [ $RC -eq 23 ] && echo "  ⚠ rsync: skipped some files (broken symlinks?) — continuing" || exit $RC
   }
+
+# Defense-in-depth: _dist/ is deployed VERBATIM to public Cloudflare Pages, so a
+# single missed --exclude leaks a secret. Hard-scrub secrets/operational files
+# from the receiver regardless of exclude patterns, and drop a wrangler
+# .assetsignore so the platform refuses to upload them even if they reappear.
+rm -f "$DIST/.env" "$DIST"/.env.* "$DIST/Makefile" "$DIST/.stignore" 2>/dev/null || true
+printf '.env\n.env.*\nMakefile\n.stignore\n.git\n' > "$DIST/.assetsignore"
 
 # Purge oversize files left over in _dist/ from previous runs — rsync's
 # --max-size skips transfer but doesn't delete existing receiver files.
