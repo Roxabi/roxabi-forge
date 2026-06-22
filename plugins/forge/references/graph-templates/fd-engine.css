@@ -181,12 +181,14 @@
   gap: 6px;
 }
 
-/* Node name — cards.js emits .fd-title; .fd-nn kept for legacy reference output */
+/* Node name — cards.js emits .fd-title; .fd-nn kept for legacy reference output.
+   Sans title + Mono subtitle = the dual-font craft primitive (matches the
+   lyra-diagram gold standard: IBM Plex Sans title / Mono descriptor). */
 .fd-card-premium .fd-title,
 .fd-card-premium .fd-nn {
   font-weight: 700;
   font-size: 12px;
-  font-family: var(--mono);
+  font-family: var(--sans);
   letter-spacing: -.2px;
   white-space: nowrap;
   overflow: hidden;

@@ -9,7 +9,7 @@ description: >-
   server needed, works with file://. Triggers: "draw" | "diagram" |
   "visualize" | "sketch" | "map" | "show the flow" | "quick visual".
 summary: 'single-file native fgraph / CSS visual'
-version: 0.5.0
+version: 0.6.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 ---
 
@@ -234,13 +234,13 @@ Distilled from the gold-standard lyra-diagram. Every diagram should reach this b
 |---|---|---|---|
 | 1 | **Bézier edges** (Q-curves, not straight lines) | fd-engine computes DOM-measured beziers | ✅ automatic |
 | 2 | **Ambient edge-flow** (slow 20s marching dash on passive data/async) | descriptor `edges[].flow: true` → `.flow` class; or hand-author `.fg-edge.flow` | ✅ via `edge.flow` |
-| 3 | **Node typography** — Mono title+sub on fd-engine (terminal look); Sans title + Mono sub on static fgraph | fd `.fd-title`/`.fd-sub` = `var(--mono)`; fgraph `.fgraph-title` (Outfit) + `.fgraph-sub` (Space Mono) | ⚠️ fd-engine is **mono-only** — genuine dual-font is static fgraph; a sans-title upgrade for fd-engine is planned (golden-regen) |
+| 3 | **Dual-font nodes** (Sans title / Mono descriptor) | fd `.fd-title` = `var(--sans)`, `.fd-sub` = `var(--mono)`; fgraph `.fgraph-title` (Outfit) + `.fgraph-sub` (Space Mono) | ✅ automatic (matches the lyra-diagram gold standard) |
 | 4 | **Per-node SVG icon** | descriptor `nodes[].icon: "<svg>…</svg>"` → `.fd-ico` slot; or `.fgraph-node__icon` markup | ✅ via `node.icon` |
 | 5 | **Accent glow** on hub / hero node | descriptor `nodes[].glow: true` → `.fd-glow`; or `.fg-glow` class | ✅ via `node.glow` |
 | 6 | **3-depth palette** (`--bg` → `--panel` → `--surface`) | fd-engine bootstraps `--panel`/`--panel2`; primitives fall back `var(--panel, var(--surface))` | ✅ bootstrapped |
 | 7 | **Edge labels** — mono | fd `.fd-elabel` (SVG text, revealed on hover/spotlight — no chip); hand-authored `.fg-edge-label` or auto `.fg-edge-lbl` (fgraph-auto live) add the bg-knockout chip | fd-engine = mono label on hover; **bg-knockout chips are fgraph-only** |
 
-**Default directive:** prefer the **fd-engine path with `cardStyle: premium`** — it delivers primitives 1, 2, 4, 5, 6 automatically (bézier · edge-flow · icon · glow · 3-depth palette). For 3 (typography) it renders mono-tech title+sub, and for 7 (edge-labels) hover-revealed mono text — **genuine dual-font and always-on bg-knockout chips remain static-fgraph only.** Reach for a static fgraph template for print/PDF/no-JS output (hand-author the craft), or when you specifically need dual-font / always-on label chips. When generating an fd-engine descriptor, set `glow: true` on the hub, `flow: true` on passive data/async edges, and an `icon` on each node where a recognizable glyph aids scanning.
+**Default directive:** prefer the **fd-engine path with `cardStyle: premium`** — it delivers primitives 1–6 automatically (bézier · edge-flow · dual-font · icon · glow · 3-depth palette). For 7 (edge-labels) it renders hover-revealed mono text — **always-on bg-knockout label chips remain static-fgraph only.** Reach for a static fgraph template for print/PDF/no-JS output (hand-author the craft), or when you specifically need always-on label chips. When generating an fd-engine descriptor, set `glow: true` on the hub, `flow: true` on passive data/async edges, and an `icon` on each node where a recognizable glyph aids scanning.
 
 ### AC-10 guard (mandatory)
 
@@ -535,7 +535,7 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 ## Phase 2 — Visual Type
 
-**Default routing directive (quality bar):** for any node-and-edge diagram, the **fd-engine path with `cardStyle: premium`** is the default — it delivers the Craft Quality Bar (beziers, glow, icons, edge-flow, mono-tech typography) automatically. Treat the static fgraph templates in the table below as **propositions / layout hints**, not the output ceiling: pick the one whose *shape* matches, then render it through the fd-engine descriptor (set `glow`/`flow`/`icon` per the Craft Quality Bar). Use a static template's raw HTML only for print/PDF/no-JS exports, where the craft must be hand-authored.
+**Default routing directive (quality bar):** for any node-and-edge diagram, the **fd-engine path with `cardStyle: premium`** is the default — it delivers the Craft Quality Bar (beziers, glow, icons, edge-flow, dual-font typography) automatically. Treat the static fgraph templates in the table below as **propositions / layout hints**, not the output ceiling: pick the one whose *shape* matches, then render it through the fd-engine descriptor (set `glow`/`flow`/`icon` per the Craft Quality Bar). Use a static template's raw HTML only for print/PDF/no-JS exports, where the craft must be hand-authored.
 
 | Content | Path (premium default) |
 |---------|----------|
@@ -801,7 +801,7 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Craft bar — glow:** the hub / hero node carries `.fd-glow` (`node.glow: true`) — exactly one focal glow, not scattered
 - [ ] **Craft bar — edge-flow:** passive data/async edges use `.flow` (`edge.flow: true`); the critical path stays solid (no flow) for contrast
 - [ ] **Craft bar — icons:** node cards carry an `.fd-ico` / `.fgraph-node__icon` glyph where it aids scanning (all-or-none per diagram for consistency)
-- [ ] **Craft bar — typography:** static fgraph renders Sans title + Mono descriptor; fd-engine renders Mono title+descriptor (terminal look) — verify no override flattened the intended pairing
+- [ ] **Craft bar — dual-font:** both fd-engine and static fgraph render Sans title + Mono descriptor — verify no override flattened the pairing
 - [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
 
 $ARGUMENTS
