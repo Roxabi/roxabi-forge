@@ -57,5 +57,31 @@ else
   pass "C: duplicate node id fails schema check"
 fi
 
+# D) nodes-less type (gantt) passes — bespoke schema, exempt from node-graph checks
+GANTT="$TMP/gantt.json"
+cat > "$GANTT" <<'JSON'
+{"type":"gantt","title":"t","theme":"lyra-v2","timeline":{"start":"2026-01-01","end":"2026-03-01"},"sections":[{"title":"s","bars":[{"label":"b","start":"2026-01-01","end":"2026-02-01"}]}]}
+JSON
+if python3 "$VALIDATOR" --in "$GANTT" >/dev/null 2>&1; then
+  pass "D: nodes-less gantt descriptor passes (exempt from node-graph gate)"
+else
+  fail "D: nodes-less gantt descriptor passes (exempt from node-graph gate)"
+fi
+
+# E) node-graph type missing its nodes array still fails the gate
+NONODES="$TMP/nonodes.json"
+python3 - <<'PY' "$FIXTURE" "$NONODES"
+import json, sys
+from pathlib import Path
+desc = json.loads(Path(sys.argv[1]).read_text())
+desc.pop("nodes", None)
+Path(sys.argv[2]).write_text(json.dumps(desc, indent=2))
+PY
+if python3 "$VALIDATOR" --in "$NONODES" --expect "$EXPECT" >/dev/null 2>&1; then
+  fail "E: architecture descriptor missing nodes should still fail"
+else
+  pass "E: architecture descriptor missing nodes fails the gate"
+fi
+
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

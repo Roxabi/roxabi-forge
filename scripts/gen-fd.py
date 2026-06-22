@@ -26,7 +26,7 @@ from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
-from forge_paths import resolve_forge_ref, script_root  # noqa: E402
+from forge_paths import NODE_REQUIRED_TYPES, resolve_forge_ref, script_root  # noqa: E402
 
 ROOT = script_root(__file__)
 FORGE_REF = resolve_forge_ref(ROOT)
@@ -138,12 +138,15 @@ def run_fd_layout(descriptor_path: Path) -> dict:
 def normalize_descriptor(raw: dict, *, theme: str, title: str | None) -> dict:
     desc = dict(raw)
 
-    if "nodes" not in desc:
-        eprint("gen-fd: descriptor must contain a 'nodes' array")
-        sys.exit(1)
-
     diagram_type = desc.get("type") or "architecture"
     desc["type"] = diagram_type
+
+    # Node-graph types must carry a `nodes` array; nodes-less types (sequence,
+    # gantt, pie, xychart) use bespoke schemas and are exempt.
+    if diagram_type in NODE_REQUIRED_TYPES and not isinstance(desc.get("nodes"), list):
+        eprint(f"gen-fd: descriptor type '{diagram_type}' requires a 'nodes' array")
+        sys.exit(1)
+
     desc.setdefault("theme", theme)
     desc.setdefault("layout", "auto" if diagram_type in AUTO_LAYOUT_TYPES else "declarative")
     desc.setdefault("title", title or desc.get("title") or "Diagram")
@@ -247,18 +250,29 @@ def build_subtitle(desc: dict) -> str:
     diagram_type = desc["type"]
     theme = desc.get("theme", "lyra-v2")
     layout = desc.get("layout", "declarative")
-    node_count = len(desc.get("nodes") or [])
-    edge_count = len(desc.get("edges") or [])
+    parts = [f"fd-engine · {diagram_type}", theme, layout]
+
+    # Count the descriptor's primary entities — nodes-less types report their
+    # own shape rather than a misleading "0 nodes · 0 edges".
+    if diagram_type == "sequence":
+        parts.append(
+            f"{len(desc.get('participants') or [])} participants "
+            f"· {len(desc.get('messages') or [])} messages"
+        )
+    elif diagram_type == "gantt":
+        sections = desc.get("sections") or []
+        bars = sum(len(s.get("bars") or []) for s in sections)
+        parts.append(f"{len(sections)} sections · {bars} bars")
+    else:
+        parts.append(
+            f"{len(desc.get('nodes') or [])} nodes · {len(desc.get('edges') or [])} edges"
+        )
+
     uc_count = len(desc.get("useCases") or [])
-    parts = [
-        f"fd-engine · {diagram_type}",
-        theme,
-        layout,
-        f"{node_count} nodes · {edge_count} edges",
-    ]
     if uc_count:
         parts.append(f"{uc_count} use cases")
-    parts.append("DOM-measured bezier edges")
+    if diagram_type not in CHART_ONLY_TYPES:
+        parts.append("DOM-measured bezier edges")
     return html.escape(" · ".join(parts))
 
 

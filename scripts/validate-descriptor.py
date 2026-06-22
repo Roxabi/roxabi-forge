@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from forge_paths import default_expect_path, script_root
+from forge_paths import NODE_REQUIRED_TYPES, default_expect_path, script_root
 
 PREMIUM_CARD_WIDTH = 154
 PREMIUM_CARD_HEIGHT = 72
@@ -103,6 +103,14 @@ def estimate_rect(
 
 def schema_checks(descriptor: dict) -> list[Finding]:
     findings: list[Finding] = []
+
+    # Node-graph validation only applies to node-based types. Nodes-less types
+    # (sequence, gantt, pie, xychart) carry bespoke schemas this layer does not
+    # model — pass them through rather than rejecting for a missing nodes array.
+    diagram_type = descriptor.get("type") or "architecture"
+    if diagram_type not in NODE_REQUIRED_TYPES:
+        return findings
+
     nodes = descriptor.get("nodes")
     if not isinstance(nodes, list) or not nodes:
         findings.append(Finding("error", "nodes", "descriptor must contain a non-empty nodes array"))
@@ -234,6 +242,12 @@ def pair_gap_checks(
 def validate(descriptor: dict, expect: dict[str, Any]) -> list[Finding]:
     findings = schema_checks(descriptor)
     if any(f.level == "error" for f in findings):
+        return findings
+
+    # Pair-gap geometry is measured from node bounding boxes — meaningless for
+    # nodes-less types, and the default-expect fallback would otherwise apply
+    # architecture pairs to them. Skip.
+    if (descriptor.get("type") or "architecture") not in NODE_REQUIRED_TYPES:
         return findings
 
     viewport = expect.get("viewport") or {"width": 1600, "height": 1200}

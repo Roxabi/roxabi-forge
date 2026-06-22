@@ -163,8 +163,8 @@ function seqFmt(n) {
 
 // ── renderSequence: draw the full sequence diagram as inline SVG ──────────────
 // Appended directly to canvas (no HTML nodes — SVG-only like pie/gantt).
-// AC-10: no preserveAspectRatio="none". SVG uses explicit viewBox sized to
-// computed diagram dimensions; canvas wrapper handles overflow via CSS.
+// AC-10: no preserveAspectRatio=none attribute. SVG uses explicit viewBox sized
+// to computed diagram dimensions; canvas wrapper handles overflow via CSS.
 function renderSequence(descriptor) {
   const participants = descriptor.participants || []
   const messages = descriptor.messages || []
