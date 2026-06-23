@@ -41,7 +41,11 @@ def run_self_test():
     assert should_exclude('_dist/y.html'), '_dist/ prefix must be excluded'
     assert should_exclude('references/graph-templates/fd-shell.html'), \
         'graph-templates/*.html build templates must be excluded'
+    assert should_exclude('references/graph-templates/dep-graph.html'), \
+        'immediate-level graph-templates shells must be excluded'
     assert not should_exclude('references/graph-templates/examples/fd-architecture.html'), \
+        'graph-templates/examples/ goldens must NOT be excluded'
+    assert not should_exclude('references/graph-templates/examples/fd-architecture-uc.html'), \
         'graph-templates/examples/ goldens must NOT be excluded'
     assert not should_exclude('roxabi-factory/visuals/factory-workflow.html'), \
         'factory-workflow.html must NOT be excluded'

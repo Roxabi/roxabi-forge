@@ -119,6 +119,20 @@ afterEach(() => {
 })
 
 // ---------------------------------------------------------------------------
+// SC9 — gen-og-images --self-test (browser-free, always on)
+// ---------------------------------------------------------------------------
+
+describe('SC9: gen-og-images --self-test (browser-free)', () => {
+  it('should_exclude and is_stale assertions pass', () => {
+    const stdout = execFileSync('python3', [GEN_OG_IMAGES, '--self-test'], {
+      timeout: 10000,
+      encoding: 'utf-8',
+    })
+    expect(stdout).toContain('self-test OK')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // SC4 — gen-og-tags injects per-artifact og:image when sibling .og.png exists
 // ---------------------------------------------------------------------------
 
