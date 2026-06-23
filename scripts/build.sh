@@ -80,6 +80,7 @@ rsync -aL --delete --delete-excluded \
   --exclude='_dist/' \
   --exclude='*.py' \
   --exclude='graph-templates/*.html' \
+  --exclude='graph-templates/*.og.png' \
   --exclude='__pycache__/' \
   --exclude='.git/' \
   --exclude='.env' \

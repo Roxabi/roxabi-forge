@@ -15,7 +15,7 @@ Quality bar: `examples/fd-architecture.html`, fixture `forge-chart/fixtures/lyra
 
 | fd-engine type | Example | Layout |
 |---|---|---|
-| `architecture` / `hub-spoke` | `examples/fd-architecture.html` | declarative `x`/`y` 0..100 |
+| `architecture` / `hub-spoke` | `examples/fd-architecture.html`, `examples/fd-architecture-uc.html` | declarative `x`/`y` 0..100 |
 
 ## fgraph static (legacy — ≤ 6 nodes, print-safe, no JS)
 
@@ -357,7 +357,7 @@ retired types are rebuilt.
          └─────── parent #21 (ghost) ──────────────┘
 ```
 
-Template: [`dep-graph.html`](./dep-graph.html) · demo: [`examples/dep-graph.html`](./examples/dep-graph.html).
+Template: [`dep-graph.html`](./dep-graph.html) (template only — example golden removed in premium curation).
 Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 
 ### Lane-swim
@@ -399,7 +399,7 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
        │                                             ●─ AdapterOut
 ```
 
-Template: [`lane-swim.html`](./lane-swim.html) · demo: [`examples/lane-swim.html`](./examples/lane-swim.html).
+Template: [`lane-swim.html`](./lane-swim.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 
 ### Scatter
@@ -413,7 +413,7 @@ Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 > score vs tokens, CPU vs memory. Cap at ~200 points before the SVG
 > becomes illegible at normal viewport widths.
 
-Template: [`scatter.html`](./scatter.html) · demo: [`examples/scatter.html`](./examples/scatter.html).
+Template: [`scatter.html`](./scatter.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ### Bubble
@@ -427,7 +427,7 @@ Native, no CDN, file://-safe.
 > request latency × error-rate × traffic volume. Keep bubbles
 > non-overlapping or use low opacity to prevent occlusion.
 
-Template: [`bubble.html`](./bubble.html) · demo: [`examples/bubble.html`](./examples/bubble.html).
+Template: [`bubble.html`](./bubble.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ### Radar
@@ -442,7 +442,7 @@ Native, no CDN, file://-safe.
 > or feature coverage across N dimensions. Cap at 8 axes before
 > label spacing collapses.
 
-Template: [`radar.html`](./radar.html) · demo: [`examples/radar.html`](./examples/radar.html).
+Template: [`radar.html`](./radar.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ### Funnel
@@ -457,7 +457,7 @@ Native, no CDN, file://-safe.
 > built → tested → deployed), or any sequential process where tracking
 > attrition between steps matters.
 
-Template: [`funnel.html`](./funnel.html) · demo: [`examples/funnel.html`](./examples/funnel.html).
+Template: [`funnel.html`](./funnel.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ---
