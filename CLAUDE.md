@@ -26,9 +26,9 @@ roxabi-forge/
 │       │   ├── showcases/       # reference demo (showcase-chart — fd-engine premium pipeline)
 │       │   ├── device-frames/   # iOS/Android device frame CSS for mobile mockups
 │       │   ├── aesthetics/      # brand presets (lyra-v2, cool-dark, …) — inlined into output
-│       ├── runtime/             # Makefile + .env.example for ~/.roxabi/forge/
-│       ├── supervisor/          # supervisord config + wrapper script
-│       └── Makefile             # deploy + register targets
+│       ├── runtime/             # Makefile + run.sh + .env.example for ~/.roxabi/forge/
+│       ├── deploy/              # systemd user unit (forge.service)
+│       └── Makefile             # deploy target (copies runtime → ~/.roxabi/forge/)
 ├── scripts/                     # Build scripts (build.sh, gen-manifest.py, gen-plugin-manifest.py, render-md{,-tabs}.py, etc.)
 └── CLAUDE.md                    # this file
 ```
@@ -38,10 +38,10 @@ roxabi-forge/
 Forge generates HTML artifacts into `~/.roxabi/forge/<project>/`. A dev server (`serve.py`) watches for changes and pushes SSE live-reload events.
 
 ```bash
-# From ~/projects/ (supervisor hub)
-make forge start     # start dev server
-make forge logs      # tail stdout
-make forge stop      # stop server
+# From ~/.roxabi/forge/ (after plugin deploy + install-service)
+make forge start     # systemctl --user start forge
+make forge logs      # journalctl follow
+make forge stop      # systemctl --user stop forge
 
 # Deploy plugin files → ~/.roxabi/forge/
 make -C plugins/forge deploy
