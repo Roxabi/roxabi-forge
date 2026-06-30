@@ -11,9 +11,8 @@ help:
 	@echo ""
 	@echo "  deploy   copy server files, scripts, and runtime Makefile → $(FORGE_DIR)/"
 	@echo ""
-	@echo "For day-to-day operations (build/deploy/start/stop/etc.):"
+	@echo "For day-to-day operations (build/deploy/serve/etc.):"
 	@echo "  make -C $(FORGE_DIR) <target>"
-	@echo "  or: make forge <target>  (from ~/projects/)"
 
 deploy:
 	@echo "── deploy forge → $(FORGE_DIR)/ ──"
@@ -27,7 +26,6 @@ deploy:
 	@cp -v $(PLUGIN_DIR)runtime/run.sh $(FORGE_DIR)/run.sh
 	@chmod +x $(FORGE_DIR)/run.sh
 	@cp -v $(PLUGIN_DIR)runtime/Makefile $(FORGE_DIR)/Makefile
-	@cp -v $(PLUGIN_DIR)deploy/forge.service $(FORGE_DIR)/forge.service
 	@cp -v $(PLUGIN_DIR)runtime/.env.example $(FORGE_DIR)/.env.example
 	@cp -v $(REPO_ROOT)/scripts/build.sh $(FORGE_DIR)/scripts/build.sh
 	@cp -v $(REPO_ROOT)/scripts/gen-manifest.py $(FORGE_DIR)/scripts/gen-manifest.py
