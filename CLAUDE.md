@@ -7,9 +7,6 @@ HTML visual artifacts for Claude Code — diagrams, galleries, guides, epics.
 ## TL;DR
 
 - **Project:** roxabi-forge (marketplace with 1 plugin: forge)
-- **Before work:** Use `/dev #N` as the single entry point
-- **Never** use `--force`/`--hard`/`--amend`
-- **Always** use appropriate skill even without slash command
 
 ## Structure
 
