@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.5.0](https://github.com/Roxabi/roxabi-forge/compare/roxabi-forge/v0.4.0...roxabi-forge/v0.5.0) (2026-07-02)
+
+
+### Features
+
+* **forge-chart:** craft quality bar — auto glow/edge-flow/icons + fd-engine premium default ([ddacb02](https://github.com/Roxabi/roxabi-forge/commit/ddacb02a5ed087f2bc22d41f2129ed7d2e34a3f9))
+* **forge-chart:** craft quality bar + type consolidation (premium engine default) ([75933e0](https://github.com/Roxabi/roxabi-forge/commit/75933e09ecc5ddfb5f8f2d6d014cc153827e16e5))
+* **forge-chart:** dual-font fd-engine premium cards (sans title / mono descriptor) ([b2f9398](https://github.com/Roxabi/roxabi-forge/commit/b2f93980f3da5566956051ee829c444039c829c9))
+* **forge-chart:** dual-font fd-engine premium cards (Tier 2) ([b70a911](https://github.com/Roxabi/roxabi-forge/commit/b70a911566030762610b61803df2309af5ad43ee))
+* **forge:** add fd-engine gen-fd pipeline with layout validation ([8d82c59](https://github.com/Roxabi/roxabi-forge/commit/8d82c5947c7374b7ae0cf1b16b59ab9e68999e6d))
+* **forge:** fd-engine gen-fd pipeline with layout validation ([0d47b81](https://github.com/Roxabi/roxabi-forge/commit/0d47b8109509d4f720af32762f8e16ac16ecbe53))
+
+
+### Bug Fixes
+
+* **forge:** address PR [#89](https://github.com/Roxabi/roxabi-forge/issues/89) review findings ([8a21004](https://github.com/Roxabi/roxabi-forge/commit/8a2100463705d232bbc91e83d63932a7bc2544dc))
+* **forge:** address PR [#98](https://github.com/Roxabi/roxabi-forge/issues/98) review findings ([f603193](https://github.com/Roxabi/roxabi-forge/commit/f6031931a83e7b1fb5fb4fad6642279fa734c7eb))
+* **forge:** clear residual cut-type refs flagged by code-review ([46dd0df](https://github.com/Roxabi/roxabi-forge/commit/46dd0dfe871c6506b194916850c834a791702976))
+* **forge:** clip-path shape title legibility ([#52](https://github.com/Roxabi/roxabi-forge/issues/52)) ([6bb5d19](https://github.com/Roxabi/roxabi-forge/commit/6bb5d196e4cdabac72805ceb4be96f675e20ce90))
+* **forge:** clip-path shape title legibility ([#52](https://github.com/Roxabi/roxabi-forge/issues/52)) ([026edd1](https://github.com/Roxabi/roxabi-forge/commit/026edd1bd68bd3b2103b258c489ead86f9b22617))
+* **forge:** close remaining PR [#89](https://github.com/Roxabi/roxabi-forge/issues/89) review items ([ca6b8f8](https://github.com/Roxabi/roxabi-forge/commit/ca6b8f88cd0c4daf0faf37b8601f9fae708d5334))
+* **forge:** correct craft-bar claims + edge-flow dedup, align routing across 3 skills ([9e68ecb](https://github.com/Roxabi/roxabi-forge/commit/9e68ecb4c55d840474cdb35bcd455dc5aba75d32))
+* **forge:** exclude .env + operational dotfiles from public _dist deploy ([73c4f81](https://github.com/Roxabi/roxabi-forge/commit/73c4f810da245dcb7de193a08085f6726e3c0997))
+* **forge:** exclude graph-templates/*.html shells from OG generation ([2a6d2d7](https://github.com/Roxabi/roxabi-forge/commit/2a6d2d77f42096c826783a0520ac59fad873a4dd))
+* **forge:** forge_paths test unsets GITHUB_ACTIONS for FORGE_REF case ([a9ed4a0](https://github.com/Roxabi/roxabi-forge/commit/a9ed4a05131a6980b7270ca78c7997a520305c68))
+* **forge:** rsync --delete showcases/examples on deploy ([46b27a2](https://github.com/Roxabi/roxabi-forge/commit/46b27a2462c7da3a2a9c9116564e043f13102be5))
+* **forge:** serve reference-gallery links on forge.roxabi.dev ([67540fc](https://github.com/Roxabi/roxabi-forge/commit/67540fce646748d0924ac0020411f2289db7d67e))
+* **forge:** support nodes-less diagram types (gantt/sequence) in gen-fd ([62dadba](https://github.com/Roxabi/roxabi-forge/commit/62dadbae2900d86310bda48eeeff68069960be82))
+* **forge:** support nodes-less diagram types (gantt/sequence) in gen-fd + validator ([2a12de8](https://github.com/Roxabi/roxabi-forge/commit/2a12de85b61ba5b87566e8ebf9519d5eb4f95044))
+
 ## [0.4.0](https://github.com/Roxabi/roxabi-forge/compare/roxabi-forge/v0.3.0...roxabi-forge/v0.4.0) (2026-06-15)
 
 
