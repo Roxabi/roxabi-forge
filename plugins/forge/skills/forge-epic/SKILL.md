@@ -225,7 +225,7 @@ The sub-agent has access to Read, Write, Edit, Bash, Glob, Grep tools — it can
 
 ## Phase 1 — Context
 
-1. **Extract issue number** from ARGS (e.g. `#477`, `477`, "issue 477"). Not found → DP(B): "Which issue number is this epic for?"
+1. **Extract issue number** from ARGS (e.g. `#477`, `477`, "issue 477"). Not found → ask user: "Which issue number is this epic for?"
 
 2. **Detect project** from ARGS or cwd.
 

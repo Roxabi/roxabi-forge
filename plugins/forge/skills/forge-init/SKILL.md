@@ -85,7 +85,7 @@ Check if the current project has a Makefile:
 ls Makefile 2>/dev/null
 ```
 
-If Makefile exists → DP(A):
+If Makefile exists → present choice:
 
 ```
 ── Decision: Add forge make targets? ──

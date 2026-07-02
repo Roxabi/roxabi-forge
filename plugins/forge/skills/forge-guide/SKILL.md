@@ -285,7 +285,7 @@ The sub-agent has access to Read, Write, Edit, Bash, Glob, Grep tools — it can
 
 ## Phase 1 — Context Discovery
 
-1. **Detect project** from ARGS or cwd. Unknown → DP(B). (See `forge-ops.md` for detection signals.)
+1. **Detect project** from ARGS or cwd. Unknown → ask user. (See `forge-ops.md` for detection signals.)
 
 2. **Run the brand book loader** (`${CLAUDE_PLUGIN_ROOT}/references/brand-book-loader.md`): Discovery → Parse → Apply. Determine Track A or Track B. Report the result before continuing.
 
