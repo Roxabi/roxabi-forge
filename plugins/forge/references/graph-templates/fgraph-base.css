@@ -415,6 +415,52 @@
 .fgraph-edges .fg-edge.orange { stroke: var(--fg-orange); }
 .mk-orange                    { fill:   var(--fg-orange); }
 
+/* ════════════════════════════════════════════════════════════════════
+   CRAFT QUALITY BAR — reusable primitives (Phase 1)
+   Distilled from the lyra-diagram gold standard. All opt-in + additive.
+   Apply these to reach reference-grade quality on every diagram.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 1. Ambient edge-flow — slow marching dashes for passive data/async flow.
+   Distinct from .animated (1s fast live-stream). Compose with a tone class
+   (e.g. .fg-edge.cyan.flow). stroke-dasharray uses !important so .flow wins
+   deterministically over .async/.write (identical specificity); the stroke
+   COLOUR still comes from the tone/semantic class, so .flow + .async renders
+   async-coloured marching dashes (intended).
+   NOTE: @keyframes fg-flow is intentionally duplicated in fd-engine.css so that
+   file bootstraps standalone — keep both copies identical if edited. */
+@keyframes fg-flow { to { stroke-dashoffset: -200px; } }
+.fgraph-edges .fg-edge.flow { stroke-dasharray: 6 4 !important; animation: fg-flow 20s linear infinite; }
+
+/* 2. Accent glow — for hub / hero nodes. Uses the aesthetic's --accent-glow.
+   Fallback is a visible ember (not transparent) so the glow still reads even if
+   an aesthetic omits the token. */
+:root { --glow-radius: 40px; }
+.fg-glow { box-shadow: 0 0 var(--glow-radius, 40px) var(--accent-glow, rgba(232,93,4,0.22)); }
+
+/* 3. Node icon slot — inline SVG glyph at the top of a node card (~28px).
+   Markup: <span class="fgraph-node__icon"><svg>…</svg></span> before .fgraph-title. */
+.fgraph-node__icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 6px;
+  color: currentColor;
+}
+.fgraph-node__icon svg { width: 100%; height: 100%; display: block; }
+
+/* 4. Edge-label chip — mono + background knockout so it reads over any path.
+   For the floating HTML label divs positioned at an edge midpoint. */
+.fg-edge-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  background: var(--bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* arrowhead marker fill classes — apply to <path> inside <marker>.
    Declared at SVG root (not scoped under .fgraph-edges) so they also
    resolve inside <svg class="fgraph-defs"> — the hidden shared-defs
@@ -600,15 +646,19 @@
    The clip-path slants cut 25% off each side at the top/bottom edges.
    max-width constrains the label to the safe inner band (≈56% of the
    box) so wide labels wrap rather than extend into the clipped tips.
-   color: var(--text) is a contrast floor — tone rules (.fgraph-title.cyan
-   etc.) override with the bright tone colour and remain unaffected.
    font-weight: 800 improves legibility on the translucent dim fill. */
 .fgraph-node.hexagon .fgraph-title {
   max-width: 56%;
-  color: var(--text);
   font-weight: 800;
   word-break: break-word;
 }
+/* contrast floor — applied at 0 specificity via :where() so tone rules
+   (.fgraph-title.cyan etc., specificity 0,2,0) ALWAYS win. A plain
+   descendant selector `.fgraph-node.hexagon .fgraph-title` (0,3,0) would
+   instead beat the tone rules and force every hexagon title to --text —
+   the bug this :where() fixes. Toneless hexagon titles still fall back
+   to --text. */
+:where(.fgraph-node.hexagon) .fgraph-title { color: var(--text); }
 
 /* tone modifiers (border color + translucent background tint) */
 .fgraph-node.amber  { border-color: var(--amber);  background: var(--amber-dim); }
@@ -668,15 +718,22 @@
 .fgraph-node.hexagon.green::before,  .fgraph-node.diamond.green::before,  .fgraph-node.folded.green::before  { background: var(--green-dim); }
 .fgraph-node.hexagon.red::before,    .fgraph-node.diamond.red::before,    .fgraph-node.folded.red::before    { background: var(--red-dim); }
 
-/* ── hexagon ::before fill — higher opacity (C2) ──
-   Diamond and folded keep the shared 0.14-alpha dim tints above.
-   Hexagon overrides to 0.28 alpha so the fill provides a contrasting
-   backing for title text. Scoped ONLY to .hexagon — diamond/folded unaffected. */
-.fgraph-node.hexagon.amber::before  { background: rgba(251,191,36,0.28); }
-.fgraph-node.hexagon.cyan::before   { background: rgba(34,211,238,0.28); }
-.fgraph-node.hexagon.purple::before { background: rgba(192,132,252,0.28); }
-.fgraph-node.hexagon.green::before  { background: rgba(74,222,128,0.28); }
-.fgraph-node.hexagon.red::before    { background: rgba(248,113,113,0.28); }
+/* ── clip-path shape fill — OPAQUE interior (C2, revised) ──
+   The dim tints above are TRANSLUCENT. The ::after layer (solid tone, behind
+   ::before) then bleeds straight through, turning the whole interior solid-tone
+   — so a tone-coloured .fgraph-title becomes tone-on-tone and disappears on
+   hexagon / diamond / folded. Forcing the fill OPAQUE makes ::after read as a
+   border ring and the interior a dark card (like pill / circle / cylinder), so
+   tone-coloured titles stay legible. Overrides the dim tints (same specificity,
+   declared later). */
+.fgraph-node.hexagon.amber::before,  .fgraph-node.diamond.amber::before,  .fgraph-node.folded.amber::before,
+.fgraph-node.hexagon.cyan::before,   .fgraph-node.diamond.cyan::before,   .fgraph-node.folded.cyan::before,
+.fgraph-node.hexagon.purple::before, .fgraph-node.diamond.purple::before, .fgraph-node.folded.purple::before,
+.fgraph-node.hexagon.green::before,  .fgraph-node.diamond.green::before,  .fgraph-node.folded.green::before,
+.fgraph-node.hexagon.red::before,    .fgraph-node.diamond.red::before,    .fgraph-node.folded.red::before {
+  background-color: var(--bg-card);
+  background-image: none;
+}
 
 /* clip-path hover: enlarge border + glow via filter (box-shadow is clipped) */
 .fgraph-node.hexagon:hover::after,

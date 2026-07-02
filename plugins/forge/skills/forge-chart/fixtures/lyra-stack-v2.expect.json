@@ -1,0 +1,14 @@
+{
+  "fixture": "lyra-stack-v2.json",
+  "viewport": { "width": 1600, "height": 1200 },
+  "counts": { "nodes": 26, "edges": 32, "zones": 3, "paths_min": 28 },
+  "layout": {
+    "all_nodes_absolute": true,
+    "all_nodes_in_canvas": true,
+    "min_zone_label_gap_px": 8,
+    "pairs": [
+      { "left": "tg", "right": "dc", "min_gap_px": 8 },
+      { "zone": "zoneHub", "label_to_node": "pipe", "min_gap_px": 8 }
+    ]
+  }
+}

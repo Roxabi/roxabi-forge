@@ -1,21 +1,21 @@
 ---
 name: forge-chart
 description: >-
-  Create a quick self-contained single-file HTML visual — native fgraph
-  diagram (hub-and-spoke, gantt, pie, ER, sequence, state, dep-graph),
-  architecture layout, CSS Grid explainer, or inline-SVG data-chart (scatter,
-  bubble, radar, funnel). No server needed, works with file://. Triggers:
+  Create a quick self-contained single-file HTML diagram — premium fd-engine
+  node-edge visual (architecture, hub-spoke) with bezier edges, glow and
+  edge-flow; or a swimlane, dependency graph, layered flow, or CSS explainer
+  via fgraph static templates. No server needed, works with file://. Triggers:
   "draw" | "diagram" | "visualize" | "sketch" | "map" | "show the flow" |
   "quick visual".
 summary: 'single-file native fgraph / CSS visual'
-version: 0.3.0
+version: 0.6.0
 allowed-tools: Read, Write, Bash, Glob, Grep, ToolSearch, Agent
 ---
 
 # Chart — Single-File Quick Visual
 
 Create a self-contained HTML file. All CSS/JS inline — no fetch, no external files, works with `file://`.
-Use for: native fgraph topologies (hub-and-spoke, linear pipeline, layered), gantt timelines, pie proportions, ER schemas, sequence diagrams, state machines, issue-dependency graphs, or simple CSS explainer layouts.
+Use for: native fgraph topologies (hub-and-spoke, linear pipeline, layered), issue-dependency graphs, process/lifecycle swimlanes, or simple CSS explainer layouts.
 
 Output: `~/.roxabi/forge/<project>/visuals/{slug}.html` or `~/.roxabi/forge/_shared/diagrams/{slug}.html`.
 
@@ -32,7 +32,7 @@ ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/               — select one based 
 ${CLAUDE_PLUGIN_ROOT}/references/shells/single.html        — HTML template with placeholders
 ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js      — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md           — meta tag format + categories
-${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture / topology / timeline / proportion / schema / sequence / state / dep-graph)
+${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture / topology / flow / pipeline / dep-graph / data-chart)
 ${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/fixtures/README.md — fixture format + regression inputs (no runner yet; hashes populate in future)
 ```
 
@@ -66,33 +66,31 @@ Report the loaded brand book (or its absence) before starting Frame. Track is fi
 
 The **fd-engine** (forge-diagram JS engine) is the generation path for all diagram types that require node-to-node edges. It replaces the static fgraph coordinate approach with DOM-measured bezier edges, providing lyra-stack-grade visual quality at any container size.
 
-### Routing rule
+### Production pipeline (mandatory)
 
-All diagram types below route through the fd-engine path:
+All fd-engine types use **one path** — agents write JSON only; never hand-assemble HTML:
 
-1. Generate an **fd-engine descriptor JSON** (see schema below)
-2. Embed it as `<script type="application/json" id="fd-data">` in the output HTML
-3. Inline the **fd-engine bundle** via `buildEngine(fdDir, type)` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd/bundler.js`
-4. Inline forge base CSS + selected aesthetic CSS **first** (before fd-engine.css — the engine's token bootstrap depends on aesthetic tokens being declared first)
-5. Inline `fd-engine.css` from `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd-engine.css` **after** the aesthetic
-6. Inline `fgraph-base.css` (Mode A — single file)
+```bash
+python3 scripts/gen-fd.py --in <descriptor.json> --out <output.html> [--theme lyra-v2] [--title "..."]
+python3 scripts/validate-fd.py --html <output.html> [--expect fixtures/<slug>.expect.json]
+```
 
-For **auto-layout types** (flowchart, state, class, er, sequence): also run `bun scripts/fd-layout.mjs <descriptor.json>` to inject node positions before assembling the HTML. The browser receives pre-positioned nodes — no elkjs at runtime.
+`gen-fd.py` assembles `fd-shell.html`, inlines aesthetic + `fd-engine.css` + page shell, embeds `fd-data`, bundles the engine via bun (`fd/bundler.js`), and inlines `fd-bootstrap.js`.
+
+**Exit 0 from `validate-fd.py` is required before writing to `~/.roxabi/forge/`.** Lyra regression: `bun run gen-fd:check`.
+
+Manual step-by-step assembly (`buildEngine`, inline CSS, bootstrap by hand) is **debug-only** — see `references/phase-3-generate.md § manual fallback`.
 
 ### Type routing table
 
-| Type | Layout source | Node card default | bun elk step? | Legacy template (deleted) |
-|---|---|---|---|---|
-| `architecture` | declarative (LLM encodes `x`/`y` 0..100) | premium | NO | — |
-| `hub-spoke` | declarative (LLM encodes `x`/`y` 0..100) | premium | NO | — |
-| `flowchart` | elkjs gen-time (layered/sugiyama) | simple | YES | — |
-| `state` | elkjs gen-time (layered) | simple | YES | `state.html` (deleted) |
-| `class` | elkjs gen-time (layered) | simple (header+attr/method rows) | YES | — |
-| `er` | elkjs gen-time (layered) | simple (entity+PK/FK rows) | YES | `er.html` (deleted) |
-| `sequence` | elkjs gen-time (participant x-positions) | simple pill per participant | YES | `sequence.html` (deleted) |
-| `xychart` | none (pure SVG math) | SVG only (no HTML nodes) | NO | — |
-| `gantt` | declarative (descriptor.bars[]) | HTML `.fg-gantt-bar` divs | NO | `gantt.html` (deleted) |
-| `pie` | declarative (SVG arc math) | SVG arc paths | NO | `pie.html` (deleted) |
+These are the **first-class types the generator proposes by default** — both route through the fd-engine premium path. Everything else — topology (radial-hub, system-architecture, layered, …) and data-charts (scatter, bubble, radar) — is served by the **fgraph static templates** (see Structure table below), not the engine.
+
+| Type | Layout source | Node card default | Family |
+|---|---|---|---|
+| `architecture` | declarative (LLM encodes `x`/`y` 0..100) | premium | architecture — `useCases[]` is an optional field, **not** a separate type |
+| `hub-spoke` | declarative (LLM encodes `x`/`y` 0..100) | premium | architecture |
+
+> **Retired 2026-06-22 (premium-only purge):** Auto-layout (elk) and standalone chart types were retired — topology / flow / timeline / proportion needs are served by fgraph static templates; further premium types will be reconstructed premium-first.
 
 ### Aesthetic → theme mapping
 
@@ -100,11 +98,13 @@ The `theme` field in the descriptor maps to a file under `${CLAUDE_PLUGIN_ROOT}/
 
 | Aesthetic file | `theme` value | Use when |
 |---|---|---|
-| `lyra-v2.css` | `"lyra-v2"` | Lyra / roxabi project diagrams (default) |
-| `cool-dark.css` | `"cool-dark"` | High-contrast dark diagrams |
-| `editorial.css` | `"editorial"` | Neutral, no-brand contexts |
-| `warm-light.css` | `"warm-light"` | Presentation / slides contexts |
-| `mono-slate.css` | `"mono-slate"` | Minimal monochrome |
+| `lyra-v2.css` | `"lyra-v2"` | Lyra / Roxabi project diagrams — **default**, reference look |
+| `lyra.css` | `"lyra"` | Lyra v1 (warm ember) |
+| `roxabi.css` | `"roxabi"` | Roxabi brand (amber / gold) |
+| `editorial.css` | `"editorial"` | Neutral / no-brand, editorial contexts |
+| `blueprint.css` | `"blueprint"` | Technical / schematic (blueprint) |
+| `terminal.css` | `"terminal"` | Terminal / cyan aesthetic |
+| `caveman.css` | `"caveman"` | Bold / high-energy |
 
 Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to select the `theme` value. Both the descriptor `theme` field and the inlined aesthetic CSS must use the same aesthetic. `fd-engine.css` is self-bootstrapping: its `:root` block provides fallback values for all required tokens (`--panel`, `--panel2`, `--bd2`, `--mut`, `--mut2`, `--mono`, `--sans`, `--slate`, `--amber`, `--cyan`, `--vio`, `--emer`, `--sky`, `--orng`, `--rose`) by mapping them from universal forge tokens or hard lyra-v2 fallbacks. All aesthetics render correctly — `lyra-v2` is the default and produces the reference look.
 
@@ -132,14 +132,17 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
       "d": "JetStream · 4222/4223",
       "plane": "message",
       "h": "M1",
-      "cardStyle": "premium"
+      "cardStyle": "premium",
+      "glow": true,
+      "icon": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><circle cx='12' cy='12' r='9'/><path d='M12 3v18M3 12h18'/></svg>"
     }
   ],
   "edges": [
     {
       "f": "telegram", "t": "hub",
       "plane": "message",
-      "label": "lyra.inbound.*"
+      "label": "lyra.inbound.*",
+      "flow": true
     }
   ],
   "zones": [
@@ -166,10 +169,10 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
 
 | Field | Type | Notes |
 |---|---|---|
-| `type` | string | `"architecture"` \| `"hub-spoke"` (declarative) \| `"flowchart"` \| `"state"` \| `"class"` \| `"er"` \| `"sequence"` (auto-layout, bun elk step) \| `"xychart"` \| `"gantt"` \| `"pie"` (SVG/declarative) |
+| `type` | string | First-class: `"architecture"` \| `"hub-spoke"` (declarative) |
 | `title` | string | Diagram title (used in `<title>` + hero) |
 | `theme` | string | Aesthetic name — matches `references/aesthetics/*.css` filename stem (see aesthetic→theme mapping above) |
-| `layout` | string | `"declarative"` — LLM encodes `x`/`y` in 0..100 % space; `"auto"` — bun elk step injects positions |
+| `layout` | string | `"declarative"` — LLM encodes `x`/`y` in 0..100 % space |
 | `canvas.height` | number | Canvas height in px (default 800) |
 | `options.particles` | bool \| "loop" | `false` (default) — particles OFF; `true` = one-shot on trigger; `"loop"` = continuous |
 | `options.spotlight` | bool | Hover isolation + sidebar panel |
@@ -183,9 +186,12 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
 | **nodes[].plane** | string | Semantic plane: `control` \| `write` \| `read` \| `data` \| `async` \| `feedback` \| `message` \| `llm` |
 | **nodes[].h** | string | Host badge: `"M1"` \| `"M2"` \| `"EX"` (external, no badge) |
 | **nodes[].cardStyle** | string | Optional override: `"premium"` (default for architecture/hub-spoke) \| `"simple"` |
+| **nodes[].icon** | string | Optional inline `<svg>…</svg>` string — rendered in the card header icon slot (`.fd-ico`). Craft bar. |
+| **nodes[].glow** | bool | Optional — `true` adds an accent halo (`.fd-glow`) to the premium card. Use on the hub / hero node only. Craft bar. |
 | **edges[].f / t** | string | From / to node IDs |
 | **edges[].plane** | string | Semantic plane (determines edge color from aesthetic tokens) |
 | **edges[].label** | string | Optional edge label (shown at bezier midpoint on hover) |
+| **edges[].flow** | bool | Optional — `true` adds the ambient marching-dash animation (`.flow`, 20s) for passive data/async flow. Craft bar. |
 | **edges[].srcFace / dstFace** | string | Optional face override: `"top"` \| `"bottom"` \| `"left"` \| `"right"` |
 | **zones[].id** | string | Must match the HTML element `id` for the zone div |
 | **zones[].nodes** | string[] | Node IDs whose bounding rect defines the zone |
@@ -209,6 +215,22 @@ Use the detected aesthetic (from `forge-ops.md § Aesthetic Detection`) to selec
 | `feedback` | `--accent` | loss signal, correction, eval result |
 | `message` | `--cyan` | NATS / message-bus (alias for control in lyra topology) |
 | `llm` | `--purple` | LLM inference request/response |
+
+### Craft Quality Bar (the reference standard — apply by default)
+
+Distilled from the gold-standard lyra-diagram. Every diagram should reach this bar. Seven primitives, all defined in `fgraph-base.css` + `fd-engine.css`:
+
+| # | Primitive | How to get it | Auto on fd-engine? |
+|---|---|---|---|
+| 1 | **Bézier edges** (Q-curves, not straight lines) | fd-engine computes DOM-measured beziers | ✅ automatic |
+| 2 | **Ambient edge-flow** (slow 20s marching dash on passive data/async) | descriptor `edges[].flow: true` → `.flow` class; or hand-author `.fg-edge.flow` | ✅ via `edge.flow` |
+| 3 | **Dual-font nodes** (Sans title / Mono descriptor) | fd `.fd-title` = `var(--sans)`, `.fd-sub` = `var(--mono)`; fgraph `.fgraph-title` (Outfit) + `.fgraph-sub` (Space Mono) | ✅ automatic (matches the lyra-diagram gold standard) |
+| 4 | **Per-node SVG icon** | descriptor `nodes[].icon: "<svg>…</svg>"` → `.fd-ico` slot; or `.fgraph-node__icon` markup | ✅ via `node.icon` |
+| 5 | **Accent glow** on hub / hero node | descriptor `nodes[].glow: true` → `.fd-glow`; or `.fg-glow` class | ✅ via `node.glow` |
+| 6 | **3-depth palette** (`--bg` → `--panel` → `--surface`) | fd-engine bootstraps `--panel`/`--panel2`; primitives fall back `var(--panel, var(--surface))` | ✅ bootstrapped |
+| 7 | **Edge labels** — mono | fd `.fd-elabel` (SVG text, revealed on hover/spotlight — no chip); hand-authored `.fg-edge-label` or auto `.fg-edge-lbl` (fgraph-auto live) add the bg-knockout chip | fd-engine = mono label on hover; **bg-knockout chips are fgraph-only** |
+
+**Default directive:** prefer the **fd-engine path with `cardStyle: premium`** — it delivers primitives 1–6 automatically (bézier · edge-flow · dual-font · icon · glow · 3-depth palette). For 7 (edge-labels) it renders hover-revealed mono text — **always-on bg-knockout label chips remain static-fgraph only.** Reach for a static fgraph template for print/PDF/no-JS output (hand-author the craft), or when you specifically need always-on label chips. When generating an fd-engine descriptor, set `glow: true` on the hub, `flow: true` on passive data/async edges, and an `icon` on each node where a recognizable glyph aids scanning.
 
 ### AC-10 guard (mandatory)
 
@@ -243,39 +265,53 @@ Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aes
 
 Content-driven in both tracks. Brand `structure_defaults` (if present) act as **tiebreakers only** when content topology is genuinely ambiguous.
 
-| Content | Approach | Why |
+**Premium routing (default).** Match the content to one row; every row routes through the fd-engine premium path (or a kept native template where no engine equivalent exists):
+
+| Content | Type → path | Why |
 |---|---|---|
-| Issue / dependency graph (live project, ≥ 5 issues) | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) | Python-side topological layer assignment + elbow routing; declarative |
-| Small dependency graph (≤ 6 nodes, hand-crafted) | `graph-templates/layered.html` or `linear-flow.html` | Hand-assign `--x/--y` with R1 even-stride; avoid dep-graph manual fill |
-| Data flow (linear, 2–3 stages) | `graph-templates/linear-flow.html` | Unidirectional arrows, labels above |
-| **Swimlane / message-flow pipeline** | **`graph-templates/lane-swim.html`** | N vertical lanes × N rows, cubic bezier S-curves, phase separators |
-| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step | Participant strips, lifelines, activation boxes, DOM-measured arrows; cap 15 messages |
-| State machine | fd-engine descriptor `type:"state"` + bun elk step | Circle/diamond shapes, DOM-measured bezier edges |
-| Timeline / schedule | fd-engine descriptor `type:"gantt"` | Declarative `.fg-gantt-bar` bars mapped from `descriptor.bars[]`; no CDN |
-| Proportion / share | fd-engine descriptor `type:"pie"` | SVG arc paths computed from `descriptor.slices[]`; no CDN |
-| Entity-relationship schema | fd-engine descriptor `type:"er"` + bun elk step | Entity rows, PK/FK markers, crow's-foot edge markers |
-| **Hub-and-spoke, ≤ 6 peers, rich cards** | **`graph-templates/radial-hub.html`** | Pills, warn lines, multi-line |
-| 7 radial nodes | `radial-ring.html` (no center) or split into sub-diagrams | fgraph caps at ~6 before labels collide |
-| **Full-system architecture (≥ 15 components across ≥ 4 lifecycle layers)** | **`graph-templates/system-architecture.html`** | Users → cloud APIs → adapters → NATS bus strip → nested hub → stores → remote band; `.fg-bus-strip` spans full width; `.fgraph-group.{cluster,security-group}` overlays; 3-card executive summary row |
-| Layered architecture (3–4 tiers) | `graph-templates/layered.html` or `deployment-tiers.html` | Dashed frames per layer, vertical fan-out |
-| Multi-host deployment | `graph-templates/machine-clusters.html` | Cross-machine edge routing, wide aspect |
-| Architecture layers (node topology, arrows needed, ≤8 nodes) | foreignObject+CSS Flexbox SVG | No pixel math; LLM only computes arrow coords; inline SVG, no JS |
-| Architecture layers (text-heavy, stacked, no arrows) | CSS Grid cards | Fallback when no node-to-node connections needed |
+| **Architecture / system / topology** — any node-edge arch (one or more components connecting peers), at any scale | **fd-engine `type:"architecture"`** (or `"hub-spoke"`) via `scripts/gen-fd.py` — premium, declarative; add `useCases[]` for walkthroughs | DOM-measured bezier edges, premium cards, spotlight. Replaces radial-hub / system-architecture / layered / machine-clusters / linear-flow / dual-cluster / radial-ring — one premium path, not seven flat templates |
+| Flowchart / decision DAG | fgraph `layered` / `linear-flow` static templates | CSS-based layered layout, file://-safe |
+| State machine / lifecycle | fgraph `lane-swim` / `layered` static templates | Multi-lane phase layout |
+| Schema — UML class **or** entity-relationship | fgraph `layered` static template | Layered entity layout; annotate relationships with edge labels |
+| Sequence — strict API request/response | fgraph `lane-swim` static template | Multi-actor lanes; annotate with phase separators |
+| **Swimlane — multi-actor / multi-lane process pipeline (preferred for lifecycle walkthroughs)** | **`graph-templates/lane-swim.html`** | N vertical lanes × N rows, cubic bezier S-curves, phase separators |
+| Timeline / schedule / roadmap | fgraph `lane-swim` static template | Horizontal phase rows, CSS-based, no CDN |
+| Proportion / share | fgraph `funnel` / `bubble` / `radar` static templates | CSS-based proportion visuals |
+| Funnel / stage conversion (explainer **component**) | `graph-templates/funnel.html` | Decreasing-width bars; embed as a component |
+| Issue / dependency graph (live project, ≥ 5 issues) | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) | Python-side topological layer assignment + elbow routing; data-driven, **no fd-engine equivalent** |
 | **Comparison / matrix (≥4 rows or ≥3 cols)** | **HTML `<table>`** | Tabular data is not a graph |
 | Simple timeline | `.steps` timeline component | Shared CSS, no auto-layout needed |
-| **2-variable correlation / X↔Y scatter** | **`graph-templates/scatter.html`** | Inline SVG data-chart; show relationship between two continuous variables |
-| **3-variable data (X, Y + magnitude as size)** | **`graph-templates/bubble.html`** | Extends scatter; bubble radius encodes a third dimension |
-| **Multi-axis comparison (N metrics, same scale)** | **`graph-templates/radar.html`** | Spider/radar chart; compare entities across N axes in one view |
-| **Pipeline / stage conversion (funnel stages)** | **`graph-templates/funnel.html`** | Decreasing-width bars; show drop-off between sequential conversion stages |
+| Architecture layers (node topology, arrows, ≤8 nodes, **print/no-JS**) | foreignObject+CSS Flexbox SVG | No pixel math; inline SVG, no JS — print fallback only |
+| Architecture layers (text-heavy, stacked, no arrows) | CSS Grid cards | When no node-to-node connections are needed |
 
-**Decision rule:** pick the template whose shape matches. For fd-engine types (sequence, state, er, gantt, pie) use the fd-engine descriptor path. For fgraph static types (hub-and-spoke / linear / swimlane / layered / multi-host / ring / dep-graph / **system-architecture**): pick `radial-hub.html` for rich-card hub topologies. Swimlane for message-flow pipelines, request lifecycles, clean-arch layer traces crossing multiple horizontal domains. **Full-system architecture (≥ 15 components across users → apis → adapters → bus → hub → stores) → `system-architecture.html`** — it composes nested `.fgraph-group` regions + the `.fg-bus-strip` primitive and ships a 3-card info row; prefer this over `radial-hub.html` whenever the reader's mental model is a top-to-bottom request lifecycle rather than "one hub, N peers". If > 8 nodes or complex flow that no other template covers → **split the diagram** or use `layered.html` with hand-assigned `--x/--y`. Tabular → HTML table. Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG. Stacked text-heavy, no arrows → CSS Grid cards.
+**Propositions (consider — not auto-templated).** The following are **no longer first-class routing targets.** Treat each as a *proposition to consider*, not a default template. When one fits, **generate it bespoke via the fd-engine** (premium path) rather than filling the flat static template — reach for the static template only for **print / PDF / no-JS** output or when the user explicitly asks for that static look. Static authoring docs remain in `graph-templates/README.md`.
+
+| Proposition | Was routed as | Generate instead via |
+|---|---|---|
+| Hub-and-spoke, rich cards | `radial-hub.html` | fd-engine `type:"hub-spoke"` |
+| Full-system architecture (≥ 15 components) | `system-architecture.html` | fd-engine `type:"architecture"` + `useCases` |
+| Layered / deployment tiers | `layered.html` / `deployment-tiers.html` | fd-engine `type:"architecture"` |
+| Multi-host deployment | `machine-clusters.html` | fd-engine `type:"architecture"` |
+| Linear pipeline / dual cluster / radial ring | `linear-flow.html` / `dual-cluster.html` / `radial-ring.html` | fd-engine `type:"architecture"` |
+| X↔Y scatter / 3-var bubble / N-axis radar | `scatter.html` / `bubble.html` / `radar.html` | Data-charts via fgraph static templates — out of scope as first-class; propose only when explicitly requested |
+
+**Decision rule (fd-engine first for node-edge diagrams):**
+
+1. **Any node-edge architecture / topology, at any scale** (architecture / hub-spoke / system / layered / multi-host / linear / ring) → fd-engine descriptor + `python3 scripts/gen-fd.py --in <descriptor.json> --out <file>.html`. Premium is the default at **any** node count — static templates are propositions (print/no-JS), **not** the ≤6-node default. Quality bar: `graph-templates/examples/fd-architecture.html` and `fixtures/lyra-stack-v2.json`.
+2. **Swimlane / multi-actor pipeline / sequence-style flow** → `lane-swim.html` (preferred for lifecycle walkthroughs, API / message sequences, and actor pipelines).
+3. **Issue dependency graph** → `gen-deps.py` (never hand-fill `dep-graph.html`).
+4. **Tabular data** → HTML `<table>`. **Stacked text, no arrows** → CSS Grid cards.
+5. **Static fgraph** (`radial-hub`, `linear-flow`, `layered`, `system-architecture`, …) → propositions: print / PDF / no-JS only, or an explicit static-look request. Hand-assign `--x/--y` with R1 even-stride.
+
+Swimlane for message-flow pipelines crossing multiple horizontal domains. Split only when the reader needs two genuinely different topologies — not because fd-engine "can't handle density" (it can).
 
 **Visual target — read the golden example first (MANDATORY):** Every template ships a fully-rendered, placeholder-free golden example. Before filling a template, **`Read ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/<type>.html`** and treat it as the pixel-correct visual target your output must match — node spacing, arrow/marker proportions, label placement, density, the compact inline-CSS subset. The rendered example is a stronger anchor than any prose gate below.
 
-- **fd-engine types** (use `fd-<type>.html` prefix): `fd-architecture · fd-architecture-uc · fd-flowchart · fd-state · fd-class · fd-er · fd-sequence · fd-xychart · fd-gantt · fd-pie`
-- **fgraph static types** (legacy, no node-edge engine): `dep-graph · deployment-tiers · dual-cluster · lane-swim · layered · linear-flow · machine-clusters · radial-hub · radial-ring · scatter · bubble · radar · funnel · system-architecture`
+- **fd-engine first-class** (read the golden before generating): `fd-architecture` — the canonical golden with `useCases[]`; `fd-architecture-uc.html` is the particles+interactions smoke
+- **Native kept** (no engine equivalent): `lane-swim` (swimlane / sequence / pipeline) · `dep-graph` (data-driven) · `funnel` (explainer component)
+- **Proposition examples** (static look / print fallback — not first-class): `radial-hub · system-architecture · layered · deployment-tiers · machine-clusters · dual-cluster · radial-ring · linear-flow · scatter · bubble · radar`
 
-Note: `er.html`, `gantt.html`, `pie.html`, `sequence.html`, `state.html` static templates have been removed — use the `fd-<type>.html` fd-engine examples instead.
+Note: the auto-layout (elk) and chart fd-engine types (`flowchart`, `state`, `class`, `er`, `sequence`, `gantt`, `pie`, `xychart`) were retired 2026-06-22 (premium-only purge) pending a premium-first rebuild — route those needs to the fgraph static templates above (`lane-swim` for sequence / pipeline).
 
 **Dependency graph exception:** `dep-graph.html` is data-driven and requires `gen-deps.py` for correct topological layout (column widths, corridor routing). For hand-crafted small dependency graphs (≤ 6 nodes), use `layered.html` with hand-assigned `--x/--y` following R1 even-stride — manual fill of dep-graph.html produces irregular layouts because the template's positioning formulas are designed for Python-side injection, not human ad-hoc placement.
 
@@ -310,13 +346,9 @@ All classes below exist in `base/components.css` + `base/explainer-base.css`.
 |---|---|---|---|
 | Dep-graph (`dep-graph.html`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for phase/status colors |
 | Linear flow (`linear-flow.html`) | `.hero.left-border` | `.section-label.dot` | `.phases` + `.phase-card` |
-| Sequence (fd-engine `type:"sequence"`) | `.hero.left-border` | `.section-label.dot` | `.phases` (time-grouped arcs) + `.card.accent` legend |
-| State machine (fd-engine `type:"state"`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for state meanings |
+| Swimlane / sequence / pipeline (`lane-swim.html`) | `.hero.left-border` | `.section-label.dot` | `.phases` (time-grouped arcs) + `.card.accent` legend |
 | Radial hub (`radial-hub.html`, ≤ 6 peers) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend for edge types (pills/warn/ok) |
 | System architecture (`system-architecture.html`) | header with `.fg-live-dot` + accent title | `.section-label.square` (optional) | built-in `.info-card-grid` row (3 cards); no extra hero needed |
-| Gantt (fd-engine `type:"gantt"`) | `.hero.top-border` | `.section-label.triangle` | `.stat-grid` for milestones (optional) |
-| Pie (fd-engine `type:"pie"`) | `.hero.left-border` | `.section-label.dot` | `.card.accent` legend if > 5 slices |
-| ER schema (fd-engine `type:"er"`) | `.hero.left-border` | `.section-label.square` | `.card.accent` legend for relationship types |
 | Architecture layers (`layered.html` / `deployment-tiers.html`) | `.hero.elevated` | `.section-label.square` | `.stat-grid` + `.stat` |
 | Timeline (steps) | `.hero.top-border` | `.section-label.triangle` | `.steps` + `.step` + `.step-num` |
 | Explainer | `.hero.left-border` | `.section-label.dot` | `.io-strip` + `.io-box` + `.io-arrow` |
@@ -340,6 +372,10 @@ Cross-type: use `.card.info` / `.card.warning` / `.card.critical` for inline ton
 **Signal:** What's the ONE thing the reader should walk away remembering (Frame Signal 2)? A number → `.stat-grid`. A path through steps → `.steps` timeline. A comparison → `.table-wrap > table`. A decision with trade-offs → `.io-strip`. If more than one answer fits, the diagram is doing too much — Frame Signal 2 is underspecified.
 
 ### Deliver — Generate + verify
+
+**fd-engine outputs additionally:**
+- Run `python3 scripts/validate-fd.py` on the generated HTML (or `--in/--out` one-shot) — **exit 0 required** before writing to `~/.roxabi/forge/`.
+- For Lyra-scale architecture, use `fixtures/lyra-stack-v2.expect.json` or author a sibling `<slug>.expect.json` with node counts and `layout.pairs` min gaps.
 
 **Always** (both tracks):
 - Walk `references/anti-patterns.md` before emitting HTML — confirm no rule is violated, or invoke a named exception.
@@ -484,38 +520,22 @@ Example: `Frame: reader=new contributor, action=onboarding, takeaway=three-proce
 
 ## Phase 2 — Visual Type
 
-| Content | Approach |
+**Default routing directive (quality bar):** for any node-and-edge diagram, the **fd-engine path with `cardStyle: premium`** is the default — it delivers the Craft Quality Bar (beziers, glow, icons, edge-flow, dual-font typography) automatically. Treat the static fgraph templates in the table below as **propositions / layout hints**, not the output ceiling: pick the one whose *shape* matches, then render it through the fd-engine descriptor (set `glow`/`flow`/`icon` per the Craft Quality Bar). Use a static template's raw HTML only for print/PDF/no-JS exports, where the craft must be hand-authored.
+
+| Content | Path (premium default) |
 |---------|----------|
-| Task / issue dependency graph | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) |
-| Data flow between services (linear) | `graph-templates/linear-flow.html` |
-| **Swimlane / message-flow / request lifecycle** | **`graph-templates/lane-swim.html`** |
-| API / message sequence | fd-engine descriptor `type:"sequence"` + bun elk step |
-| State machine | fd-engine descriptor `type:"state"` + bun elk step |
-| Timeline / schedule / roadmap | fd-engine descriptor `type:"gantt"` |
-| Proportion / share / composition | fd-engine descriptor `type:"pie"` |
-| Entity-relationship schema | fd-engine descriptor `type:"er"` + bun elk step |
-| **Hub-and-spoke / message bus / gateway (≤ 6 peers, rich cards)** | **`graph-templates/radial-hub.html` + `fgraph-base.css`** |
-| Architecture layers (stacked, text-heavy) | CSS Grid cards |
-| Layered architecture (3–4 tiers) | `graph-templates/layered.html` or `deployment-tiers.html` |
-| Multi-host deployment | `graph-templates/machine-clusters.html` |
-| Simple timeline | CSS flex with connectors |
-| 2-variable correlation / X↔Y scatter | `graph-templates/scatter.html` |
-| 3-variable data (X, Y + magnitude as bubble size) | `graph-templates/bubble.html` |
-| Multi-axis comparison (N metrics, radar/spider) | `graph-templates/radar.html` |
-| Pipeline / stage conversion (funnel) | `graph-templates/funnel.html` |
+| Architecture / system / topology (any scale) | fd-engine `type:"architecture"` / `"hub-spoke"` → `scripts/gen-fd.py` (+ optional `useCases[]`) |
+| **Flow / pipeline / sequence / lifecycle** | **`graph-templates/lane-swim.html`** (multi-actor / API sequence — preferred) · `layered.html` / `linear-flow.html` for simple layered flow |
+| Funnel / stage conversion (explainer **component**) | `graph-templates/funnel.html` |
+| Issue / dependency graph (data-driven) | `graph-templates/dep-graph.html` (fed by `scripts/gen-deps.py`) |
+| Comparison / matrix (≥4 rows or ≥3 cols) | HTML `<table>` |
+| Architecture, stacked text-heavy, no arrows | CSS Grid cards |
 
-**Decision rule for architecture diagrams:**
-- Linear pipeline (2–3 stages) → `linear-flow.html`
-- Swimlane / message-flow / request lifecycle (N lanes × N rows) → `lane-swim.html`
-- Radial / hub-and-spoke with rich cards (pills, warn, multi-line) → `radial-hub.html` / `radial-ring.html`
-- Layered architecture (3–4 tiers) → `layered.html` or `deployment-tiers.html`
-- Multi-host deployment → `machine-clusters.html`
-- Architecture with node topology + arrows, ≤ 8 nodes → foreignObject+CSS Flexbox SVG
-- Stacked text-heavy, no arrows → CSS Grid cards (fallback)
-- > 8 nodes or a shape no template covers → **split the diagram** into sub-diagrams, or use `layered.html` with hand-assigned `--x/--y`
-- See `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md` for the full decision matrix.
+**Propositions** (consider, not first-class — generate bespoke via the engine; static template only for print / no-JS): radial-hub · system-architecture · layered · deployment-tiers · machine-clusters · linear-flow · dual-cluster · radial-ring → `type:"architecture"`. Data-charts (scatter · bubble · radar) → fgraph static templates, only when the user explicitly asks for one. Timeline / proportion / UML / ER / state-machine fd-engine types were retired 2026-06-22 (premium-only purge) — no current premium path, rebuild later.
 
-fgraph-radial caps at ~6 satellites before labels collide. For dense graphs (> 8 nodes) split into sub-diagrams rather than cramming — **or** use Live mode (below).
+**Decision rule for architecture diagrams:** default to **fd-engine `type:"architecture"`** via `python3 scripts/gen-fd.py --in <descriptor.json> --out <file>.html` for any node-and-edge architecture, at **any scale** — it absorbs the old radial-hub / system-architecture / layered / deployment-tiers / machine-clusters / linear-flow / dual-cluster / radial-ring shapes into one premium path (set `glow` on the hub, `flow` on passive edges, `icon` per node). Use **swimlane** (`lane-swim`) for multi-actor pipelines and lifecycle walkthroughs. Reach for a static template's raw HTML only for print / no-JS export. Full matrix: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md`.
+
+For dense architecture, **fd-engine handles density** — do **not** split or fall back to fgraph live mode; generate one fd-engine diagram via `gen-fd.py`.
 
 ### Live mode (opt-in, interactive) — alternative to splitting
 
@@ -548,6 +568,32 @@ Choose `diagram:category` + `diagram:color` from `${CLAUDE_PLUGIN_ROOT}/referenc
 ## Phase 3 — Generate
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/references/phase-3-generate.md` before building the output.
+
+### fd-engine path (MANDATORY when Structure selected fd-engine)
+
+**Agent writes JSON only — never hand-assemble the HTML bundle.**
+
+```bash
+# 1. Write descriptor JSON (see § Descriptor JSON schema above)
+# 2. Generate self-contained HTML:
+python3 scripts/gen-fd.py --in <descriptor.json> --out <output.html> [--theme lyra-v2] [--title "..."]
+```
+
+`gen-fd.py` handles: aesthetic CSS inlining · fd-engine.css · page shell · `buildEngine()` bundle via bun · bootstrap.
+
+**Canonical fixture:** `plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json` — regression input for Lyra-scale architecture.
+
+**Quality bar:** output must have connected DOM-measured edges (no floating SVG paths). Compare against `graph-templates/examples/fd-architecture.html` and `lyra-stack-v2.html`. `huashu-design/*` mockups are **not** forge-chart targets.
+
+**Deliver gate (mandatory before writing output):**
+
+```bash
+python3 scripts/validate-fd.py --in <descriptor.json> --out /tmp/validate-fd.html [--title "..."]
+# or after gen-fd:
+python3 scripts/validate-fd.py --html <output.html> [--expect fixtures/<slug>.expect.json]
+```
+
+Do **not** report success until `validate-fd.py` exits 0. It checks: no unfilled placeholders · bundle symbols · all `.fd-node` are `position:absolute` · nodes inside canvas · min gaps (adapters, zone labels). Lyra regression: `bun run gen-fd:check`.
 
 
 ---
@@ -731,6 +777,10 @@ Serve + Deploy: see forge-ops.md
 - [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
 - [ ] **fgraph inlining:** `fgraph-base.css` is inlined into the output `<style>` (Mode A) — no `<link>` to `_shared/fgraph-base.css`
 - [ ] **Color contrast:** body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`; AA minimum, AAA preferred
+- [ ] **Craft bar — glow:** the hub / hero node carries `.fd-glow` (`node.glow: true`) — exactly one focal glow, not scattered
+- [ ] **Craft bar — edge-flow:** passive data/async edges use `.flow` (`edge.flow: true`); the critical path stays solid (no flow) for contrast
+- [ ] **Craft bar — icons:** node cards carry an `.fd-ico` / `.fgraph-node__icon` glyph where it aids scanning (all-or-none per diagram for consistency)
+- [ ] **Craft bar — dual-font:** both fd-engine and static fgraph render Sans title + Mono descriptor — verify no override flattened the pairing
 - [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
 
 $ARGUMENTS

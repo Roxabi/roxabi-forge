@@ -8,6 +8,10 @@
   "scripts": {
     "lint": "bunx biome check .",
     "format": "bunx biome check --write",
+    "gen-fd": "python3 scripts/gen-fd.py",
+    "validate-fd": "python3 scripts/validate-fd.py",
+    "validate-descriptor": "python3 scripts/validate-descriptor.py",
+    "gen-fd:check": "python3 scripts/validate-descriptor.py --in plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json --expect plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.expect.json && python3 scripts/gen-fd.py --in plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json --out /tmp/lyra-stack-v2-gen.html --title 'Lyra · Architecture' && python3 scripts/validate-fd.py --html /tmp/lyra-stack-v2-gen.html --expect plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.expect.json",
     "test": "bunx vitest run",
     "test:watch": "bunx vitest"
   },
@@ -15,7 +19,6 @@
     "@biomejs/biome": "^2.4.5",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
-    "elkjs": "^0.11.1",
     "happy-dom": "^20.8.9",
     "lefthook": "^2.1.4",
     "vitest": "^4.1.4"

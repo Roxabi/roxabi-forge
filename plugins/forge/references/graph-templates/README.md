@@ -1,12 +1,38 @@
 # Graph Templates
 
-Reusable HTML templates for static architecture / process-map / hub-and-spoke
-diagrams. Consumed by the `forge-chart` skill. Companion to
-`gallery-templates/` but for node-edge graphs instead of image grids.
+Node-edge diagrams for the `forge-chart` and `forge-guide` skills. Companion to
+`gallery-templates/` (image grids).
 
-**Lift, don't rebuild.** Before hand-rolling a new SVG, check if one of these
-templates covers the case. Copy the right template, fill the `{{PLACEHOLDERS}}`,
-tweak coordinates, inline the CSS. Done.
+## fd-engine first (default for node-edge topology)
+
+**Dense or interactive diagrams** (≥ 7 nodes, use-cases, zones, spotlight) → **do not copy templates here**.
+
+1. Write a descriptor JSON (`type`: `architecture`, `hub-spoke`)
+2. Generate: `python3 scripts/gen-fd.py --in descriptor.json --out diagram.html`
+3. Validate: `python3 scripts/validate-fd.py --html diagram.html` (exit 0 required)
+
+Quality bar: `examples/fd-architecture.html`, fixture `forge-chart/fixtures/lyra-stack-v2.json`. Shell: `fd-shell.html` + `fd-bootstrap.js` (assembled by `gen-fd.py` — **do not hand-copy** `examples/fd-*.html`).
+
+| fd-engine type | Example | Layout |
+|---|---|---|
+| `architecture` / `hub-spoke` | `examples/fd-architecture.html`, `examples/fd-architecture-uc.html` | declarative `x`/`y` 0..100 |
+
+## fgraph static (legacy — ≤ 6 nodes, print-safe, no JS)
+
+**Lift, don't rebuild** for small static diagrams only. Copy the template, fill
+`{{PLACEHOLDERS}}`, assign `--x`/`--y`, inline `fgraph-base.css`. No runtime JS.
+Do **not** use fgraph for Lyra-scale architecture — use fd-engine above.
+
+> **⚠ Status — these are *propositions*, not the default path.** As of forge-chart 0.4.0
+> the generator's **default** is the **fd-engine premium path** (`forge-chart/SKILL.md §
+> fd-engine diagram types`): DOM-measured bezier edges, premium cards, glow / edge-flow /
+> per-node icons. Most static templates below are **propositions to consider** — reach for
+> them for **print / PDF / no-JS** output or an explicit static-look request, or as a *layout
+> hint* you then render through an fd-engine descriptor.
+>
+> - **First-class engine types** (premium default): `architecture` · `hub-spoke`. Architecture absorbs radial-hub / system-architecture / layered / machine-clusters / linear-flow / dual-cluster / radial-ring. Other engine types (`flowchart`, `state`, `class`, `er`, `sequence`, `gantt`, `pie`, `xychart`) were retired 2026-06-22 (auto-layout elk + standalone chart types — premium-only purge) pending a premium-first rebuild.
+> - **Kept native** (no engine equivalent): **`lane-swim`** (swimlane — preferred for multi-actor pipelines & lifecycle walkthroughs) · **`dep-graph`** (data-driven, `gen-deps.py`) · **`funnel`** (explainer component) · **`radial-hub`** · **`linear-flow`** · **`dual-cluster`** · **`radial-ring`** · **`layered`** · **`machine-clusters`** · **`deployment-tiers`** · **`system-architecture`** · **`scatter`** · **`bubble`** · **`radar`**.
+> - **Retired — rebuild later**: `flowchart` · `state` · `class` (UML) · `er` · `sequence` · `gantt` · `pie`. For sequence/pipeline use cases use `lane-swim.html` instead.
 
 ## Showcase
 
@@ -287,23 +313,26 @@ Reference consumer: `~/.roxabi/forge/_shared/diagrams/roxabi-two-machine-deploym
 Reference consumer: `~/.roxabi/forge/_shared/diagrams/lyra-deployment-tiers.html`
 (lyra dev → staging → prod promotion flow via `make deploy` + pytest gate).
 
-### Retired legacy types → fd-engine
+### Retired types
 
-The following five types have been removed as static fgraph templates and are now
-implemented via the **fd-engine descriptor path** (see `forge-chart/SKILL.md §
-fd-engine diagram types`). Use `fd-engine descriptor type:"<t>"` instead.
+The following types were removed as both static fgraph templates and fd-engine types.
+Auto-layout (elk / `fd-layout.mjs`) and standalone chart renderers were deleted 2026-06-22
+(premium-only purge) pending a premium-first rebuild.
 
-| Former template | fd-engine type | bun elk step? | Example |
-|---|---|---|---|
-| `gantt.html` (deleted) | `type:"gantt"` | NO | `examples/fd-gantt.html` |
-| `pie.html` (deleted) | `type:"pie"` | NO | `examples/fd-pie.html` |
-| `er.html` (deleted) | `type:"er"` | YES | `examples/fd-er.html` |
-| `sequence.html` (deleted) | `type:"sequence"` | YES | `examples/fd-sequence.html` |
-| `state.html` (deleted) | `type:"state"` | YES | `examples/fd-state.html` |
+| Former path | Status | Routing |
+|---|---|---|
+| `gantt.html` + fd-engine `type:"gantt"` | **retired** | no current replacement — rebuild later |
+| `pie.html` + fd-engine `type:"pie"` | **retired** | no current replacement — rebuild later |
+| `er.html` + fd-engine `type:"er"` | **retired** | no current replacement — rebuild later |
+| `sequence.html` + fd-engine `type:"sequence"` | **retired** | use `lane-swim.html` for sequence/pipeline flows |
+| `state.html` + fd-engine `type:"state"` | **retired** | no current replacement — rebuild later |
+| fd-engine `type:"flowchart"` | **retired** | no current replacement — rebuild later |
+| fd-engine `type:"class"` (UML) | **retired** | no current replacement — rebuild later |
 
 The `fgraph-base.css` rules for `.fg-gantt-bar`, `.fg-lifeline`, `.fg-lifeline-activation`,
-and `.mk-er-stroke` are retained — they are consumed by the fd-engine output HTML at runtime
-via the inlined `fgraph-base.css` block.
+and `.mk-er-stroke` remain in `fgraph-base.css` but are **dormant** — the fd-engine output
+HTML that consumed them no longer exists. They will be reactivated or removed when the
+retired types are rebuilt.
 
 ### Dep-Graph
 
@@ -328,7 +357,7 @@ via the inlined `fgraph-base.css` block.
          └─────── parent #21 (ghost) ──────────────┘
 ```
 
-Template: [`dep-graph.html`](./dep-graph.html) · demo: [`examples/dep-graph.html`](./examples/dep-graph.html).
+Template: [`dep-graph.html`](./dep-graph.html) (template only — example golden removed in premium curation).
 Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
 
 ### Lane-swim
@@ -370,7 +399,7 @@ Native, consumed by `scripts/gen-deps.py` (rewritten in #23).
        │                                             ●─ AdapterOut
 ```
 
-Template: [`lane-swim.html`](./lane-swim.html) · demo: [`examples/lane-swim.html`](./examples/lane-swim.html).
+Template: [`lane-swim.html`](./lane-swim.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 
 ### Scatter
@@ -384,7 +413,7 @@ Native, no CDN, file://-safe. Height via `--fg-lane-min-height` (default 900px).
 > score vs tokens, CPU vs memory. Cap at ~200 points before the SVG
 > becomes illegible at normal viewport widths.
 
-Template: [`scatter.html`](./scatter.html) · demo: [`examples/scatter.html`](./examples/scatter.html).
+Template: [`scatter.html`](./scatter.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ### Bubble
@@ -398,7 +427,7 @@ Native, no CDN, file://-safe.
 > request latency × error-rate × traffic volume. Keep bubbles
 > non-overlapping or use low opacity to prevent occlusion.
 
-Template: [`bubble.html`](./bubble.html) · demo: [`examples/bubble.html`](./examples/bubble.html).
+Template: [`bubble.html`](./bubble.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ### Radar
@@ -413,7 +442,7 @@ Native, no CDN, file://-safe.
 > or feature coverage across N dimensions. Cap at 8 axes before
 > label spacing collapses.
 
-Template: [`radar.html`](./radar.html) · demo: [`examples/radar.html`](./examples/radar.html).
+Template: [`radar.html`](./radar.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ### Funnel
@@ -428,7 +457,7 @@ Native, no CDN, file://-safe.
 > built → tested → deployed), or any sequential process where tracking
 > attrition between steps matters.
 
-Template: [`funnel.html`](./funnel.html) · demo: [`examples/funnel.html`](./examples/funnel.html).
+Template: [`funnel.html`](./funnel.html) (template only — example golden removed in premium curation).
 Native, no CDN, file://-safe.
 
 ---
@@ -445,11 +474,11 @@ Native, no CDN, file://-safe.
 | `layered.html` | 3–4 horizontal layers (ingress → hub → workers → storage) | ~5K | 4 stacked layers with dashed frames, vertical fan-out/fan-in arrows, tall aspect (3/4), optional 3-layer variant |
 | `machine-clusters.html` | Multi-host deployment / distributed services across machines | ~5K | 3 machine frames side-by-side, cross-machine edge routing, wide aspect (16/9), per-machine labels |
 | `deployment-tiers.html` | CI/CD pipeline / dev → staging → prod promotion | ~5K | 3 colored tier stripes, promotion arrows upward, data sync arrows, tall aspect (4/5), tier-specific tones |
-| *(deleted)* `gantt.html` | → fd-engine descriptor `type:"gantt"` | — | Replaced by fd-engine; see `examples/fd-gantt.html` |
-| *(deleted)* `pie.html` | → fd-engine descriptor `type:"pie"` | — | Replaced by fd-engine; see `examples/fd-pie.html` |
-| *(deleted)* `er.html` | → fd-engine descriptor `type:"er"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-er.html` |
-| *(deleted)* `sequence.html` | → fd-engine descriptor `type:"sequence"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-sequence.html` |
-| *(deleted)* `state.html` | → fd-engine descriptor `type:"state"` + bun elk step | — | Replaced by fd-engine; see `examples/fd-state.html` |
+| *(retired)* `gantt.html` | — | — | Retired 2026-06-22; no current replacement — rebuild later |
+| *(retired)* `pie.html` | — | — | Retired 2026-06-22; no current replacement — rebuild later |
+| *(retired)* `er.html` | — | — | Retired 2026-06-22; no current replacement — rebuild later |
+| *(retired)* `sequence.html` | — | — | Retired 2026-06-22; use `lane-swim.html` for sequence/pipeline flows |
+| *(retired)* `state.html` | — | — | Retired 2026-06-22; no current replacement — rebuild later |
 | `dep-graph.html` | Issue dependency graph — phase-column × issue-card matrix | ~5K | Phase-column header row, `.fg-dep-card` positioned via `--x`/`--y` (Python-injected), elbow-routed SVG paths, `.ghost` cross-phase placeholders |
 | `lane-swim.html` | Message flow / request lifecycle across N architectural lanes, one node per row | ~6K | Lane header strip (`.fg-lane-header`/`.fg-lane-title`), phase separator lines (`.fg-lane-phase-line`/`.fg-lane-phase-lbl`), 18 px circle nodes (`.fg-lane-node`), inline tag pills (`.fg-lane-tag`), S-curve + parallel-bend connectors (`.fg-lane-curve`), chip-on-wire edge labels (`.fg-edge-lbl`), `--fg-lane-min-height` knob |
 | `scatter.html` | Scatter — X↔Y correlation between two continuous variables | ~3K | Inline SVG axis box, pre-computed tick marks and grid lines, labelled axes, circle marks per datum |
@@ -464,7 +493,7 @@ All **14 native fgraph** templates (`radial-hub`, `linear-flow`,
 share **`fgraph-base.css`** — the CSS primitives for graphs. Distribution
 model depends on the consumer (see "Inlined vs shared" below).
 
-`gantt`, `pie`, `er`, `sequence`, `state` are retired — use the fd-engine path.
+`gantt`, `pie`, `er`, `sequence`, `state` are retired. For sequence/pipeline flows use `lane-swim.html`. All other retired types have no current replacement — rebuild later.
 
 ### Primitives (`fgraph-base.css`)
 
@@ -688,6 +717,13 @@ Two gates prevent drift from reaching the runtime artifacts:
 Pick by layout intent, not by domain. Any template can be re-tinted
 (tones, pills) to match the domain.
 
+> **Default first.** This picker is for *static* output. For on-screen diagrams,
+> the two surviving fd-engine types route as follows: "1 center + 4–6 peers" →
+> `type:"hub-spoke"`, "3–4 horizontal layers" / "machine frames" / "dev-staging-prod
+> tiers" → `type:"architecture"`. Flowchart / state / class / er / sequence / gantt /
+> pie types are retired — use the static templates listed here or wait for the
+> premium-first rebuild. Use a static template for print / no-JS or an explicit static-look request.
+
 | Your diagram shape | Template | Reference |
 |--------------------|----------|-----------|
 | 1 center + 4–6 peers radiating out | `radial-hub.html` | 2.1, M1, M2 |
@@ -697,11 +733,11 @@ Pick by layout intent, not by domain. Any template can be re-tinted
 | 3–4 horizontal layers stacked vertically | `layered.html` | service architecture |
 | 2–3 machine frames side-by-side | `machine-clusters.html` | distributed deployment |
 | Dev / staging / prod tiers stacked | `deployment-tiers.html` | CI/CD pipeline |
-| Timeline / schedule / roadmap with dated tasks | fd-engine descriptor `type:"gantt"` → `examples/fd-gantt.html` | release plan, multi-workstream project |
-| Proportion / share / composition — 3–7 slices | fd-engine descriptor `type:"pie"` → `examples/fd-pie.html` | cost or traffic breakdown |
-| Entity-relationship schema — tables + FK/cardinality | fd-engine descriptor `type:"er"` + bun elk step → `examples/fd-er.html` | DB schema, domain model |
-| Protocol exchange / message flow / pipeline — ≤ 15 messages | fd-engine descriptor `type:"sequence"` + bun elk step → `examples/fd-sequence.html` | `/dev` pipeline interaction, API handshake |
-| Finite-state machine / lifecycle — ≤ 6 states | fd-engine descriptor `type:"state"` + bun elk step → `examples/fd-state.html` | issue lifecycle, review workflow, connection states |
+| Timeline / schedule / roadmap with dated tasks | *(retired 2026-06-22 — no current replacement; rebuild later)* | release plan, multi-workstream project |
+| Proportion / share / composition — 3–7 slices | *(retired 2026-06-22 — no current replacement; rebuild later)* | cost or traffic breakdown |
+| Entity-relationship schema — tables + FK/cardinality | *(retired 2026-06-22 — no current replacement; rebuild later)* | DB schema, domain model |
+| Protocol exchange / message flow / pipeline — ≤ 15 messages | `lane-swim.html` | `/dev` pipeline interaction, API handshake |
+| Finite-state machine / lifecycle — ≤ 6 states | *(retired 2026-06-22 — no current replacement; rebuild later)* | issue lifecycle, review workflow, connection states |
 | Issue dependency graph — phase columns × issue cards | `dep-graph.html` | roadmap backlog, blocks/depends-on visualisation (via `gen-deps.py` in #23) |
 | Message flow / request lifecycle crossing N architectural layers over M phases | `lane-swim.html` | clean-arch layer trace, pipeline walkthrough, process with optional steps |
 | Scatter — X↔Y correlation between two continuous variables | `scatter.html` | latency vs payload, score vs tokens, any 2-var correlation |
@@ -715,13 +751,16 @@ All 14 remaining native fgraph templates (`radial-hub`, `linear-flow`, `dual-clu
 `dep-graph`, `lane-swim`, `system-architecture`,
 `scatter`, `bubble`, `radar`, `funnel`) share the same
 `fgraph-base.css` primitives — differences live only in layout coordinates
-and a few shape-specific extensions (`.fg-axis-date`, `.fg-gantt-bar`,
-`.fg-lifeline`, `.fg-er-*` markers, `.fg-lane-*` swimlane primitives), so
+and a few shape-specific extensions (`.fg-axis-date`, `.fg-lane-*` swimlane primitives), so
 mixing features (e.g. a linear-flow with a dashed machine frame borrowed from
 radial-hub) is just copy-paste.
 
-Note: `gantt`, `pie`, `er`, `sequence`, `state` have moved to the fd-engine path — see
-the "Retired legacy types → fd-engine" section above.
+Note: `fgraph-base.css` still contains `.fg-gantt-bar`, `.fg-lifeline`, `.fg-lifeline-activation`,
+and `.mk-er-stroke` — these are **dormant**; the fd-engine output that consumed them was retired
+2026-06-22 (see "Retired types" section above). They will be reactivated or removed when those
+types are rebuilt.
+
+`gantt`, `pie`, `er`, `sequence`, `state` are retired — see the "Retired types" section above.
 
 ---
 
@@ -1152,8 +1191,8 @@ Remove the dev tier for a staging → prod view:
 | If your diagram is… | Use instead |
 |--------------------|-------------|
 | Linear flow / pipeline | `linear-flow.html` — 3-stage horizontal |
-| Sequence / message exchange | fd-engine descriptor `type:"sequence"` — participant strips + DOM-measured arrows |
-| State machine | fd-engine descriptor `type:"state"` — circle/diamond shapes + bezier edges |
+| Sequence / message exchange | `lane-swim.html` — participant strips + phase swimlanes |
+| State machine | *(retired 2026-06-22 — no current replacement; rebuild later)* |
 | Dependency graph > 8 nodes | `dep-graph.html` — phase columns + issue cards (via `gen-deps.py`) |
 | Tree / hierarchy | Start from `layered.html` and adapt |
 | Rich cards stacked vertically (no hub) | `architecture.html` pattern from visual-explainer — CSS Grid cards + tiny inline SVG connectors |
@@ -1378,7 +1417,7 @@ Static templates hand-author every `<path>` and lean on layout rules R1–R7 to 
 
 ## Extending the template set
 
-All core topologies are now covered. If you need a new shape:
+All static topologies are documented here. For on-screen / interactive output two fd-engine types are available: `architecture` and `hub-spoke` (see the status banner at the top). Other fd-engine types (`flowchart`, `state`, `class`, `er`, `sequence`, `gantt`, `pie`) were retired 2026-06-22 — rebuild later. If you need a new static shape:
 
 1. Start from the closest template
 2. Reposition nodes via `--x`/`--y`

@@ -35,6 +35,31 @@ fi
 echo "▸ Injecting Open Graph meta tags…"
 python3 "$SCRIPT_DIR/gen-og-tags.py"
 
+if [ -x "$SCRIPT_DIR/gen-fd.py" ] && [ -f "$SCRIPT_DIR/validate-fd.py" ]; then
+  FIXTURE="$SCRIPT_DIR/fixtures/lyra-stack-v2.json"
+  EXPECT="$SCRIPT_DIR/fixtures/lyra-stack-v2.expect.json"
+  if [ -f "$FIXTURE" ] && [ -f "$EXPECT" ]; then
+    echo "▸ Validating fd-engine toolchain (lyra fixture)…"
+    python3 "$SCRIPT_DIR/validate-descriptor.py" --in "$FIXTURE" --expect "$EXPECT"
+    OUT="/tmp/forge-fd-check-$$.html"
+    python3 "$SCRIPT_DIR/gen-fd.py" --in "$FIXTURE" --out "$OUT" --title "Lyra · Architecture"
+    VALIDATE_ARGS=(--html "$OUT" --expect "$EXPECT")
+    if command -v uv >/dev/null 2>&1 \
+      && timeout 30 uv run --with playwright python3 -c "import playwright" >/dev/null 2>&1; then
+      echo "  ▸ Running full Playwright fd layout gate…"
+    else
+      echo "  ⚠ Playwright unavailable — fd gate static-only (CI runs full browser checks)"
+      VALIDATE_ARGS+=(--static-only)
+    fi
+    timeout 180 python3 "$SCRIPT_DIR/validate-fd.py" "${VALIDATE_ARGS[@]}"
+    rm -f "$OUT"
+  else
+    echo "  ⚠ fd fixtures missing — skipping gen-fd gate"
+  fi
+else
+  echo "▸ Skipping gen-fd gate (tooling not deployed)"
+fi
+
 echo "▸ Syncing to _dist/…"
 mkdir -p "$DIST"
 # Cloudflare Pages caps files at 25 MiB. Warn on oversize files so they're
@@ -54,8 +79,14 @@ rsync -aL --delete --delete-excluded \
   --max-size=25M \
   --exclude='_dist/' \
   --exclude='*.py' \
+  --exclude='graph-templates/*.html' \
+  --exclude='graph-templates/*.og.png' \
   --exclude='__pycache__/' \
   --exclude='.git/' \
+  --exclude='.env' \
+  --exclude='.env.*' \
+  --exclude='.stignore' \
+  --exclude='Makefile' \
   --exclude='.stversions/' \
   --exclude='lyra/brand/prompts/' \
   --exclude='lyra/avatar/prompts/' \
@@ -73,6 +104,13 @@ rsync -aL --delete --delete-excluded \
     # exit code 23 = partial transfer (e.g. dangling symlinks) — non-fatal
     [ $RC -eq 23 ] && echo "  ⚠ rsync: skipped some files (broken symlinks?) — continuing" || exit $RC
   }
+
+# Defense-in-depth: _dist/ is deployed VERBATIM to public Cloudflare Pages, so a
+# single missed --exclude leaks a secret. Hard-scrub secrets/operational files
+# from the receiver regardless of exclude patterns, and drop a wrangler
+# .assetsignore so the platform refuses to upload them even if they reappear.
+rm -f "$DIST/.env" "$DIST"/.env.* "$DIST/Makefile" "$DIST/.stignore" 2>/dev/null || true
+printf '.env\n.env.*\nMakefile\n.stignore\n.git\n' > "$DIST/.assetsignore"
 
 # Purge oversize files left over in _dist/ from previous runs — rsync's
 # --max-size skips transfer but doesn't delete existing receiver files.

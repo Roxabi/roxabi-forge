@@ -1,0 +1,357 @@
+#!/usr/bin/env python3
+"""
+gen-fd.py — data-driven generator for fd-engine diagram HTML.
+
+Reads a descriptor JSON, bundles the fd-engine via bun + bundler.js, and emits a
+self-contained HTML file. Supported types: architecture, hub-spoke (declarative).
+
+Usage:
+  python3 scripts/gen-fd.py --in descriptor.json --out diagram.html
+  python3 scripts/gen-fd.py --in descriptor.json --out diagram.html --theme lyra-v2
+  python3 scripts/gen-fd.py --in descriptor.json --out diagram.html --title "My Diagram"
+
+Descriptor schema: see plugins/forge/skills/forge-chart/SKILL.md § Descriptor JSON schema.
+Legacy partial descriptors (nodes/edges/useCases only) are normalized automatically.
+"""
+
+from __future__ import annotations
+
+import argparse
+import html
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(_SCRIPTS_DIR))
+from forge_paths import NODE_REQUIRED_TYPES, resolve_forge_ref, script_root  # noqa: E402
+
+ROOT = script_root(__file__)
+FORGE_REF = resolve_forge_ref(ROOT)
+GRAPH_DIR = FORGE_REF / "graph-templates"
+FD_DIR = GRAPH_DIR / "fd"
+AESTHETICS_DIR = FORGE_REF / "aesthetics"
+SHELL_PATH = GRAPH_DIR / "fd-shell.html"
+PAGE_SHELL_CSS = GRAPH_DIR / "fd-page-shell.css"
+FD_ENGINE_CSS = GRAPH_DIR / "fd-engine.css"
+BOOTSTRAP_JS = GRAPH_DIR / "fd-bootstrap.js"
+
+# Premium fd-engine: declarative node-graph types only. Auto-layout (elk) and
+# standalone chart types were removed (2026-06-22 premium-only purge) — topology
+# / flow / timeline / proportion needs are served by fgraph static templates
+# (graph-templates/*.html). Further types: reconstruct later, premium-first.
+NODE_EDGE_TYPES = frozenset({"architecture", "hub-spoke"})
+
+PLANE_STROKE = {
+    "control": "var(--cyan)",
+    "write": "var(--green)",
+    "read": "var(--purple)",
+    "data": "var(--plum)",
+    "async": "var(--amber)",
+    "feedback": "var(--accent)",
+    "message": "var(--cyan)",
+    "media": "var(--amber)",
+    "llm": "var(--purple)",
+    "flow": "var(--cyan)",
+    "error": "var(--red)",
+    "success": "var(--green)",
+    "decision": "var(--amber)",
+}
+
+THEME_COLORS = {
+    "lyra-v2": "#22d3ee",
+    "lyra": "#22d3ee",
+    "cool-dark": "#38bdf8",
+    "editorial": "#e85d04",
+    "warm-light": "#d97706",
+    "mono-slate": "#64748b",
+    "roxabi": "#e85d04",
+    "terminal": "#22d3ee",
+    "blueprint": "#58a6ff",
+    "caveman": "#f59e0b",
+}
+
+
+def eprint(*args: object) -> None:
+    print(*args, file=sys.stderr)
+
+
+def sanitize_theme(theme: str) -> str:
+    if not theme or "/" in theme or "\\" in theme or ".." in theme:
+        eprint(f"gen-fd: invalid theme name: {theme!r}")
+        sys.exit(1)
+    stem = Path(theme).stem if theme.endswith(".css") else theme
+    if not stem or Path(stem).name != stem:
+        eprint(f"gen-fd: invalid theme name: {theme!r}")
+        sys.exit(1)
+    return stem
+
+
+def json_for_script_tag(data: object) -> str:
+    """Serialize descriptor JSON safe for embedding in <script id=\"fd-data\">."""
+    raw = json.dumps(data, ensure_ascii=False, indent=2)
+    return raw.replace("<", "\\u003c")
+
+
+def read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def run_bun_build_engine(diagram_type: str) -> str:
+    fd_dir = str(FD_DIR.resolve())
+    script = (
+        f"import {{ buildEngine }} from '{fd_dir}/bundler.js';\n"
+        f"console.log(buildEngine('{fd_dir}', '{diagram_type}'));\n"
+    )
+    result = subprocess.run(
+        ["bun", "-e", script],
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        check=False,
+    )
+    if result.returncode != 0:
+        eprint("gen-fd: bundler.js failed:")
+        eprint(result.stderr or result.stdout)
+        sys.exit(1)
+    return result.stdout
+
+
+def normalize_descriptor(raw: dict, *, theme: str, title: str | None) -> dict:
+    desc = dict(raw)
+
+    diagram_type = desc.get("type") or "architecture"
+    desc["type"] = diagram_type
+
+    # All supported types are node-graph types and must carry a `nodes` array.
+    if diagram_type in NODE_REQUIRED_TYPES and not isinstance(desc.get("nodes"), list):
+        eprint(f"gen-fd: descriptor type '{diagram_type}' requires a 'nodes' array")
+        sys.exit(1)
+
+    desc.setdefault("theme", theme)
+    desc.setdefault("layout", "declarative")
+    desc.setdefault("title", title or desc.get("title") or "Diagram")
+    desc.setdefault("canvas", {"height": 1040})
+    if isinstance(desc["canvas"], (int, float)):
+        desc["canvas"] = {"height": int(desc["canvas"])}
+
+    options = dict(desc.get("options") or {})
+    options.setdefault("particles", False)
+    options.setdefault("spotlight", True)
+    options.setdefault("sidebar", diagram_type in {"architecture", "hub-spoke"})
+    desc["options"] = options
+
+    if "edges" not in desc:
+        desc["edges"] = []
+
+    return desc
+
+
+def unique_planes(edges: list[dict]) -> list[str]:
+    seen: set[str] = set()
+    planes: list[str] = []
+    for edge in edges:
+        plane = edge.get("plane")
+        if plane and plane not in seen:
+            seen.add(plane)
+            planes.append(plane)
+    return planes
+
+
+def build_plane_legend(planes: list[str]) -> str:
+    if not planes:
+        return ""
+    items = []
+    for plane in planes:
+        color = PLANE_STROKE.get(plane, "var(--text-muted)")
+        items.append(
+            f'<span class="lg"><span class="lln" style="border-color:{color}"></span>'
+            f"{html.escape(plane)}</span>"
+        )
+    return f'<div class="legend">{"".join(items)}</div>'
+
+
+def build_plane_filters(planes: list[str]) -> str:
+    if not planes:
+        return ""
+    buttons = []
+    for plane in planes:
+        buttons.append(
+            f'<span class="ctl" id="ctl-{html.escape(plane)}" data-plane="{html.escape(plane)}">'
+            f"{html.escape(plane)}</span>"
+        )
+    return f'<div class="ctl-group">{"".join(buttons)}</div>'
+
+
+def build_use_case_bar(use_cases: list[dict] | None) -> str:
+    if not use_cases:
+        return ""
+    buttons = []
+    for idx, uc in enumerate(use_cases):
+        label = uc.get("title") or f"case {idx + 1}"
+        buttons.append(
+            f'<button class="uc-btn" data-uc="{idx}">{html.escape(label)}</button>'
+        )
+    return (
+        '<div class="uc-bar">'
+        '<span class="uc-label">use case:</span>'
+        + "".join(buttons)
+        + '<button class="uc-play" id="ucPlay" disabled>&#9654; play</button>'
+        + '<button class="uc-reset" id="ucReset">&#8634; reset</button>'
+        + "</div>"
+    )
+
+
+def build_zone_html(zones: list[dict] | None) -> str:
+    if not zones:
+        return ""
+    parts = []
+    for zone in zones:
+        zone_id = html.escape(zone.get("id", ""))
+        zone_class = html.escape(zone.get("class", ""))
+        label = html.escape(zone.get("label", ""))
+        parts.append(
+            f'<div class="fd-zone {zone_class}" id="{zone_id}">'
+            f'<span class="fd-zone-label">{label}</span></div>'
+        )
+    return "\n        ".join(parts)
+
+
+def format_title_html(title: str) -> str:
+    if " — " in title:
+        left, right = title.split(" — ", 1)
+        return f"<b>{html.escape(left)}</b> — {html.escape(right)}"
+    if " - " in title:
+        left, right = title.split(" - ", 1)
+        return f"<b>{html.escape(left)}</b> - {html.escape(right)}"
+    return f"<b>{html.escape(title)}</b>"
+
+
+def build_subtitle(desc: dict) -> str:
+    diagram_type = desc["type"]
+    theme = desc.get("theme", "lyra-v2")
+    layout = desc.get("layout", "declarative")
+    parts = [f"fd-engine · {diagram_type}", theme, layout]
+    parts.append(
+        f"{len(desc.get('nodes') or [])} nodes · {len(desc.get('edges') or [])} edges"
+    )
+    uc_count = len(desc.get("useCases") or [])
+    if uc_count:
+        parts.append(f"{uc_count} use cases")
+    parts.append("DOM-measured bezier edges")
+    return html.escape(" · ".join(parts))
+
+
+def resolve_aesthetic(theme: str) -> Path:
+    theme = sanitize_theme(theme)
+    path = (AESTHETICS_DIR / f"{theme}.css").resolve()
+    base = AESTHETICS_DIR.resolve()
+    if not path.is_relative_to(base):
+        eprint(f"gen-fd: theme path escapes aesthetics dir: {theme}")
+        sys.exit(1)
+    if path.exists():
+        return path
+    fallback = AESTHETICS_DIR / "lyra-v2.css"
+    if not fallback.exists():
+        eprint(f"gen-fd: aesthetic not found: {theme} (and no lyra-v2.css fallback)")
+        sys.exit(1)
+    eprint(f"gen-fd: aesthetic '{theme}' not found — falling back to lyra-v2")
+    return fallback
+
+
+def assemble_html(desc: dict) -> str:
+    shell = read_text(SHELL_PATH)
+    theme = desc.get("theme", "lyra-v2")
+    aesthetic_css = read_text(resolve_aesthetic(theme))
+    fd_engine_css = read_text(FD_ENGINE_CSS)
+    page_shell_css = read_text(PAGE_SHELL_CSS)
+    bootstrap_js = read_text(BOOTSTRAP_JS)
+    bundle = run_bun_build_engine(desc["type"])
+
+    planes = unique_planes(desc.get("edges") or [])
+    use_cases = desc.get("useCases") or []
+    show_sidebar = desc.get("options", {}).get("sidebar", True) and desc["type"] in {
+        "architecture",
+        "hub-spoke",
+    }
+
+    title = desc.get("title", "Diagram")
+    category = "architecture" if desc["type"] in {"architecture", "hub-spoke"} else desc["type"]
+
+    replacements = {
+        "{LANG}": "en",
+        "{TITLE_ESC}": html.escape(title),
+        "{TITLE_HTML}": format_title_html(title),
+        "{SUBTITLE}": build_subtitle(desc),
+        "{CATEGORY}": html.escape(category),
+        "{COLOR}": THEME_COLORS.get(theme, "#22d3ee"),
+        "{TYPE}": html.escape(desc["type"]),
+        "{THEME}": html.escape(theme),
+        "{AESTHETIC_CSS}": aesthetic_css,
+        "{FD_ENGINE_CSS}": fd_engine_css,
+        "{PAGE_SHELL_CSS}": page_shell_css,
+        "{PLANE_LEGEND}": build_plane_legend(planes),
+        "{PLANE_FILTERS}": build_plane_filters(planes),
+        "{USE_CASE_BAR}": build_use_case_bar(use_cases),
+        "{NET_LABEL}": (
+            f'<div class="fd-net-label">{html.escape(desc.get("netLabel", ""))}</div>'
+            if desc.get("netLabel")
+            else ""
+        ),
+        "{ZONE_HTML}": build_zone_html(desc.get("zones")),
+        "{STAGE_CLASS}": "" if show_sidebar else " full-width",
+        "{SIDEBAR_CLASS}": "" if show_sidebar else " hidden",
+        "{FD_DATA_JSON}": json_for_script_tag(desc),
+        "{FD_ENGINE_BUNDLE}": bundle,
+        "{FD_BOOTSTRAP_JS}": bootstrap_js,
+    }
+
+    output = shell
+    for key, value in replacements.items():
+        output = output.replace(key, value)
+    return output
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate fd-engine HTML from descriptor JSON")
+    parser.add_argument("--in", dest="input_path", required=True, help="Input descriptor JSON")
+    parser.add_argument("--out", dest="output_path", required=True, help="Output HTML file")
+    parser.add_argument("--theme", default="lyra-v2", help="Aesthetic theme (default: lyra-v2)")
+    parser.add_argument("--title", default=None, help="Override diagram title")
+    args = parser.parse_args()
+
+    input_path = Path(args.input_path).resolve()
+    output_path = Path(args.output_path).resolve()
+
+    if not input_path.exists():
+        eprint(f"gen-fd: input not found: {input_path}")
+        sys.exit(1)
+
+    try:
+        raw = json.loads(read_text(input_path))
+    except json.JSONDecodeError as exc:
+        eprint(f"gen-fd: invalid JSON: {exc}")
+        sys.exit(1)
+
+    desc = normalize_descriptor(raw, theme=sanitize_theme(args.theme), title=args.title)
+
+    diagram_type = desc["type"]
+    if diagram_type not in NODE_EDGE_TYPES:
+        eprint(
+            f"gen-fd: unsupported type '{diagram_type}'. "
+            f"Supported: {', '.join(sorted(NODE_EDGE_TYPES))}"
+        )
+        sys.exit(1)
+
+    html_out = assemble_html(desc)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html_out, encoding="utf-8")
+
+    line_count = html_out.count("\n") + 1
+    eprint(f"gen-fd: wrote {output_path} ({len(html_out):,} bytes, {line_count:,} lines)")
+    eprint(f"gen-fd: type={diagram_type} nodes={len(desc.get('nodes', []))} edges={len(desc.get('edges', []))}")
+
+
+if __name__ == "__main__":
+    main()

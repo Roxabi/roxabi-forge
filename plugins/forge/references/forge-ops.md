@@ -147,4 +147,4 @@ Detect project from ARGS or cwd. Check in order:
 4. `package.json` → `name`
 5. `git remote -v` → extract repo name from origin URL
 
-Unknown → DP(B): ask.
+Unknown → ask user: ask.

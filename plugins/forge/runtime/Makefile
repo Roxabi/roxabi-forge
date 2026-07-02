@@ -1,33 +1,21 @@
-FORGE_DIR       := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-SCRIPTS_DIR     := $(FORGE_DIR)scripts
-
-SUPERVISOR_HUB  ?= $(HOME)/projects
-HUB_SERVICES    := forge
--include $(SUPERVISOR_HUB)/hub.mk
+FORGE_DIR   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SCRIPTS_DIR := $(FORGE_DIR)scripts
 
 -include $(FORGE_DIR).env
 export CLOUDFLARE_ACCOUNT_ID
 export CLOUDFLARE_API_TOKEN
 
-define ensure_forge_init
-	@if [ ! -f "$(FORGE_DIR)serve.py" ] || [ ! -f "$(FORGE_DIR)run.sh" ]; then \
-		echo "Error: forge not initialized at $(FORGE_DIR)"; \
-		echo "       Run 'make forge install' first."; \
-		exit 1; \
-	fi
-endef
-
-.PHONY: build deploy du forge help
+.PHONY: build deploy du serve help
 
 .DEFAULT_GOAL := help
 
 help:
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "  build                   regenerate manifest + sync to _dist/"
-	@echo "  deploy                  build then deploy to Cloudflare Pages"
-	@echo "  du                      disk usage by project"
-	@echo "  forge <action>          start|stop|reload|status|logs|errlogs"
+	@echo "  build   regenerate manifest + sync to _dist/"
+	@echo "  deploy  build then deploy to Cloudflare Pages"
+	@echo "  du      disk usage by project"
+	@echo "  serve   local gallery on :8080 (foreground, Ctrl+C)"
 
 build:
 	@bash "$(SCRIPTS_DIR)/build.sh"
@@ -40,17 +28,10 @@ deploy: build
 du:
 	@du -sh "$(FORGE_DIR)"*/
 
-# ── Supervisor service (hub-dispatched) ─────────────────────────────────────────
-# Usage (from this dir or from ~/projects):
-#   make forge start|stop|reload|status|logs|errlogs
-
-forge:
-	@case "$(SVC_CMD)" in \
-		start|reload) \
-			if [ ! -f "$(FORGE_DIR)serve.py" ] || [ ! -f "$(FORGE_DIR)run.sh" ]; then \
-				echo "Error: forge not initialized at $(FORGE_DIR)"; \
-				echo "       Run 'make forge install' first."; \
-				exit 1; \
-			fi ;; \
-	esac
-	@$(HUB_SVC) forge $(SVC_CMD)
+serve:
+	@test -f "$(FORGE_DIR)serve.py" && test -f "$(FORGE_DIR)run.sh" || { \
+		echo "Error: forge not initialized at $(FORGE_DIR)"; \
+		echo "       Run plugin deploy first: make -C ~/projects/roxabi-forge/plugins/forge deploy"; \
+		exit 1; \
+	}
+	@exec "$(FORGE_DIR)run.sh"

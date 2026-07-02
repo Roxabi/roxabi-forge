@@ -56,24 +56,20 @@ Pick the matching template from `${CLAUDE_PLUGIN_ROOT}/references/graph-template
 </section>
 ```
 
-No runtime JS — fgraph is declarative CSS + SVG. All custom props (`--x`, `--y`) live in the 0..100 coordinate space. Arrow markers (`fg-arr-*`) are defined in `fgraph-base.css`; ER templates also use `fg-er-*` crow's-foot markers.
+No runtime JS — fgraph is declarative CSS + SVG. All custom props (`--x`, `--y`) live in the 0..100 coordinate space. Arrow markers (`fg-arr-*`) are defined in `fgraph-base.css`.
 
-Template picker — see `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md`:
+Template picker — fd-engine covers `architecture` and `hub-spoke` only; all other shapes route to fgraph static templates (full routing: `forge-chart/SKILL.md § Structure`):
 
-| Shape | Template |
+| Shape | Path |
 |---|---|
-| Hub-and-spoke (≤ 6 peers) | `radial-hub.html` |
-| Peer ring | `radial-ring.html` |
-| Linear pipeline | `linear-flow.html` |
-| Two peers sharing resources | `dual-cluster.html` |
-| Layered architecture (3–4 tiers) | `layered.html` / `deployment-tiers.html` |
-| Multi-host deployment | `machine-clusters.html` |
-| Timeline / gantt | fd-engine descriptor `type:"gantt"` |
-| Proportion / share | fd-engine descriptor `type:"pie"` |
-| ER schema | fd-engine descriptor `type:"er"` + bun elk step |
-| API sequence | fd-engine descriptor `type:"sequence"` + bun elk step |
-| State machine | fd-engine descriptor `type:"state"` + bun elk step |
-| Issue dependency graph | `dep-graph.html` |
+| Architecture / hub-spoke / multi-host / any node-edge topology | fd-engine descriptor `type:"architecture"` (or `"hub-spoke"`) → `scripts/gen-fd.py` |
+| Swimlane / multi-actor pipeline / process / sequence (preferred for lifecycles) | `lane-swim.html` |
+| Layered flow / funnel | `layered.html` · `linear-flow.html` |
+| Radial hub / ring topology | `radial-hub.html` · `radial-ring.html` |
+| Dual cluster / machine clusters | `dual-cluster.html` · `machine-clusters.html` |
+| Deployment tiers | `deployment-tiers.html` |
+| Issue / package dependency graph (data-driven) | `dep-graph.html` |
+| Bubble / radar / scatter | `bubble.html` · `radar.html` · `scatter.html` |
 
 ### Phase Cards (when applicable)
 
@@ -93,9 +89,36 @@ For process flows with distinct phases, use phase cards:
 </div>
 ```
 
-### fd-engine page shell + bootstrap (canonical pattern)
+### fd-engine generation pipeline (preferred — use `gen-fd.py`)
 
-For fd-engine types (`architecture`, `hub-spoke`, `er`, `sequence`, etc.), the output HTML follows this structure. Full reference: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/fd-architecture.html`.
+For all fd-engine types, **do not hand-assemble HTML**. Write descriptor JSON, then run:
+
+```bash
+python3 scripts/gen-fd.py --in <descriptor.json> --out <output.html> [--theme lyra-v2] [--title "..."]
+```
+
+`gen-fd.py` assembles `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/fd-shell.html` with:
+- aesthetic CSS + `fd-engine.css` + `fd-page-shell.css` inlined
+- `fd-data` JSON embedded
+- fd-engine bundle from `fd/bundler.js` (via bun)
+- `fd-bootstrap.js` runtime
+
+**Regression fixture:** `plugins/forge/skills/forge-chart/fixtures/lyra-stack-v2.json`
+
+**Validate before deliver (mandatory):**
+
+```bash
+python3 scripts/validate-fd.py --in <descriptor.json> --out /tmp/out.html
+# checks layout via Playwright + static bundle integrity; exit 0 required
+```
+
+Expectations: `fixtures/lyra-stack-v2.expect.json` — extend with `layout.pairs` for new spacing invariants.
+
+Manual assembly below is for debugging only — production output must come from `gen-fd.py`.
+
+### manual fallback (debug only — do not use for deliverables)
+
+For fd-engine types (`architecture`, `hub-spoke`), the output HTML follows this structure. Full reference: `${CLAUDE_PLUGIN_ROOT}/references/graph-templates/examples/fd-architecture.html`.
 
 **CSS inline order (critical — fd-engine.css must come AFTER the aesthetic):**
 ```html
