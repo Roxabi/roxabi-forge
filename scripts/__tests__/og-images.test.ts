@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 const SCRIPTS_DIR = fileURLToPath(new URL('..', import.meta.url))
 const GEN_OG_IMAGES = join(SCRIPTS_DIR, 'gen-og-images.py')
 const GEN_OG_TAGS = join(SCRIPTS_DIR, 'gen-og-tags.py')
+const GEN_MANIFEST = join(SCRIPTS_DIR, 'gen-manifest.py')
 
 // Makefile path for SC7
 const MAKEFILE = fileURLToPath(new URL('../../plugins/forge/Makefile', import.meta.url))
@@ -116,6 +117,35 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(forgeDir, { recursive: true, force: true })
+})
+
+// ---------------------------------------------------------------------------
+// Manifest preview flag — gen-manifest.py sets p when sibling .og.png exists
+// ---------------------------------------------------------------------------
+
+describe('gen-manifest: preview flag (p) when sibling .og.png exists', () => {
+  it('sets p on entries with .og.png and omits it otherwise', () => {
+    const subDir = join(forgeDir, 'sub')
+    mkdirSync(subDir, { recursive: true })
+    writeFileSync(join(subDir, 'with.html'), buildHtml('With Preview'))
+    writeFileSync(join(subDir, 'with.og.png'), Buffer.alloc(1))
+    writeFileSync(join(subDir, 'without.html'), buildHtml('Without Preview'))
+
+    execFileSync('python3', [GEN_MANIFEST], {
+      env: { ...process.env, FORGE_DIR: forgeDir },
+      timeout: 30000,
+    })
+
+    const manifest = JSON.parse(readFileSync(join(forgeDir, 'manifest.json'), 'utf-8')) as Array<{
+      f: string
+      p?: boolean
+    }>
+    const withEntry = manifest.find((e) => e.f === 'sub/with.html')
+    const withoutEntry = manifest.find((e) => e.f === 'sub/without.html')
+
+    expect(withEntry?.p).toBe(true)
+    expect(withoutEntry?.p).toBeUndefined()
+  })
 })
 
 // ---------------------------------------------------------------------------
