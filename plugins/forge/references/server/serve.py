@@ -99,6 +99,8 @@ def parse_html(filepath, rel=''):
     issue = metas.get('issue', '')
     if issue:
         entry['i'] = issue
+    if filepath.with_suffix('.og.png').exists():
+        entry['p'] = True
     return entry
 
 
@@ -133,7 +135,7 @@ sse_lock = threading.Lock()
 
 
 def snapshot():
-    """Return {relative_path: (mtime, size)} for all .html files, recursing into subdirs."""
+    """Return {key: (mtime, size)} for HTML artifacts and sibling OG preview PNGs."""
     snap = {}
     for match in globmod.glob(str(DIR / '**/*.html'), recursive=True):
         fp = Path(match)
@@ -146,6 +148,16 @@ def snapshot():
             snap[rel] = (st.st_mtime, st.st_size)
         except OSError:
             snap[rel] = (0, 0)
+    for match in globmod.glob(str(DIR / '**/*.og.png'), recursive=True):
+        fp = Path(match)
+        rel = str(fp.relative_to(DIR))
+        if rel.startswith('_dist/'):
+            continue
+        try:
+            st = fp.stat()
+            snap['og:' + rel] = (st.st_mtime, st.st_size)
+        except OSError:
+            snap['og:' + rel] = (0, 0)
     return snap
 
 

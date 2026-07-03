@@ -13,10 +13,13 @@ Meta tags read (all in <head>):
     diagram:badges    — comma-separated: latest,split,plan  (any combination)
 
 kb is computed from actual file size (no need to maintain manually).
+p (preview) is set when a sibling <name>.og.png exists (card thumbnails in index).
 """
 import glob as globmod
 import json, os, re, time
 from pathlib import Path
+
+from _og_common import og_png_for
 
 if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
     print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
@@ -102,6 +105,8 @@ def parse(filepath, rel=''):
     issue = metas.get('issue', '')
     if issue:
         entry['i'] = issue
+    if og_png_for(filepath).exists():
+        entry['p'] = True
     return entry
 
 

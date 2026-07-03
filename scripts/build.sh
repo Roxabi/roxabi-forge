@@ -32,6 +32,9 @@ else
   echo "  ⚠ uv not found — skipping OG image render (cards fall back to banner)"
 fi
 
+echo "▸ Refreshing manifest.json (card preview flags)…"
+python3 "$SCRIPT_DIR/gen-manifest.py"
+
 echo "▸ Injecting Open Graph meta tags…"
 python3 "$SCRIPT_DIR/gen-og-tags.py"
 
