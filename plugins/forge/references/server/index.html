@@ -288,7 +288,7 @@ function mkCard(d, showCat) {
     ? `<span style="color:var(--${d.c==='amber'?'accent':d.c})">${escHtml(d.cl)}</span><span>·</span>`
     : '';
   const thumbBlock = d.p
-    ? `<div class="card-thumb"><img src="${escHtml(thumbSrc(d.f))}" alt="" loading="lazy" decoding="async"></div>`
+    ? `<div class="card-thumb"><img src="${escHtml(thumbSrc(d.f))}" alt="${escHtml(d.t)} preview" loading="lazy" decoding="async"></div>`
     : `<div class="card-thumb no-preview" aria-hidden="true"></div>`;
   a.innerHTML = `
     <button class="star-btn${starred?' on':''}" title="${starred?'Unstar':'Star'}" aria-label="${starred?'Unstar':'Star'}">${starred?'★':'☆'}</button>

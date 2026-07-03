@@ -28,6 +28,11 @@ END_MARKER = '<!-- diagram-meta:end -->'
 VALID_COLORS = {'amber', 'blue', 'green', 'purple', 'orange', 'cyan', 'red', 'gold'}
 
 
+def preview_png_for(html):
+    """Sibling .og.png for an artifact HTML path (keep in sync with scripts/_og_common.py)."""
+    return html.with_suffix('.og.png')
+
+
 def normalize_color(color, filepath=''):
     """Map unknown color values (hex codes, typos) to valid CSS class names."""
     if color in VALID_COLORS:
@@ -99,7 +104,7 @@ def parse_html(filepath, rel=''):
     issue = metas.get('issue', '')
     if issue:
         entry['i'] = issue
-    if filepath.with_suffix('.og.png').exists():
+    if preview_png_for(filepath).exists():
         entry['p'] = True
     return entry
 
