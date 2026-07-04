@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="diagram:title" content="Forge Slides — Reference Showcase">
+  <meta name="diagram:date" content="2026-07-04">
+  <meta name="diagram:category" content="demo">
+  <meta name="diagram:color" content="gold">
+  <title>Forge Slides — Reference Showcase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>/* ══════════════════════════════════════════════════════════════════
+   reset.css — box-sizing reset, antialiasing, baseline token contract
+   Part of forge base/ layer. Read once, inline into <style>.
+
+   Token contract: every aesthetic file must define the same custom
+   properties listed below. These are Lyra theme defaults.
+   Roxabi theme values are in aesthetics/roxabi.css (issue #79).
+
+   Extended palette (--amber through --red-dim, --border-bright,
+   --surface2, --bg-panel, --bg-card, --accent-glow) added for
+   fgraph-base.css and explainer-base.css compatibility.
+   Aesthetics override structural tokens; palette tokens are universal.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* ── Baseline Tokens — Lyra Dark (default) ── */
+:root, [data-theme="dark"] {
+  --bg:           #0a0a0f;
+  --surface:      #18181f;
+  --surface2:     #202028;
+  --border:       #2a2a35;
+  --border-bright: #3a3a45;
+  --text:         #fafafa;
+  --text-muted:   #9ca3af;
+  --text-dim:     #6b7280;
+  --accent:       #e85d04;
+  --accent-dim:   #7c2d0e;
+  --accent-glow:  rgba(232,93,4,0.2);
+  --radius:       8px;
+  --radius-sm:    6px;
+  --shadow:       0 1px 3px rgba(0,0,0,0.3);
+
+  /* fgraph + explainer palette */
+  --bg-panel:     var(--surface);
+  --bg-card:      var(--surface);
+  --amber:        #fbbf24;
+  --amber-dim:    rgba(251,191,36,0.12);
+  --cyan:         #22d3ee;
+  --cyan-dim:     rgba(34,211,238,0.12);
+  --green:        #4ade80;
+  --green-dim:    rgba(74,222,128,0.12);
+  --purple:       #c084fc;
+  --purple-dim:   rgba(192,132,252,0.12);
+  --red:          #f87171;
+  --red-dim:      rgba(248,113,113,0.12);
+}
+
+/* ── Baseline Tokens — Lyra Light ── */
+[data-theme="light"] {
+  --bg:           #fafaf9;
+  --surface:      #f4f4f0;
+  --surface2:     #eaeae6;
+  --border:       #d1ccc7;
+  --border-bright: #b0aaa5;
+  --text:         #1c1917;
+  --text-muted:   #57534e;
+  --text-dim:     #78716c;
+  --accent:       #c2410c;
+  --accent-dim:   #fef2e8;
+  --accent-glow:  rgba(194,65,12,0.15);
+  --shadow:       0 1px 3px rgba(0,0,0,0.1);
+
+  --bg-panel:     var(--surface);
+  --bg-card:      var(--surface);
+  --amber:        #d97706;
+  --amber-dim:    rgba(217,119,6,0.1);
+  --cyan:         #0891b2;
+  --cyan-dim:     rgba(8,145,178,0.1);
+  --green:        #16a34a;
+  --green-dim:    rgba(22,163,74,0.1);
+  --purple:       #9333ea;
+  --purple-dim:   rgba(147,51,234,0.1);
+  --red:          #dc2626;
+  --red-dim:      rgba(220,38,38,0.1);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   typography.css — font loading, type scale, code blocks
+   Part of forge base/ layer. Inline after layout.css.
+
+   Preconnect (add to <head> of output HTML):
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Body ── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Headings ── */
+h1, h2, h3, h4 { color: var(--text); font-weight: 600; }
+h1 { font-size: 1.75rem; margin-bottom: 0.75rem; }
+h2 { font-size: 1.25rem; margin: 2rem 0 0.75rem; }
+h3 { font-size: 1rem;    margin: 1.5rem 0 0.5rem; }
+
+/* ── Body Text ── */
+p  { color: var(--text-muted); margin-bottom: 0.875rem; }
+ul, ol { color: var(--text-muted); padding-left: 1.5rem; margin-bottom: 0.875rem; }
+li { margin-bottom: 0.25rem; }
+
+/* ── Code ── */
+code {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.875em;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 0.125em 0.35em; border-radius: 3px; color: var(--text);
+}
+pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem; overflow-x: auto; margin-bottom: 1rem;
+}
+pre code {
+  background: none; border: none; padding: 0;
+  font-size: 0.875rem; white-space: pre-wrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   roxabi.css — Roxabi brand aesthetic (Gold)
+   Used by: roxabi*, 2ndBrain projects
+
+   Brand tokens only. Semantic colors and typography come from
+   base/components.css and base/typography.css respectively.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Brand Tokens — Dark (default) ──
+   v1.5 cool-dark migration (2026-04-20). Warm text #f0ede6 + amber #f0b429
+   retained as signatures against the cool ground. See
+   ~/.roxabi/forge/roxabi-site/brand/BRAND-BOOK.md v1.5 §6. */
+:root, [data-theme="dark"] {
+  color-scheme: light dark;
+  --bg:           #0d1117;
+  --panel:        #13191f;
+  --surface:      #161b22;
+  --surface2:     #1f252d;
+  --border:       #21262d;
+  --border-bright: #30363d;
+  --text:         #f0ede6;
+  --text-muted:   #9ca3af;
+  --text-dim:     #7a7468;
+  --accent:       #f0b429;
+  --accent-dim:   #78460d;
+  --accent-glow:  rgba(240,180,41,0.2);
+}
+
+/* ── Brand Tokens — Light (manual override) ── */
+[data-theme="light"] {
+  --bg:           #f8f7f4;
+  --surface:      #f0ede8;
+  --surface2:     #e8e5e0;
+  --border:       #d6cfc8;
+  --border-bright: #bfb8b0;
+  --text:         #1c1917;
+  --text-muted:   #57534e;
+  --text-dim:     #78716c;
+  --accent:       #d97706;
+  --accent-dim:   #fef3c7;
+  --accent-glow:  rgba(217,119,6,0.15);
+}
+
+/* ── Brand Tokens — Light (OS preference, unless manually dark) ── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:           #f8f7f4;
+    --surface:      #f0ede8;
+    --surface2:     #e8e5e0;
+    --border:       #d6cfc8;
+    --border-bright: #bfb8b0;
+    --text:         #1c1917;
+    --text-muted:   #57534e;
+    --text-dim:     #78716c;
+    --accent:       #d97706;
+    --accent-dim:   #fef3c7;
+    --accent-glow:  rgba(217,119,6,0.15);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Slide mode — roxabi aesthetic (used by forge-slides)
+   House brand: cool-dark bg, forge-gold accent, geometric feel.
+   ══════════════════════════════════════════════════════════════════ */
+
+.deck .slide--title {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-glow) 0%, transparent 50%),
+    linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+}
+.deck .slide--title .slide__display {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: -3px;
+  text-shadow: 0 2px 30px var(--accent-glow);
+}
+.deck .slide--title .slide__subtitle {
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+.deck .slide--content .slide__heading {
+  color: var(--text);
+  letter-spacing: -0.75px;
+}
+.deck .slide--content .slide__label {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.deck .slide--content li::before {
+  color: var(--accent);
+}
+.deck .slide--closing {
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(to top, var(--bg), var(--surface));
+}
+.deck .slide--closing .slide__heading {
+  color: var(--accent);
+  font-weight: 700;
+  text-shadow: 0 2px 20px var(--accent-glow);
+}
+.deck .slide--closing .cta {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.deck .slide--closing .cta:hover {
+  background: transparent;
+  color: var(--accent);
+}
+
+.deck .slide--section .slide__number {
+  color: var(--accent);
+  opacity: 0.08;
+  font-weight: 200;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   slide-deck-base.css — scroll-snap slide engine + nav chrome
+   Part of forge slide-templates/ layer.
+   Inline AFTER: reset.css, typography.css, aesthetics/<name>.css.
+
+   Relies on forge token contract: --bg, --surface, --border,
+   --text, --text-muted, --text-dim, --accent, --accent-dim,
+   --accent-glow, --error (all 6 aesthetics must ship these).
+
+   Ships 3 V1 slide types (title, content, closing).
+   V2 appends: section, diagram, table, code, quote, image, comparison.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Type Scale ── */
+:root {
+  --fs-display: clamp(48px,  8vw,  120px);
+  --fs-heading: clamp(28px,  4vw,  48px);
+  --fs-body:    clamp(16px,  2vw,  24px);
+  --fs-caption: clamp(10px,  1vw,  14px);
+}
+
+/* ── Deck container + slides ── */
+html, body { height: 100%; }
+body.deck-body { overflow: hidden; }  /* opt-in so non-deck pages unaffected */
+
+.deck {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.slide {
+  height: 100dvh;
+  scroll-snap-align: start;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+  isolation: isolate;
+  opacity: 0;
+  transform: translateY(40px) scale(0.98);
+  transition:
+    opacity   0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Staggered child reveals (use class="reveal" on children) ── */
+.slide .reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity   0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide.visible .reveal { opacity: 1; transform: none; }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.10s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.20s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.30s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.40s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: 0.50s; }
+.slide.visible .reveal:nth-child(6) { transition-delay: 0.60s; }
+
+/* Explicit stagger override via --i (index) */
+.slide.visible .reveal[style*="--i"] {
+  transition-delay: calc(var(--i) * 0.10s);
+}
+
+/* ── Reduced motion — kill switch ── */
+@media (prefers-reduced-motion: reduce) {
+  .deck { scroll-behavior: auto; }
+  .slide,
+  .slide .reveal,
+  .slide * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  /* Nav chrome lives outside .slide — kill its animations too */
+  .deck-progress,
+  .deck-dot,
+  .deck-hints {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   NAV CHROME
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Progress bar (top) ── */
+.deck-progress {
+  position: fixed; top: 0; left: 0;
+  height: 3px; width: 0;
+  background: var(--accent);
+  z-index: 100;
+  transition: width 0.3s ease;
+  pointer-events: none;
+}
+
+/* ── Dot indicator (right side) ── */
+.deck-dots {
+  position: fixed;
+  right: clamp(12px, 2vw, 24px); top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  padding: 8px;
+  background: color-mix(in srgb, var(--bg) 60%, transparent 40%);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.deck-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.3;
+  border: none; padding: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.deck-dot:hover  { opacity: 0.6; }
+.deck-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  opacity: 1;
+}
+.deck-dot.active { opacity: 1; transform: scale(1.5); background: var(--accent); }
+
+/* ── Slide counter (bottom right) ── */
+.deck-counter {
+  position: fixed;
+  bottom: clamp(12px, 2vh, 24px);
+  right:  clamp(12px, 2vw, 24px);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  z-index: 100;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Keyboard hints (bottom center) ── */
+.deck-hints {
+  position: fixed;
+  bottom: clamp(12px, 2vh, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  z-index: 100;
+  transition: opacity 0.5s ease;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.deck-hints.faded { opacity: 0; }
+
+/* ══════════════════════════════════════════════════════════════════
+   SHARED SLIDE ELEMENTS
+   ══════════════════════════════════════════════════════════════════ */
+
+.slide__display {
+  font-size: var(--fs-display);
+  font-weight: 600;
+  letter-spacing: -2px;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+.slide__heading {
+  font-size: var(--fs-heading);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.slide__body {
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-wrap: pretty;
+  max-width: 68ch;
+}
+
+.slide__subtitle {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: clamp(12px, 1.5vw, 18px);
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.slide__label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.slide__decor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Auto-fit wrapper — autoFit() JS applies transform:scale to this */
+.slide-inner {
+  width: 100%;
+  transform-origin: center center;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   V1 SLIDE TYPES — title, content, closing
+   (V2 appends section, diagram, table, code, quote, image, comparison)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── title ── opening deck slide */
+.slide--title {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-image:
+    radial-gradient(ellipse at 50% 30%, var(--accent-dim) 0%, transparent 50%);
+}
+
+.slide--title .slide__display {
+  color: var(--accent);
+  max-width: 20ch;
+}
+
+.slide--title .slide__subtitle {
+  margin-top: 1.25rem;
+}
+
+/* ── content ── bullet / prose body */
+.slide--content {
+  justify-content: center;
+}
+
+.slide--content .slide__heading {
+  max-width: 22ch;
+  margin-bottom: 1.5rem;
+}
+
+.slide--content ul,
+.slide--content ol {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 68ch;
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+}
+
+.slide--content li {
+  padding-left: 1.75rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.slide--content li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.slide--content ol {
+  counter-reset: slide-ol;
+}
+.slide--content ol li {
+  counter-increment: slide-ol;
+}
+.slide--content ol li::before {
+  content: counter(slide-ol, decimal-leading-zero);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+/* ── closing ── final CTA / sign-off */
+.slide--closing {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-image:
+    radial-gradient(ellipse at 50% 70%, var(--accent-dim) 0%, transparent 60%);
+}
+
+.slide--closing .slide__heading {
+  color: var(--accent);
+  max-width: 22ch;
+}
+
+.slide--closing .slide__body {
+  max-width: 50ch;
+  margin-top: 1rem;
+}
+
+.slide--closing .cta {
+  margin-top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+}
+
+.slide--closing .cta:hover {
+  background: var(--accent-dim);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE — small-screen sanity
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (max-height: 600px) {
+  .slide { padding: 24px clamp(24px, 6vw, 64px); }
+}
+
+@media (max-width: 640px) {
+  .deck-dots  { right: 8px; gap: 6px; }
+  .deck-dot   { width: 6px; height: 6px; }
+  .deck-hints { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   V2 SLIDE TYPES — section, diagram, table, code, quote, image, comparison
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── section ── breathing-room divider with oversized numeral */
+.slide--section {
+  justify-content: center;
+  text-align: left;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 140px);
+}
+.slide--section .slide__number {
+  font-size: clamp(100px, 22vw, 260px);
+  font-weight: 200;
+  line-height: 0.85;
+  opacity: 0.08;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -55%);
+  pointer-events: none;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.slide--section .slide__content {
+  position: relative;
+  z-index: 1;
+}
+.slide--section .slide__subtitle {
+  margin-top: 1rem;
+  color: var(--text-dim);
+  max-width: 50ch;
+}
+
+/* ── diagram ── in-slide Mermaid or fgraph */
+.slide--diagram {
+  padding: clamp(24px, 4vh, 48px) clamp(32px, 6vw, 80px);
+  justify-content: center;
+  gap: 1.25rem;
+}
+.slide--diagram .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.slide--diagram .slide__diagram-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-height: 75vh;
+  overflow: hidden;
+}
+.slide--diagram .slide__diagram-wrap svg,
+.slide--diagram .slide__diagram-wrap .fgraph-wrap {
+  width: 100%;
+  max-width: 100%;
+  max-height: 75vh;
+  height: auto;
+}
+.slide--diagram .slide__caption {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  color: var(--text-dim);
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── table ── presentation-scale data grid */
+.slide--table {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+}
+.slide--table .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+.slide--table .table-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.slide--table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(14px, 1.6vw, 18px);
+}
+.slide--table th,
+.slide--table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.slide--table th {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: sticky; top: 0;
+}
+.slide--table tbody tr:hover { background: var(--surface); }
+.slide--table td { color: var(--text-muted); }
+
+/* ── code ── code-focused slide */
+.slide--code {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+  justify-content: center;
+}
+.slide--code .slide__heading {
+  font-size: clamp(22px, 3vw, 36px);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.slide--code .slide__code-block {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 1rem 1.25rem;
+  position: relative;
+}
+.slide--code .slide__code-filename {
+  position: absolute;
+  top: -0.75rem; left: 1rem;
+  background: var(--bg);
+  padding: 0 0.5rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.slide--code pre {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: clamp(13px, 1.5vw, 18px);
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre;
+  overflow-x: auto;
+}
+.slide--code .hl { color: var(--accent); font-weight: 600; }
+.slide--code .cm { color: var(--text-dim); font-style: italic; }
+
+/* ── quote ── pull-quote / callout */
+.slide--quote {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-image:
+    radial-gradient(ellipse at 50% 50%, var(--accent-dim) 0%, transparent 35%);
+}
+.slide--quote .slide__quote-mark {
+  font-size: clamp(80px, 15vw, 200px);
+  line-height: 0.6;
+  color: var(--accent);
+  opacity: 0.3;
+  margin-bottom: 0.5rem;
+  font-family: Georgia, serif;
+}
+.slide--quote blockquote {
+  font-size: clamp(24px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+  max-width: 24ch;
+  margin: 0 auto;
+  color: var(--text);
+  text-wrap: balance;
+}
+.slide--quote cite {
+  display: block;
+  margin-top: 1.5rem;
+  font-style: normal;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: var(--fs-caption);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+/* ── image ── full-bleed image slide */
+.slide--image {
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.slide--image .slide__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.slide--image .slide__bg--gradient {
+  background:
+    linear-gradient(135deg, var(--accent) 0%, var(--bg) 100%);
+}
+.slide--image .slide__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.85) 100%);
+  z-index: 1;
+}
+.slide--image .slide__content {
+  position: relative;
+  z-index: 2;
+  padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+  margin-top: auto;
+  max-width: 70ch;
+}
+.slide--image .slide__heading,
+.slide--image .slide__label,
+.slide--image .slide__subtitle {
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+}
+
+/* ── comparison ── 2-column side-by-side */
+.slide--comparison {
+  padding: clamp(32px, 5vh, 60px) clamp(32px, 5vw, 80px);
+}
+.slide--comparison .slide__heading {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: clamp(22px, 3vw, 36px);
+}
+.slide--comparison .slide__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 3vw, 40px);
+  align-items: stretch;
+}
+.slide--comparison .slide__col {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.slide--comparison .slide__col h3 {
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+.slide--comparison .slide__col.accent {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.slide--comparison .slide__col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--text-muted);
+}
+.slide--comparison .slide__col li {
+  padding-left: 1.25rem;
+  position: relative;
+}
+.slide--comparison .slide__col li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .slide--comparison .slide__columns { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="deck-body">
+  <div class="deck" id="deck">
+    <section class="slide slide--title" id="slide-1">
+      <div class="slide-eyebrow">forge-slides · reference</div>
+      <h1>Scroll-snap<br>presentations</h1>
+      <p class="slide-sub">roxabi aesthetic · 7 core slide types</p>
+    </section>
+    <section class="slide slide--section" id="slide-2">
+      <div class="section-num">§ 01</div>
+      <h2>Context</h2>
+    </section>
+    <section class="slide slide--content" id="slide-3">
+      <h2>When to use slides vs scroll</h2>
+      <ul>
+        <li>Slides: presenter-led, keyboard nav, one idea per viewport</li>
+        <li>Presentation: continuous read, deep sections, iframe diagrams</li>
+        <li>Chart: single diagram artifact</li>
+      </ul>
+    </section>
+    <section class="slide slide--comparison" id="slide-4">
+      <h2>Output modes</h2>
+      <div class="compare-grid">
+        <div class="compare-col"><h3>forge-slides</h3><p>Scroll-snap deck · slide-deck-base.js</p></div>
+        <div class="compare-col"><h3>forge-presentation</h3><p>Long-form scroll · explainer-base.css</p></div>
+      </div>
+    </section>
+    <section class="slide slide--content" id="slide-5">
+      <h2>Golden references</h2>
+      <ul>
+        <li><code>showcase-slides.html</code> — this file</li>
+        <li><code>showcase-presentation.html</code> — craft iframes</li>
+        <li><code>fd-architecture.html</code> — fd-engine bar</li>
+      </ul>
+    </section>
+    <section class="slide slide--diagram" id="slide-6">
+      <h2>Craft golden</h2>
+      <p class="slide-sub">Embed craft diagrams in slides sparingly — prefer chart skill for single visuals.</p>
+    </section>
+    <section class="slide slide--closing" id="slide-7">
+      <h2>Forge references</h2>
+      <p>2026-07-04 · roxabi</p>
+    </section>
+  </div>
+  <div id="deck-progress"></div>
+  <div id="deck-dots"></div>
+  <script>
+
+class SlideEngine {
+  constructor(deck) {
+    this.deck = deck || document.querySelector('.deck');
+    this.slides = [...this.deck.querySelectorAll('.slide')];
+    this.total = this.slides.length;
+    this.current = 0;
+    this.buildChrome();
+    this.bindEvents();
+    this.observe();
+    this.update();
+  }
+  buildChrome() {
+    this.bar = Object.assign(document.createElement('div'), { className: 'deck-progress' });
+    document.body.appendChild(this.bar);
+    const dots = Object.assign(document.createElement('div'), { className: 'deck-dots' });
+    this.slides.forEach((_, i) => {
+      const d = Object.assign(document.createElement('button'), { className: 'deck-dot' });
+      d.type = 'button';
+      d.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+      d.addEventListener('click', () => this.goTo(i));
+      dots.appendChild(d);
+    });
+    document.body.appendChild(dots);
+    this.dots = [...dots.children];
+    this.counter = Object.assign(document.createElement('div'), { className: 'deck-counter' });
+    document.body.appendChild(this.counter);
+  }
+  bindEvents() {
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input,textarea,[contenteditable]')) return;
+      const k = e.key;
+      if (['ArrowDown','ArrowRight',' ','PageDown'].includes(k)) { e.preventDefault(); this.next(); }
+      else if (['ArrowUp','ArrowLeft','PageUp'].includes(k)) { e.preventDefault(); this.prev(); }
+      else if (k === 'Home') { e.preventDefault(); this.goTo(0); }
+      else if (k === 'End') { e.preventDefault(); this.goTo(this.total - 1); }
+    });
+  }
+  observe() {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          this.current = this.slides.indexOf(entry.target);
+          this.update();
+        }
+      });
+    }, { threshold: 0.5 });
+    this.slides.forEach((s) => obs.observe(s));
+  }
+  goTo(i) { this.slides[Math.max(0, Math.min(i, this.total - 1))].scrollIntoView({ behavior: 'smooth' }); }
+  next() { if (this.current < this.total - 1) this.goTo(this.current + 1); }
+  prev() { if (this.current > 0) this.goTo(this.current - 1); }
+  update() {
+    const pct = ((this.current + 1) / this.total) * 100;
+    this.bar.style.width = pct + '%';
+    this.counter.textContent = (this.current + 1) + ' / ' + this.total;
+    this.dots.forEach((d, i) => d.classList.toggle('active', i === this.current));
+  }
+}
+document.documentElement.classList.add('deck-body');
+new SlideEngine(document.getElementById('deck'));
+
+  </script>
+</body>
+</html>

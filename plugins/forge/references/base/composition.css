@@ -1,0 +1,248 @@
+/* ══════════════════════════════════════════════════════════════════
+   composition.css — presentation composition primitives (v0.1.0)
+
+   panel-wrap · arch-wrap · diagram-embed · forge swimlanes
+   Load AFTER explainer-base.css (uses same tokens + .reveal.visible)
+
+   Contract: references/composition-contract.md
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── arch-wrap (native flows) ── */
+.arch-wrap {
+  position: relative;
+  background: var(--bg-elev, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem 1.75rem;
+  overflow: hidden;
+  margin: 2rem 0;
+}
+.arch-wrap:not(:has(.diagram-embed)) {
+  border-top: 2px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.arch-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 85% 50% at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 68%);
+  pointer-events: none;
+}
+.arch-wrap:has(.diagram-embed) {
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.arch-wrap:has(.diagram-embed)::before { display: none; }
+
+.arch-title {
+  font-weight: 700;
+  text-align: center;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 1.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.arch-wrap--flow { padding: 0; overflow: hidden; }
+.arch-wrap--flow::before {
+  background: radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 75%);
+}
+.arch-wrap--flow .arch-title {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+  padding: 1.15rem 1.75rem 1rem;
+  text-align: left;
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.arch-wrap--flow .swimlanes { border: none; border-radius: 0; margin: 0; }
+
+.arch-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.55rem;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.arch-pipeline .arch-arrow {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.arch-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.arch-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.8rem;
+  border-radius: 7px;
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+.arch-node.biz { border-color: color-mix(in srgb, var(--amber, var(--accent)) 45%, var(--border)); }
+.arch-node.tech { border-color: color-mix(in srgb, var(--cyan, #22d3ee) 45%, var(--border)); }
+.arch-node.client { border-color: color-mix(in srgb, var(--green, #4ade80) 45%, var(--border)); }
+.arch-node.internal { border-color: color-mix(in srgb, var(--purple, #a78bfa) 45%, var(--border)); }
+.arch-node.hub { border-color: var(--accent); box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 25%, transparent); }
+.arch-arrow { text-align: center; font-size: 1.2rem; color: var(--text-muted); }
+
+/* ── panel-wrap (tables + swimlanes) ── */
+.panel-wrap {
+  position: relative;
+  background: var(--bg-elev, var(--surface));
+  border: 1px solid var(--border);
+  border-top: 2px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  margin: 2rem 0;
+}
+.panel-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 85% 50% at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 68%);
+  pointer-events: none;
+}
+.panel-block { position: relative; z-index: 1; }
+.panel-block + .panel-block { border-top: 1px solid var(--border); }
+.panel-head {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 1.15rem 1.75rem 1rem;
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.panel-block .tbl-wrap,
+.panel-block .swimlanes { margin: 0; border: none; border-radius: 0; }
+.panel-block .arch-pipeline { padding: 1.75rem 1.5rem; }
+.panel-block table.data-table th { background: color-mix(in srgb, var(--surface2, var(--surface)) 55%, transparent); }
+.panel-block table.data-table tr:last-child td { border-bottom: none; }
+.panel-block table.data-table td:first-child { font-weight: 500; color: var(--text); }
+
+/* ── forge swimlanes (native, not craft canvas) ── */
+.swimlanes {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 2rem 0;
+}
+.swimlane {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  border-bottom: 1px dashed var(--border);
+  min-height: 68px;
+}
+.swimlane:last-child { border-bottom: none; }
+.swimlane-lbl {
+  padding: 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-left: 4px solid;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.swimlane-lbl small { font-weight: 400; color: var(--text-dim); font-size: 0.72rem; }
+.swimlane-lbl.client { background: color-mix(in srgb, var(--green, #4ade80) 6%, transparent); border-color: var(--green, #4ade80); }
+.swimlane-lbl.biz { background: color-mix(in srgb, var(--amber, var(--accent)) 6%, transparent); border-color: var(--amber, var(--accent)); }
+.swimlane-lbl.tech { background: color-mix(in srgb, var(--cyan, #22d3ee) 6%, transparent); border-color: var(--cyan, #22d3ee); }
+.swimlane-lbl.internal { background: color-mix(in srgb, var(--purple, #a78bfa) 6%, transparent); border-color: var(--purple, #a78bfa); }
+.swimlane-track { display: flex; align-items: center; gap: 0.6rem; padding: 1rem; flex-wrap: wrap; }
+.snode {
+  padding: 0.4rem 0.75rem;
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border-bright, var(--border));
+  font-size: 0.78rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.panel-block .swimlane-lbl {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.panel-block .snode {
+  background: color-mix(in srgb, var(--surface2, var(--surface)) 70%, transparent);
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+}
+.sarrow { color: var(--accent); font-size: 0.85rem; }
+
+/* ── diagram iframe bridge ── */
+.diagram-embed { margin: 1.5rem auto; max-width: 100%; }
+.diagram-frame {
+  width: 100%;
+  border: none;
+  display: block;
+  background: var(--bg, #0d1117);
+  border-radius: 12px;
+  border: 1px solid var(--border-bright, var(--border));
+  min-height: 200px;
+}
+.arch-wrap .diagram-embed { margin: 0; }
+.arch-wrap .diagram-embed.reveal { opacity: 1; transform: none; transition: none; }
+
+/* Hero embed: no frame */
+.hero-right .diagram-frame {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color-scheme: only dark;
+}
+
+/* ── reveal stagger (uses explainer-base .reveal.visible) ── */
+.arch-wrap.reveal.visible > .arch-title,
+.arch-wrap.reveal.visible > .arch-row,
+.arch-wrap.reveal.visible > .arch-pipeline,
+.arch-wrap.reveal.visible > .swimlanes,
+.arch-wrap.reveal.visible > .forbidden-band {
+  animation: composition-child-in 0.45s ease both;
+}
+.arch-wrap.reveal.visible > *:nth-child(1) { animation-delay: 0.06s; }
+.arch-wrap.reveal.visible > *:nth-child(2) { animation-delay: 0.14s; }
+.arch-wrap.reveal.visible > *:nth-child(3) { animation-delay: 0.22s; }
+
+.panel-wrap.reveal.visible .panel-block:nth-child(1) { animation: composition-child-in 0.45s ease 0.06s both; }
+.panel-wrap.reveal.visible .panel-block:nth-child(2) { animation: composition-child-in 0.45s ease 0.14s both; }
+.panel-wrap.reveal.visible .panel-block:nth-child(3) { animation: composition-child-in 0.45s ease 0.22s both; }
+
+@keyframes composition-child-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arch-wrap.reveal.visible > *,
+  .panel-wrap.reveal.visible .panel-block {
+    animation: none;
+  }
+}

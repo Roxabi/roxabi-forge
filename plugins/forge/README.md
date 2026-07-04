@@ -34,7 +34,7 @@ claude plugin install forge
 
 **`forge-md`** — when markdown is already written and you just want it rendered as-is (no tab planning, no rewriting).
 
-**`forge-presentation`** — long-form visual article with a hero and numbered scroll sections; continuous scroll with reveal animations.
+**`forge-presentation`** — long-form visual article with a hero and numbered scroll sections; continuous scroll with reveal animations. Craft diagrams embed via `visuals/diagrams/*.html` + iframe (`composition-contract.md`); tables use `panel-wrap`.
 
 **`forge-slides`** — magazine-style pitch deck, scroll-snap navigated, 10 slide types × 6 aesthetic presets (including `lyra-v2`, `cool-dark`).
 
@@ -91,6 +91,10 @@ All templates share `gallery-base.css` + `gallery-base.js` (tokens, toolbar, con
 ### Showcases
 
 `references/showcases/` — one reference demo per skill (`showcase-chart`, `showcase-epic`, `showcase-gallery`, `showcase-guide`, `showcase-md`, `showcase-presentation`, `showcase-slides`). Use as canonical style + structure examples when authoring new outputs.
+
+`references/diagrams/examples/` — golden craft diagrams (`craft-hub-spoke.html`, `craft-deploy-flow.html`). `showcase-presentation.html` demonstrates iframe integration.
+
+**Catalog:** `references/showcase-index.html` — every skill output, craft diagram, fd-engine golden, fgraph template preview, and gallery shell (search + filter). See **`references/README.md`** for the full regenerate pipeline (`build-reference-showcases.py` → `validate-reference-runtime.py` → `make -C plugins/forge deploy`).
 
 ## How it works
 

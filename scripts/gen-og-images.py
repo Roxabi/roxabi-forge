@@ -43,6 +43,10 @@ def run_self_test():
         'graph-templates/*.html build templates must be excluded'
     assert should_exclude('references/graph-templates/dep-graph.html'), \
         'immediate-level graph-templates shells must be excluded'
+    assert should_exclude('references/gallery-templates/simple-gallery.html'), \
+        'immediate-level gallery-templates shells must be excluded'
+    assert should_exclude('references/diagrams/craft-diagram-starter.html'), \
+        'craft-diagram-starter scaffold must be excluded'
     assert not should_exclude('references/graph-templates/examples/fd-architecture.html'), \
         'graph-templates/examples/ goldens must NOT be excluded'
     assert not should_exclude('references/graph-templates/examples/fd-architecture-uc.html'), \
@@ -101,6 +105,9 @@ def main():
     # Candidates are already filtered by should_exclude, so no worklist entry is pruned here.
     pruned = 0
     for png in sorted(DIR.glob('**/*.og.png')):
+        rel_png = str(png.relative_to(DIR))
+        if rel_png.startswith('_dist/'):
+            continue
         stem = png.name.removesuffix('.og.png')
         html = png.parent / (stem + '.html')
         html_rel = str(html.relative_to(DIR))
@@ -133,7 +140,10 @@ def main():
         for html, png, rel in worklist:
             tmp = png.parent / (png.stem + '.tmp.png')
             try:
-                page.goto(html.resolve().as_uri(), wait_until='networkidle', timeout=30000)
+                url = html.resolve().as_uri()
+                if '/references/diagrams/' in rel:
+                    url += '?embed=hero' if '?' not in url else '&embed=hero'
+                page.goto(url, wait_until='networkidle', timeout=30000)
                 page.evaluate('document.fonts ? document.fonts.ready.then(() => true) : true')
                 page.evaluate(
                     "() => { document.querySelectorAll('.reveal,[data-reveal]').forEach(el => {"

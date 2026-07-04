@@ -92,8 +92,23 @@ If a rule seems wrong for a specific artifact, do not silently violate. Either i
 
 ---
 
+## Composition (presentation × craft diagrams)
+
+| Restriction | Reason | Exception |
+|---|---|---|
+| No inline craft diagram CSS inside presentation HTML (`.craft-embed`, copied canvas rules, namespaced spoke CSS) | Two typographic/layout stacks collide — clipping, double titles, invisible reveals. | `composition.css` primitives only (`panel-wrap`, `arch-wrap`, `diagram-embed`). |
+| No `.reveal` on both wrapper and `diagram-embed` child | Double `opacity: 0` — diagram stays invisible. | Reveal on `arch-wrap` / `panel-wrap` parent only. |
+| No `figcaption` / `arch-title` when diagram SSoT already has a title | Duplicate headings in scroll doc. | External title only when diagram is purely decorative (rare). |
+| No external SVG sprite refs in `diagrams/*.html` (`<use href="brand-icons.svg#…">`) | `file://` blocks cross-file sprite loads. | Inline `<symbol>` blocks from `diagrams/brand-icons.svg`. |
+| No invented paths for third-party brand marks | Wrong logos break trust. | Simple Icons / official marks; custom glyphs for product-only nodes (REQ hub). |
+
+Full layer model: `composition-contract.md`.
+
+---
+
 ## See also
 
+- `composition-contract.md` — presentation × diagram integration (7 levels)
 - `tokens.md` — positive rules (what IS allowed for colors, fonts, tier hierarchy)
 - `output-ux.md` — Deliver checklist including fact-sheet compilation + glance-layer requirements
 - `aesthetics/*.css` — per-aesthetic tokens that scope the color rules above

@@ -22,7 +22,9 @@ Output: `~/.roxabi/forge/<project>/visuals/{slug}.html` or `~/.roxabi/forge/_sha
 **Read before generating:**
 
 ```
+${CLAUDE_PLUGIN_ROOT}/references/showcase-index.html          — full catalog of golden refs (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md              — brand detection, output paths, deploy commands
+${CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-chart.html — golden fd-engine skill output (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/base/reset.css            — concatenate first
 ${CLAUDE_PLUGIN_ROOT}/references/base/layout.css           — concatenate second
 ${CLAUDE_PLUGIN_ROOT}/references/base/typography.css       — concatenate third
@@ -32,6 +34,9 @@ ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/               — select one based 
 ${CLAUDE_PLUGIN_ROOT}/references/shells/single.html        — HTML template with placeholders
 ${CLAUDE_PLUGIN_ROOT}/references/base/theme-toggle.js      — substitute {NAME}, then inline via {THEME_TOGGLE_JS}
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md           — meta tag format + categories
+${CLAUDE_PLUGIN_ROOT}/references/composition-contract.md   — when output embeds in forge-presentation
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-anchors.js  — craft path engine (hand-authored diagrams)
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-qa-checklist.md
 ${CLAUDE_PLUGIN_ROOT}/references/graph-templates/README.md — graph/topology templates (read when visual type = architecture / topology / flow / pipeline / dep-graph / data-chart)
 ${CLAUDE_PLUGIN_ROOT}/skills/forge-chart/fixtures/README.md — fixture format + regression inputs (no runner yet; hashes populate in future)
 ```
@@ -727,10 +732,58 @@ Use non-straight paths only for **intentional cross-section routes** (e.g., Anth
 
 ---
 
+## Presentation embedding (forge-presentation)
+
+When a chart will live **inside** a scroll presentation (`forge-presentation`), read:
+
+- `${CLAUDE_PLUGIN_ROOT}/references/composition-contract.md`
+- `${CLAUDE_PLUGIN_ROOT}/references/diagrams/README.md`
+- `${CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-qa-checklist.md`
+
+| Chart output | Path | Embed |
+|---|---|---|
+| fd-engine / fgraph single-file | `visuals/diagrams/{slug}.html` | iframe from presentation |
+| Craft hand-authored | `visuals/diagrams/{slug}.html` | iframe — `craft-diagram-starter.html` + `craft-anchors.js` |
+| ≤6 nodes, inline in presentation | stay in `{name}.html` | inline fgraph in presentation `<style>` — no iframe |
+
+**Craft authoring workflow (hand-authored hub-spoke / swimlane):**
+
+1. **Read golden first:** `references/diagrams/examples/craft-hub-spoke.html` (hub-spoke) or `craft-deploy-flow.html` (promote `curve: h`)
+2. Copy `references/diagrams/craft-diagram-starter.html` → `visuals/diagrams/{slug}.html`
+3. Set `data-slug="{slug}.html"`, `data-canvas-width` / `data-canvas-height`, `diagram:title` meta
+4. Every hub/spoke/lane node: `data-anchor="{id}"` — position with CSS classes only
+5. Connections: edit `#craft-edges` JSON only (`curve`: `q` hub-spoke, `l` straight, `h` + `y` promote flows)
+6. Inline `craft-anchors.js` verbatim (starter already includes it)
+7. Inline brand `<symbol>` blocks — no external `brand-icons.svg`
+8. Gate: `python3 ~/.roxabi/forge/scripts/check-craft-diagram.py {path} --check` exit 0
+9. Visual gate: walk `craft-qa-checklist.md` at `file://`
+10. Embed in presentation via `<iframe class="diagram-frame" src="diagrams/{slug}.html">` — title stays inside diagram only
+
+**Craft authoring rules:**
+1. `data-anchor` on every connected node — position with CSS only
+2. Edges in `#craft-edges` JSON — **never** hand-edit `<path d="…">` after moving spokes
+3. `postMessage` type: `forge-diagram-resize` with `id` matching `data-slug`
+4. `check-craft-diagram.py --check` per diagram, then `check-composition.py` on presentation
+5. Title inside diagram only — no duplicate in presentation
+
+**fd-engine vs craft decision:**
+
+| Signal | Path |
+|---|---|
+| Descriptor validates (`validate-fd.py` exit 0), DOM-measured edges OK | fd-engine via `gen-fd.py` |
+| Custom zone labels, edge-label overlays, blocked/interdit arcs, >6 spokes | craft + `craft-anchors` |
+| Premium craft bar (IBM Plex, legend, rule-badge) with fixed geometry | craft + `craft-anchors` |
+| Print/no-JS, ≤6 nodes | inline fgraph in presentation (no iframe) |
+
+**Promote flows** (staging → prod): use `curve: "h"` + shared `y` in craft-edges, not bezier arcs.
+
+---
+
 ## Anti-Patterns (FORBIDDEN)
 
 | Anti-Pattern | Fix |
 |--------------|-----|
+| Copying fd-engine / craft diagram CSS into presentation HTML | iframe to `diagrams/{slug}.html` per composition-contract |
 | Linking to a CDN diagram library | Use a native `graph-templates/*.html` — inline `fgraph-base.css` per Mode A |
 | ASCII art in `<pre class="arch">` | Convert to the matching fgraph template |
 | Emoji in headers | Remove — use text only |

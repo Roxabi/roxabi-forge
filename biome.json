@@ -24,6 +24,11 @@
   },
   "overrides": [
     {
+      "includes": ["plugins/forge/references/diagrams/craft-anchors.js"],
+      "linter": { "enabled": false },
+      "formatter": { "enabled": false }
+    },
+    {
       "includes": ["plugins/forge/references/gallery-templates/gallery-base.js"],
       "linter": {
         "rules": {

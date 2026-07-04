@@ -470,12 +470,7 @@ function setupDownloads() {
           if (!window.JSZip) {
             await new Promise((ok, fail) => {
               const s = document.createElement('script')
-              /* CUSTOMISE: pin to an exact JSZip version and add SRI hash to
-                 defend against a compromised jsDelivr release.
-                 Generate the hash with:
-                   curl -sL https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js \
-                     | openssl dgst -sha384 -binary | openssl base64 -A
-                 Replace PLACEHOLDER below with the generated value. */
+              // CUSTOMISE: pin JSZip and add SRI (see gallery-templates README).
               s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'
               // s.integrity = 'sha384-PLACEHOLDER' // uncomment after generating hash
               s.crossOrigin = 'anonymous'

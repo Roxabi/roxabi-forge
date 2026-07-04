@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="Forge · Radar">
+<meta name="diagram:date"      content="2026-07-04">
+<meta name="diagram:category"  content="architecture">
+<meta name="diagram:cat-label" content="Reference">
+<meta name="diagram:color"     content="gold">
+<!-- diagram-meta:end -->
+<title>Forge · Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── design tokens (subset of fgraph palette — no @import needed) ── */
+:root {
+  --bg: #0b0d10; --bg-panel: #11141a; --bg-card: #161a21;
+  --border: #1f252e; --border-bright: #2b3340;
+  --text: #e4e7ec; --text-dim: #9aa4b2; --text-muted: #6b7380;
+  --amber: #fbbf24; --amber-dim: rgba(251,191,36,0.12);
+  --cyan:  #22d3ee; --cyan-dim:  rgba(34,211,238,0.12);
+  --purple:#c084fc; --purple-dim:rgba(192,132,252,0.12);
+  --green: #4ade80; --green-dim: rgba(74,222,128,0.12);
+  --red:   #f87171; --red-dim:   rgba(248,113,113,0.12);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 32px 24px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+header { margin-bottom: 20px; }
+.header-eyebrow {
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+h1 { font-size: 28px; font-weight: 700; margin: 6px 0 4px; }
+h1 .accent { color: var(--cyan); }
+.header-subtitle { color: var(--text-dim); font-size: 13px; margin: 0; }
+
+/* ── chart wrap ── */
+.fgraph-wrap.radar {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 20px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* ── SVG fills the wrap ── */
+.fgraph-wrap.radar svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* ── series polygons ── */
+.fg-radar-series {
+  vector-effect: non-scaling-stroke;
+  transition: opacity 0.15s;
+}
+.fg-radar-series:hover { opacity: 0.75; }
+
+/* ── grid rings and axes ── */
+.fg-radar-ring  { fill: none; stroke: var(--border-bright); stroke-width: 0.4; vector-effect: non-scaling-stroke; }
+.fg-radar-axis  { stroke: var(--border-bright); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
+.fg-radar-spoke { stroke: var(--border); stroke-width: 0.3; stroke-dasharray: 1.5 1.5; vector-effect: non-scaling-stroke; }
+
+/* ── text ── */
+.fg-radar-axis-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 4px;
+  fill: var(--text-dim);
+  text-anchor: middle;
+}
+.fg-radar-scale-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 2.8px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+}
+
+/* ── in-SVG legend (SC3: all text inside <svg>) ── */
+.fg-legend-swatch { vector-effect: non-scaling-stroke; }
+.fg-legend-label  { font-family: 'Space Mono', monospace; font-size: 3px; fill: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">FORGE REFERENCE</div>
+  <h1>Forge <span class="accent">Radar</span></h1>
+  <p class="header-subtitle">Baked preview — file:// safe · regenerate via bake-reference-previews.py</p>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     RADAR CHART — authoring surface.
+
+     DATA CONTRACT (fields from the Radar / AxisItem / RadarSeries spec):
+
+       Radar {
+         title:       string
+         axes: [      // N axes, N ≥ 2
+           { label: string, maxValue?: number }   // AxisItem
+         ]
+         series: [    // M series
+           {
+             name:        string
+             color:       "amber" | "cyan" | "purple" | "green" | "red" | "#rrggbb"
+             fillOpacity: 0..1   (e.g. 0.15 for subtle fill)
+             data:        number[]   // len MUST == axes.len
+           }
+         ]
+         scaleLevels: number   // concentric ring count (e.g. 4 = 25/50/75/100%)
+       }
+
+     GEOMETRY RULES (pre-compute; zero JS at runtime):
+
+       Centre = (50, 50)  in the 0..100 viewBox.
+       Ring radius (outermost) = 36 user units — leaves ~14 u margin for labels.
+
+       Per-axis maxValue: use axes[i].maxValue if set, else derive a shared
+       axisMax from max(series[*].data[i]) rounded up to a nice number.
+
+       Axis angle for axis i  (0-indexed, N total):
+         angleDeg[i] = -90 + i * (360 / N)        // −90 so axis 0 points UP (12 o'clock)
+         angleRad[i] = angleDeg[i] * π / 180
+
+       Outer perimeter point for axis i:
+         x = 50 + 36 * cos(angleRad[i])
+         y = 50 + 36 * sin(angleRad[i])
+
+       Ring polygon vertex for axis i at fraction f  (f = level/scaleLevels):
+         x = 50 + 36 * f * cos(angleRad[i])
+         y = 50 + 36 * f * sin(angleRad[i])
+       Ring = closed <polygon> through all N vertices at the same f.
+
+       Scale labels (0.5 on each ring, along axis 0 direction):
+         labelValue = axisMax * (level / scaleLevels)
+         x = 50 + 36 * (level/scaleLevels) * cos(angleRad[0]) + small_offset
+         y = 50 + 36 * (level/scaleLevels) * sin(angleRad[0])
+
+       Series vertex for axis i at value v:
+         fraction = v / axisMax[i]       // axisMax[i] = per-axis or shared max
+         x = 50 + 36 * fraction * cos(angleRad[i])
+         y = 50 + 36 * fraction * sin(angleRad[i])
+       Series = closed <polygon> / <path> through all N vertices.
+
+       Axis label position (just outside the ring, add 5–6 u along the axis):
+         x = 50 + (36 + 5) * cos(angleRad[i])
+         y = 50 + (36 + 5) * sin(angleRad[i])
+       Adjust dominant-baseline and text-anchor based on angle quadrant so
+       labels don't overlap the ring:
+         left quadrant  (|angleDeg| > 135)  → text-anchor: end
+         right quadrant (|angleDeg| <  45)  → text-anchor: start
+         else                               → text-anchor: middle
+         top quadrant   (angleDeg < 0)      → dominant-baseline: auto
+         bottom quadrant                    → dominant-baseline: hanging
+
+       DEGENERATE — 2-axis radar:
+         Ring polygon degenerates to a line (2 vertices = a back-and-forth
+         segment). Grid still draws correctly. Series polygon is a thin sliver.
+         Document in a comment; do not special-case in the SVG.
+
+       COLOUR SHORTHAND:
+         color = "amber"  → fill/stroke: var(--amber)
+         color = "#rrggbb" → fill/stroke: #rrggbb  (use inline style)
+
+     PLACEHOLDER TOKENS TO FILL:
+       Forge · Radar            — page <title> and header h1
+       Forge      — text before accent word
+       Radar     — accent word (styled with var(--cyan))
+       Baked preview — file:// safe · regenerate via bake-reference-previews.py         — one-line description
+       FORGE REFERENCE   — eyebrow text (e.g. "Performance · benchmark")
+       2026-07-04             — ISO date
+       architecture         — slug
+       gold            — accent colour slug
+       radar             — <line> spokes + <polygon> rings + axis labels
+       radar         — per-series <polygon> elements
+       radar     — in-SVG <rect class="fg-legend-swatch"> + <text class="fg-legend-label"> rows
+
+     SERIES COLOUR — default palette order:
+       series[0] → var(--cyan)
+       series[1] → var(--amber)
+       series[2] → var(--purple)
+       series[3] → var(--green)
+       series[4] → var(--red)
+     Override per-series with color: "#rrggbb" and inline style="fill:#rrggbb;stroke:#rrggbb"
+     ══════════════════════════════════════════════════════════════════ -->
+
+<div class="fgraph-wrap radar" role="img" aria-label="Forge · Radar diagram">
+
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg"
+       role="img" aria-labelledby="rd-title">
+
+    <title id="rd-title">Forge · Radar</title>
+
+    <!-- ── SCALE RINGS (N=radar concentric polygons) ─────── -->
+    <!-- Ring at 25% (level 1 of radar) -->
+    <polygon class="fg-radar-ring" points="55,20 70,20 65,35 40,35"/>
+    <!-- Ring at 50% (level 2) -->
+    <polygon class="fg-radar-ring" points="55,20 70,20 65,35 40,35"/>
+    <!-- Ring at 75% (level 3) -->
+    <polygon class="fg-radar-ring" points="55,20 70,20 65,35 40,35"/>
+    <!-- Ring at 100% (level 4 = outer boundary) -->
+    <polygon class="fg-radar-ring" points="55,20 70,20 65,35 40,35"/>
+
+    <!-- ── AXIS SPOKES (one per axis, from centre to perimeter) ─────── -->
+    <!-- Spoke axis 0 -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="50" y2="8"/>
+    <!-- Spoke axis 1 … (one <line> per axis) -->
+    <line class="fg-radar-axis" x1="50" y1="50" x2="50" y2="23"/>
+    <!-- radar -->
+
+    <!-- ── SCALE LABELS (one per ring, positioned along axis 0) ──────── -->
+    <text class="fg-radar-scale-label" x="50" y="23">radar</text>
+    <text class="fg-radar-scale-label" x="50" y="34">radar</text>
+    <text class="fg-radar-scale-label" x="50" y="45">radar</text>
+    <text class="fg-radar-scale-label" x="50" y="56">radar</text>
+
+    <!-- ── SERIES POLYGONS (back to front; lower fillOpacity series first) -->
+    <!-- Series 0 — node — color: radar -->
+    <polygon class="fg-radar-series"
+             fill="var(--cyan)" fill-opacity="radar"
+             stroke="var(--cyan)" stroke-width="0.7"
+             points="50,35 62,42 58,55 45,58 38,45"/>
+
+    <!-- Series 1 — node — color: radar -->
+    <polygon class="fg-radar-series"
+             fill="var(--amber)" fill-opacity="radar"
+             stroke="var(--amber)" stroke-width="0.7"
+             points="55,20 70,20 65,35 40,35"/>
+
+    <!-- ── AXIS LABELS (just outside perimeter, in user-unit coords) ── -->
+    <!-- axis 0: x = 50 + 41*cos(angleRad[0]), y = 50 + 41*sin(angleRad[0]) -->
+    <text class="fg-radar-axis-label" x="50" y="12" dominant-baseline="auto">speed</text>
+    <!-- axis 1 … (one <text> per axis; adjust text-anchor + dominant-baseline per quadrant) -->
+    <text class="fg-radar-axis-label" x="50" y="23" dominant-baseline="auto">quality</text>
+    <!-- radar -->
+
+    <!-- ── IN-SVG LEGEND (SC3: all text inside <svg>; bottom-centre band y≈93..99) ── -->
+    <!-- Series 0 swatch + label -->
+    <rect class="fg-legend-swatch" x="26" y="93" width="3" height="3"
+          fill="var(--cyan)" stroke="var(--cyan)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="30.5" y="94.6" dominant-baseline="middle">node</text>
+    <!-- Series 1 swatch + label -->
+    <rect class="fg-legend-swatch" x="55" y="93" width="3" height="3"
+          fill="var(--amber)" stroke="var(--amber)" stroke-width="0.4"/>
+    <text class="fg-legend-label" x="59.5" y="94.6" dominant-baseline="middle">node</text>
+    <!-- radar -->
+
+  </svg>
+
+</div>
+
+</main>
+
+</body>
+</html>

@@ -19,7 +19,7 @@ import glob as globmod
 import json, os, re, time
 from pathlib import Path
 
-from _og_common import og_png_for
+from _og_common import og_png_for, should_exclude
 
 if 'DIAGRAMS_DIR' in os.environ and 'FORGE_DIR' not in os.environ:
     print('⚠ DIAGRAMS_DIR is deprecated — use FORGE_DIR')
@@ -114,12 +114,7 @@ entries, skipped = [], []
 for match in sorted(globmod.glob(str(DIR / '**/*.html'), recursive=True)):
     fp = Path(match)
     rel = str(fp.relative_to(DIR))
-    if fp.name == 'index.html' or '/tabs/' in rel or rel.startswith('tabs/') or rel.startswith('_dist/'):
-        continue
-    # graph-templates/*.html (root) are generation-source placeholders, not
-    # finished artifacts — never index/serve them (rendered demos live in
-    # graph-templates/examples/). Subdirs (examples/, fd/) keep their parent name.
-    if fp.parent.name == 'graph-templates':
+    if should_exclude(rel):
         continue
     entry = parse(fp, rel)
     if entry:

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="diagram:title" content="Forge Plugin Topology">
+  <meta name="diagram:category" content="architecture">
+  <meta name="diagram:color" content="#f0b429">
+  <title>Forge Plugin Topology</title>
+  <script>
+    (function () {
+      if (/[?&]embed=hero/.test(location.search)) {
+        document.documentElement.classList.add('embed-hero');
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #13191f; --surface: #161b22;
+      --accent: #f0b429; --cyan: #38bdf8; --green: #34d399;
+      --text: #f0ede6; --text-muted: #9ca3af; --text-dim: #6b7280;
+      --border: #21262d; --border-hi: #30363d;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html.embed-hero, html.embed-hero body { background: transparent; }
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+    html.embed-hero body { padding: 12px 8px; min-height: 0; }
+    .diagram { position: relative; width: 960px; height: 640px; max-width: 100%; }
+    html.embed-hero .diagram {
+      transform: scale(min(1, calc((100vw - 32px) / 960)));
+      transform-origin: top center;
+    }
+    .title-block { position: absolute; top: 0; left: 0; right: 0; text-align: center; z-index: 20; }
+    .title-block h1 { font-weight: 700; font-size: 2rem; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .title-block .subtitle {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .zone-label {
+      position: absolute; font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim);
+      padding: 4px 10px; border: 1px dashed var(--border-hi); border-radius: 4px; z-index: 8;
+    }
+    .hub {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -46%);
+      width: 188px; height: 188px; background: var(--panel);
+      border: 2px solid var(--accent); border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 0 48px rgba(240, 180, 41, 0.18); z-index: 12;
+    }
+    .hub-icon { width: 42px; height: 42px; margin-bottom: 10px; }
+    .hub-label { font-weight: 600; font-size: 1.05rem; color: var(--accent); text-align: center; }
+    .hub-desc {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--text-dim);
+      margin-top: 6px; text-align: center; line-height: 1.45; padding: 0 12px;
+    }
+    .hub-badge {
+      position: absolute; top: 8px; right: 8px; font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem; color: var(--accent); background: var(--bg);
+      border: 1px solid var(--accent); border-radius: 4px; padding: 3px 6px;
+    }
+    .spoke {
+      position: absolute; width: 148px; height: 100px; background: var(--surface);
+      border: 1px solid var(--border-hi); border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 11; transition: border-color 0.2s, transform 0.2s;
+    }
+    .spoke:hover { border-color: var(--accent); transform: scale(1.02); }
+    .spoke.input { border-color: rgba(56, 189, 248, 0.35); }
+    .spoke.output { border-color: rgba(52, 211, 153, 0.3); }
+    .spoke-icon { width: 24px; height: 24px; margin-bottom: 8px; opacity: 0.9; }
+    .spoke-label { font-weight: 500; font-size: 0.84rem; text-align: center; }
+    .spoke-desc {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--text-dim);
+      margin-top: 3px; text-align: center; line-height: 1.35; padding: 0 8px;
+    }
+    .spoke-chart { top: 128px; left: 56px; }
+    .spoke-presentation { top: 128px; right: 56px; }
+    .spoke-craft { bottom: 68px; left: 56px; }
+    .spoke-serve { bottom: 68px; right: 56px; }
+    .spoke-refs {
+      top: 50%; left: 28px; transform: translateY(-50%);
+      width: 118px; height: 86px;
+    }
+    .spoke-refs:hover { transform: translateY(-50%) scale(1.02); }
+    .spoke-scripts {
+      top: 50%; right: 28px; transform: translateY(-50%);
+      width: 118px; height: 86px;
+    }
+    .spoke-scripts:hover { transform: translateY(-50%) scale(1.02); }
+    .spoke-prod { top: 118px; left: 120px; width: 160px; }
+    .spoke-staging { top: 118px; right: 120px; width: 160px; }
+    .spoke-preview { bottom: 88px; left: 50%; transform: translateX(-50%); width: 200px; }
+    .spoke-preview:hover { transform: translateX(-50%) scale(1.02); }
+    svg.craft-connections {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 6;
+    }
+    .connection { stroke: var(--border-hi); stroke-width: 2; fill: none; stroke-dasharray: 6 4; }
+    .connection.active { stroke: var(--accent); stroke-dasharray: none; opacity: 0.75; }
+    .connection.cyan { stroke: var(--cyan); stroke-dasharray: none; opacity: 0.6; }
+    .connection.green { stroke: var(--green); stroke-dasharray: none; opacity: 0.65; }
+    .connection.blocked { stroke: #ef4444; stroke-dasharray: 4 6; opacity: 0.5; }
+    .legend {
+      position: absolute; bottom: 10px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 24px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--text-dim); z-index: 20;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-line { width: 22px; height: 2px; }
+    .legend-line.solid { background: var(--accent); opacity: 0.75; }
+    .legend-line.cyan { background: var(--cyan); opacity: 0.65; }
+    .legend-line.green { background: var(--green); opacity: 0.65; }
+    .edge-label {
+      position: absolute; font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem;
+      color: var(--text-dim); background: var(--bg); padding: 2px 7px; border-radius: 4px;
+      border: 1px solid var(--border); white-space: nowrap; z-index: 14;
+    }
+    .rule-badge {
+      position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%);
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--text-dim);
+      padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px;
+      max-width: 520px; line-height: 1.45; text-align: center; z-index: 20;
+    }
+    @keyframes flow { to { stroke-dashoffset: -200px; } }
+    .connection.flow { animation: flow 20s linear infinite; }
+    </style>
+</head>
+<body>
+  <div class="diagram" data-slug="craft-hub-spoke.html" data-canvas-width="960" data-canvas-height="640">
+
+    <div class="title-block">
+      <h1>Forge Plugin Topology</h1>
+      <div class="subtitle">Skills · References · Scripts · Runtime</div>
+    </div>
+    <div class="zone-label" style="top:86px;left:8px">authoring</div>
+    <div class="zone-label" style="top:86px;right:8px">runtime</div>
+    <svg class="craft-connections" aria-hidden="true"></svg>
+    <div class="edge-label" style="left:248px;top:198px">descriptor JSON</div>
+    <div class="edge-label" style="right:248px;top:198px">scroll + iframe</div>
+    <div class="edge-label" style="left:188px;top:50%;transform:translateY(-130%)">CSS SSoT</div>
+    <div class="edge-label" style="right:188px;top:50%;transform:translateY(-130%)">validate-*</div>
+    <div class="hub" data-anchor="hub">
+      <div class="hub-badge">SSoT</div>
+      <svg class="hub-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" stroke="var(--accent)" stroke-width="2"/>
+        <path d="M24 8v32M8 24h32" stroke="var(--accent)" stroke-width="2"/>
+        <circle cx="24" cy="24" r="6" fill="var(--accent)"/>
+      </svg>
+      <div class="hub-label">Roxabi Forge</div>
+      <div class="hub-desc">~/.roxabi/forge<br>serve.py · manifest</div>
+    </div>
+    <div class="spoke spoke-chart input" data-anchor="chart">
+      <svg class="spoke-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 17V11M12 17V7M17 17v-5"/></svg>
+      <div class="spoke-label">forge-chart</div>
+      <div class="spoke-desc">fd-engine · gen-fd.py</div>
+    </div>
+    <div class="spoke spoke-presentation input" data-anchor="presentation">
+      <svg class="spoke-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h14"/></svg>
+      <div class="spoke-label">forge-presentation</div>
+      <div class="spoke-desc">scroll · craft iframe</div>
+    </div>
+    <div class="spoke spoke-craft output" data-anchor="craft">
+      <svg class="spoke-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      <div class="spoke-label">craft-anchors</div>
+      <div class="spoke-desc">data-anchor · edges JSON</div>
+    </div>
+    <div class="spoke spoke-serve output" data-anchor="serve">
+      <svg class="spoke-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <div class="spoke-label">serve.py</div>
+      <div class="spoke-desc">file:// · gallery UI</div>
+    </div>
+    <div class="spoke spoke-refs input" data-anchor="refs">
+      <svg class="spoke-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <div class="spoke-label">references/</div>
+      <div class="spoke-desc">aesthetics · templates</div>
+    </div>
+    <div class="spoke spoke-scripts output" data-anchor="scripts">
+      <svg class="spoke-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <div class="spoke-label">scripts/</div>
+      <div class="spoke-desc">check · validate</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line solid"></div><span>skill output</span></div>
+      <div class="legend-item"><div class="legend-line cyan"></div><span>authoring</span></div>
+      <div class="legend-item"><div class="legend-line green"></div><span>runtime</span></div>
+    </div>
+    <div class="rule-badge">Golden craft bar: zone labels · legend · edge labels · craft-anchors paths</div>
+  </div>
+  <script type="application/json" id="craft-edges">
+{
+  "viewBox": "0 0 960 640",
+  "edges": [
+    {
+      "from": "chart",
+      "to": "hub",
+      "class": "connection active",
+      "curve": "q"
+    },
+    {
+      "from": "presentation",
+      "to": "hub",
+      "class": "connection cyan",
+      "curve": "q"
+    },
+    {
+      "from": "refs",
+      "to": "hub",
+      "class": "connection cyan",
+      "curve": "q"
+    },
+    {
+      "from": "hub",
+      "to": "craft",
+      "class": "connection active",
+      "curve": "q"
+    },
+    {
+      "from": "hub",
+      "to": "serve",
+      "class": "connection green",
+      "curve": "q"
+    },
+    {
+      "from": "hub",
+      "to": "scripts",
+      "class": "connection green",
+      "curve": "q"
+    }
+  ]
+}
+  </script>
+  <script>
+/**
+ * craft-anchors.js — data-driven SVG edges for hand-authored craft diagrams.
+ * Inline into diagrams/*.html (file:// safe). Recomputes paths from DOM positions.
+ *
+ * Markup:
+ *   <div class="diagram" data-canvas-width="960" data-canvas-height="640">
+ *     <div class="spoke" data-anchor="feedback">…</div>
+ *     <div class="hub" data-anchor="hub">…</div>
+ *     <svg class="craft-connections" aria-hidden="true"></svg>
+ *   </div>
+ *   craft-edges JSON in a separate script[type=application/json] block
+ *
+ * Edge JSON:
+ *   {
+ *     "viewBox": "0 0 960 640",
+ *     "edges": [
+ *       { "from": "feedback", "to": "hub", "class": "connection active", "curve": "q" },
+ *       { "from": "hub", "to": "github", "class": "connection active", "curve": "q" },
+ *       { "from": "prod", "to": "staging", "class": "connection green", "curve": "h", "y": 478 }
+ *     ]
+ *   }
+ *
+ * curve: "l" straight | "q" quadratic bezier toward target | "h" horizontal at y (use edge.y)
+ */
+(function (global) {
+  'use strict';
+
+  function parseEdges() {
+    var el = document.getElementById('craft-edges');
+    if (!el) return null;
+    try {
+      return JSON.parse(el.textContent);
+    } catch (e) {
+      console.warn('[craft-anchors] invalid craft-edges JSON', e);
+      return null;
+    }
+  }
+
+  function canvasSize(diagram) {
+    var w = parseFloat(diagram.dataset.canvasWidth || '960');
+    var h = parseFloat(diagram.dataset.canvasHeight || '640');
+    return { w: w, h: h };
+  }
+
+  function centerInCanvas(el, diagram) {
+    var d = diagram.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    var size = canvasSize(diagram);
+    var sx = size.w / d.width;
+    var sy = size.h / d.height;
+    return {
+      x: ((r.left + r.right) / 2 - d.left) * sx,
+      y: ((r.top + r.bottom) / 2 - d.top) * sy,
+    };
+  }
+
+  /** Rim point on card rect toward target — lines attach to edges, not centers */
+  function rimPoint(el, diagram, toward) {
+    var c = centerInCanvas(el, diagram);
+    var d = diagram.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    var size = canvasSize(diagram);
+    var sx = size.w / d.width;
+    var sy = size.h / d.height;
+    var hw = (r.width * sx) / 2;
+    var hh = (r.height * sy) / 2;
+    var dx = toward.x - c.x;
+    var dy = toward.y - c.y;
+    if (dx === 0 && dy === 0) return c;
+    var t = Math.min(
+      dx !== 0 ? hw / Math.abs(dx) : Infinity,
+      dy !== 0 ? hh / Math.abs(dy) : Infinity
+    );
+    return { x: c.x + dx * t, y: c.y + dy * t };
+  }
+
+  function pathForEdge(from, to, edge) {
+    var curve = edge.curve || 'q';
+    if (curve === 'h') {
+      var y = edge.y != null ? edge.y : (from.y + to.y) / 2;
+      return 'M ' + from.x + ' ' + from.y + ' L ' + from.x + ' ' + y + ' L ' + to.x + ' ' + y + ' L ' + to.x + ' ' + to.y;
+    }
+    if (curve === 'l') {
+      return 'M ' + from.x + ' ' + from.y + ' L ' + to.x + ' ' + to.y;
+    }
+    var mx = (from.x + to.x) / 2;
+    var my = (from.y + to.y) / 2;
+    var cx = mx + (from.y - to.y) * 0.12;
+    var cy = my + (to.x - from.x) * 0.12;
+    return 'M ' + from.x + ' ' + from.y + ' Q ' + cx + ' ' + cy + ' ' + to.x + ' ' + to.y;
+  }
+
+  function render(diagram) {
+    var spec = parseEdges();
+    if (!spec || !spec.edges) return;
+    var svg = diagram.querySelector('svg.craft-connections');
+    if (!svg) return;
+
+    var size = canvasSize(diagram);
+    var vb = spec.viewBox || ('0 0 ' + size.w + ' ' + size.h);
+    svg.setAttribute('viewBox', vb);
+    svg.innerHTML = '';
+
+    var anchors = {};
+    diagram.querySelectorAll('[data-anchor]').forEach(function (node) {
+      anchors[node.dataset.anchor] = node;
+    });
+
+    spec.edges.forEach(function (edge) {
+      var a = anchors[edge.from];
+      var b = anchors[edge.to];
+      if (!a || !b) {
+        console.warn('[craft-anchors] missing anchor', edge.from, edge.to);
+        return;
+      }
+      var bc = centerInCanvas(b, diagram);
+      var ac = centerInCanvas(a, diagram);
+      var from = rimPoint(a, diagram, bc);
+      var to = rimPoint(b, diagram, ac);
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathForEdge(from, to, edge));
+      path.setAttribute('class', edge.class || 'connection');
+      svg.appendChild(path);
+    });
+  }
+
+  function validateBounds(diagram) {
+    var size = canvasSize(diagram);
+    var issues = [];
+    diagram.querySelectorAll('[data-anchor]').forEach(function (node) {
+      var c = centerInCanvas(node, diagram);
+      var pad = 8;
+      if (c.x < pad || c.y < pad || c.x > size.w - pad || c.y > size.h - pad) {
+        issues.push('anchor "' + node.dataset.anchor + '" near/outside canvas');
+      }
+    });
+    if (issues.length) console.warn('[craft-anchors] bounds:', issues.join('; '));
+    return issues;
+  }
+
+  function notifyResize(diagram, slug) {
+    if (!slug || global.parent === global) return;
+    var h = Math.max(document.body.scrollHeight, diagram.offsetHeight + 80);
+    global.parent.postMessage({ type: 'forge-diagram-resize', id: slug, height: h }, '*');
+  }
+
+  function boot() {
+    var diagram = document.querySelector('.diagram[data-canvas-width]') || document.querySelector('.diagram');
+    if (!diagram) return;
+    var slug = diagram.dataset.slug || '';
+
+    function redraw() {
+      render(diagram);
+      validateBounds(diagram);
+      notifyResize(diagram, slug);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(redraw);
+    } else {
+      redraw();
+    }
+    global.addEventListener('resize', redraw);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  global.CraftAnchors = { render: render, validateBounds: validateBounds };
+})(typeof window !== 'undefined' ? window : globalThis);
+  </script>
+</body>
+</html>

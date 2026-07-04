@@ -1,0 +1,230 @@
+/* ══════════════════════════════════════════════════════════════════
+   presentation-shell.css — long-form scroll presentation layout
+   Inline 5th (after explainer-base, before composition).
+   Used by forge-presentation skill outputs and showcase-presentation.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── section layout ── */
+section {
+  position: relative;
+  padding: 5rem 2.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+@media (max-width: 780px) {
+  section { padding: 3.5rem 1.25rem; }
+}
+
+/* ── eyebrow ── */
+.eyebrow {
+  font-family: var(--mono, 'IBM Plex Mono', monospace);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 0.65rem;
+}
+
+/* ── hero (split wordmark) ── */
+.hero {
+  min-height: 92vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  padding: 0;
+  max-width: 100%;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.hero-left {
+  padding: 5rem 2.5rem 4rem;
+  position: relative;
+  z-index: 2;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+.hero-wordmark {
+  font-family: 'Outfit', var(--font-display, system-ui), sans-serif;
+  font-weight: 800;
+  font-size: clamp(3.5rem, 10vw, 8rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+}
+.hero-wordmark sup {
+  color: var(--accent);
+  font-size: 0.45em;
+  vertical-align: super;
+  margin-left: 0.08em;
+}
+.hero-release {
+  font-family: var(--mono, 'IBM Plex Mono', monospace);
+  font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+  color: var(--text-dim);
+  letter-spacing: 0.22em;
+  margin-bottom: 1.5rem;
+}
+.hero-release::before {
+  content: '—  ';
+  color: var(--accent);
+}
+.hero-tagline {
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  color: var(--text-muted);
+  max-width: 42ch;
+  line-height: 1.45;
+}
+.hero-scroll {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-dim);
+  font-family: var(--mono, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  animation: pres-bob 2s ease-in-out infinite;
+}
+@keyframes pres-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 5px); }
+}
+
+/* ── section heading row ── */
+.section-h {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  align-items: start;
+}
+.section-n {
+  font-family: var(--mono, monospace);
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  padding-top: 0.35rem;
+}
+/* Override explainer-base .section-title (small label) for presentation H2 */
+.section-h .section-title {
+  font-family: 'Outfit', var(--font-display, system-ui), sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--text);
+}
+.section-sub {
+  margin-top: 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  max-width: 52ch;
+  line-height: 1.5;
+}
+
+/* ── KPI row ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.85rem;
+  margin: 1.5rem 0;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  padding: 1rem;
+  text-align: center;
+}
+.kpi-val {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+.kpi-lbl {
+  font-family: var(--mono, monospace);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 0.35rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── caveat cards ── */
+.caveat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+.caveat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  padding: 1.1rem 1.25rem;
+  border-top: 3px solid var(--amber, #fbbf24);
+}
+.caveat-card.ok { border-top-color: var(--green, #34d399); }
+.caveat-card.warn { border-top-color: var(--amber, #fbbf24); }
+.caveat-card strong {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 0.4rem;
+}
+.caveat-card p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── panel head (presentation tables) ── */
+.panel-head {
+  margin-bottom: 0.75rem;
+}
+.panel-eyebrow {
+  font-family: var(--mono, monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+}
+.panel-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 0.25rem;
+}
+
+/* ── footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 4rem 2rem 3rem;
+  text-align: center;
+  max-width: 100%;
+}
+.foot-brand {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.foot-date {
+  font-family: var(--mono, monospace);
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.foot-meta {
+  font-family: var(--mono, monospace);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+}

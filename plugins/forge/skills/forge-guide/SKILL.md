@@ -21,7 +21,9 @@ Covers: user guides, architecture overviews, project recaps, analysis/comparison
 **Read before generating:**
 
 ```
+${CLAUDE_PLUGIN_ROOT}/references/showcase-index.html   — full catalog of golden refs (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md        — brand detection, output paths, deploy commands
+${CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-guide.html — golden multi-tab guide + craft iframe
 ${CLAUDE_PLUGIN_ROOT}/references/base/reset.css      — concatenate first
 ${CLAUDE_PLUGIN_ROOT}/references/base/layout.css     — concatenate second
 ${CLAUDE_PLUGIN_ROOT}/references/base/typography.css — concatenate third

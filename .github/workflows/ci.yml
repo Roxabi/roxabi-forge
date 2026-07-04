@@ -49,3 +49,7 @@ jobs:
         run: |
           find plugins/forge/references/graph-templates -name '*.html' -print0 \
             | xargs -0 bash plugins/forge/scripts/validate-svg.sh plugins/forge/references/graph-templates/fgraph-base.css
+      - name: OG exclude rules (self-test)
+        run: python3 scripts/gen-og-images.py --self-test
+      - name: Reference showcase runtime gate
+        run: python3 scripts/validate-reference-runtime.py

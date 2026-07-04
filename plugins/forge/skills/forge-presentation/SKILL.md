@@ -17,23 +17,43 @@ Generate a single-file HTML long-form presentation from a GitHub issue, a markdo
 
 Output: `~/.roxabi/forge/<project>/visuals/{name}.html`
 
-Single-file — all CSS and JS inlined. No split-file, no external links at runtime (except CDN fonts). This is the correct distribution rule for `file://` offline safety; see CLAUDE.md § Distribution Rule.
+Single-file presentation — all CSS and JS inlined in `{name}.html`. No split-file presentation shell.
+
+**Exception — craft diagram SSoT:** dense premium craft canvases (hub-spoke, fixed geometry, SVG paths) live in sibling files `visuals/diagrams/{slug}.html` and embed via `<iframe class="diagram-frame">`. Relative paths keep `file://` offline safety. **Never** copy diagram CSS into the presentation. Full rules: `${CLAUDE_PLUGIN_ROOT}/references/composition-contract.md`.
 
 **Read before generating:**
 
 ```
+${CLAUDE_PLUGIN_ROOT}/references/showcase-index.html                  — full catalog of golden refs (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md                         — brand detection, output paths, deploy commands
+${CLAUDE_PLUGIN_ROOT}/references/composition-contract.md                — presentation × diagram layers (mandatory if any diagram)
 ${CLAUDE_PLUGIN_ROOT}/references/base/reset.css                       — inline 1st
 ${CLAUDE_PLUGIN_ROOT}/references/base/typography.css                  — inline 2nd
 ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/{aesthetic}.css           — inline 3rd (one file, selected by detection)
 ${CLAUDE_PLUGIN_ROOT}/references/base/explainer-base.css               — inline 4th (scroll layout, sections, cards)
+${CLAUDE_PLUGIN_ROOT}/references/base/presentation-shell.css           — inline 5th (hero-wordmark, section-h, kpi, caveat, footer)
+${CLAUDE_PLUGIN_ROOT}/references/base/composition.css                 — inline 6th (panel-wrap, arch-wrap, diagram-embed)
+${CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-presentation.html   — golden scroll + iframe integration (read first)
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/examples/craft-hub-spoke.html — golden craft hub-spoke
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/examples/craft-deploy-flow.html — golden promote flow (curve h)
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/README.md                   — craft diagram authoring pipeline
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-qa-checklist.md        — pre-embed visual gate (mandatory per diagram)
+${CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-anchors.js            — inline into each diagrams/*.html
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md                      — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/brand-book-loader.md                 — Track A/B detection
 ${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md                       — silent inference (reader/action/takeaway/tone)
 ${CLAUDE_PLUGIN_ROOT}/references/design-phase-two-track.md            — track-by-track behavior
+${CLAUDE_PLUGIN_ROOT}/references/anti-patterns.md                     — Deliver gate (incl. composition §)
 ```
 
-**Directive: inline, never link** — presentation CSS files are generation source, not runtime dependencies. Read → inline into the output `<style>` block. The only allowed external requests at runtime are CDN fonts (`fonts.googleapis.com`, `fonts.gstatic.com`). Diagram sections inline their fgraph template + `fgraph-base.css` directly — no diagram runtime, no CDN.
+**Directive: inline, never link** — presentation CSS files are generation source, not runtime dependencies. Read → inline into the output `<style>` block. The only allowed external requests at runtime are CDN fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) and **relative** `diagrams/*.html` iframes.
+
+**Diagram paths in presentations:**
+- **Craft canvas** (>6 nodes, absolute layout, craft legend) → `visuals/diagrams/{slug}.html` + iframe (`craft-diagram` section type). Golden: `references/diagrams/examples/craft-hub-spoke.html`. Starter: `references/diagrams/craft-diagram-starter.html`.
+- **fd-engine** (descriptor JSON, validate-fd exit 0) → `forge-chart` output; embed same iframe pattern if inside presentation.
+- **≤6 nodes, print-safe** → inline fgraph template + `fgraph-base.css` in presentation `<style>` (no iframe).
+- **Tables / forge swimlanes** → `panel-wrap` (not bare `tbl-wrap`).
+- **Simple pipelines** → `arch-wrap` + `arch-pipeline`.
 
 ---
 
@@ -86,6 +106,7 @@ Inline in this order, no exceptions:
 2. `typography.css`
 3. `{aesthetic}.css` (one file, from `references/aesthetics/`)
 4. `explainer-base.css`
+5. `composition.css`
 
 `data-theme` on `<html>`: use `dark` unless brand detection or `--aesthetic` override specifies otherwise.
 
@@ -158,6 +179,18 @@ Produce the section outline silently (in-memory, no disk write). Each entry: `{i
 | markdown path | Key-value pairs, metrics | `kpi` sections |
 | free prompt | Entire prompt | Hero + intro + content sections + closing |
 
+### Diagram / data decision (Phase 2 — before outline finalizes)
+
+Run the matrix in `composition-contract.md` § Level 7 for every visual block:
+
+| Content signal | Section type | Output |
+|---|---|---|
+| Craft canvas, spokes, SVG paths | `craft-diagram` | `craft-diagram-starter.html` + `data-anchor` + `#craft-edges` + inline `craft-anchors.js` |
+| fd-engine descriptor validates | `craft-diagram` or `architecture` | `forge-chart` HTML in `diagrams/`, embed via iframe |
+| Table ± forge swimlane | `panel` | `panel-wrap` in presentation only |
+| Linear <7 steps, no geometry | `pipeline` | `arch-wrap` + `arch-pipeline` |
+| ≤6 node static topology | `architecture` | inline fgraph in presentation |
+
 ### Section types
 
 | Type | When to use | Content shape |
@@ -172,7 +205,9 @@ Produce the section outline silently (in-memory, no disk write). Each entry: `{i
 | `timeline` | Chronological events | `.timeline` with `.tl-item` entries |
 | `gallery` | Image grid with lightbox | `.gallery-grid` with `.gfr` items |
 | `code` | Code examples | `.codeblock` with syntax highlighting |
-| `architecture` | System diagrams | Inline fgraph SVG or layered node diagram |
+| `architecture` | System diagrams ≤6 nodes | Inline fgraph SVG or layered node diagram |
+| `craft-diagram` | Craft hub-spoke / swimlane canvas | iframe → `diagrams/{slug}.html` (SSoT); title inside diagram only |
+| `panel` | Tables + related swimlanes | `panel-wrap` + `panel-head` + `tbl-wrap` / `.swimlanes` |
 | `trinity` | Three related concepts | `.trinity` with 3 cards |
 | `pipeline` | Linear flow diagram | `.pipeline` with inputs → output |
 | `quote` | Chapter breaks, pull quotes | `.chapter-card` with quote text |
@@ -186,7 +221,7 @@ Produce the section outline silently (in-memory, no disk write). Each entry: `{i
 |---|---|
 | `diagram:category` | `analysis` or appropriate category from `diagram-meta.md` |
 | `diagram:cat-label` | Matching label |
-| `diagram:color` | match project (amber=Lyra, gold=Roxabi, cyan=Blueprint, etc.) |
+| `diagram:color` | match project (amber=warm, gold=Roxabi, cyan=Blueprint, etc.) |
 | `diagram:badges` | `latest` |
 | `diagram:issue` | issue number if input was `#N`, else omit |
 
@@ -195,6 +230,25 @@ Produce the section outline silently (in-memory, no disk write). Each entry: `{i
 ## Phase 3 — Generation
 
 Always delegate to a sub-agent when total output exceeds ~300 lines. A presentation with 6+ sections will always exceed this threshold — **always delegate Phase 3 to a sub-agent**.
+
+### Craft diagram sub-workflow (per `craft-diagram` section)
+
+Execute **before** wiring the presentation iframe:
+
+1. Copy `${CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-diagram-starter.html` → `visuals/diagrams/{slug}.html`
+2. Set `data-slug`, `diagram:title`, title block copy
+3. Place hub/spokes with CSS — each node gets `data-anchor="{id}"`
+4. Set `data-canvas-width` / `data-canvas-height` on `.diagram`
+5. Edit `#craft-edges` JSON only for connections (`curve`: `q` hub-spoke, `h` promote flows)
+6. Ensure `craft-anchors.js` is inlined (starter includes it)
+7. Inline brand icon `<symbol>` blocks — no external `brand-icons.svg` refs
+8. Run `python3 ~/.roxabi/forge/scripts/check-craft-diagram.py visuals/diagrams/{slug}.html --check`
+9. Open `file://` + walk `craft-qa-checklist.md`
+10. Then embed iframe in presentation
+
+**Forbidden on craft diagrams:** hand-coded `<path d="…">` that will desync when spokes move; negative `left`/`right` on spoke/hub anchors (badges inside nodes OK); >6 anchors without splitting diagram (warn only if density still readable).
+
+**postMessage contract:** diagrams emit `{ type: 'forge-diagram-resize', id: '{slug}.html', height }`; presentation listener filters on `forge-diagram-resize` and matches `iframe.src` to `e.data.id`.
 
 ### Sub-agent prompt template
 
@@ -211,23 +265,39 @@ Decisions (from Phase 1–2):
 - data-theme: {dark|light}
 
 Read these reference files IN ORDER:
+- {CLAUDE_PLUGIN_ROOT}/references/composition-contract.md
 - {CLAUDE_PLUGIN_ROOT}/references/base/reset.css
 - {CLAUDE_PLUGIN_ROOT}/references/base/typography.css
 - {CLAUDE_PLUGIN_ROOT}/references/aesthetics/{aesthetic}.css
 - {CLAUDE_PLUGIN_ROOT}/references/base/explainer-base.css
+- {CLAUDE_PLUGIN_ROOT}/references/base/composition.css
 - {CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md
+- {CLAUDE_PLUGIN_ROOT}/references/diagrams/README.md (if any craft-diagram section)
+- {CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-qa-checklist.md (mandatory per craft diagram)
+- {CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-presentation.html (golden integration)
+- {CLAUDE_PLUGIN_ROOT}/references/diagrams/examples/craft-hub-spoke.html (golden craft)
+- {CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-diagram-starter.html (copy base per craft section)
+- {CLAUDE_PLUGIN_ROOT}/references/diagrams/craft-anchors.js (inline verbatim into each diagrams/*.html)
 
-Then generate one file:
+Then generate:
   ~/.roxabi/forge/{PROJ}/visuals/{name}.html
+  ~/.roxabi/forge/{PROJ}/visuals/diagrams/*.html (one per craft-diagram section)
 
 Rules:
-- Single file — inline all CSS in order: reset → typography → aesthetic → explainer-base
+- Presentation single file — inline CSS: reset → typography → aesthetic → explainer-base → composition
+- Craft diagrams: separate visuals/diagrams/{slug}.html — NEVER inline craft canvas CSS in presentation
+- iframe: figure.diagram-embed without nested .reveal; no figcaption when diagram has title
 - Hero section first: wordmark, release/date line, tagline, scroll indicator
 - Fixed nav with section links (optional, skip if ≤4 sections)
 - Sections: §01, §02, §03... with `.section-h` heading structure
 - Add class="reveal" to sections and major elements for scroll animations
 - Include inline <script> for IntersectionObserver reveal + optional lightbox
-- diagram sections: inline the fgraph template HTML + inline fgraph-base.css content into the <style> block
+- craft-diagram sections: iframe to diagrams/{slug}.html; section-scoped #id .diagram-frame { border:none; background:transparent }
+- craft diagrams: data-slug="{slug}.html" must match iframe src filename; edges only in #craft-edges JSON — never hand-coded <path d=>
+- craft diagrams: postMessage type forge-diagram-resize (presentation listener must use same type)
+- architecture sections (≤6 nodes): inline fgraph template + fgraph-base.css into <style>
+- panel sections: panel-wrap not bare tbl-wrap
+- Before deliver: python3 ~/.roxabi/forge/scripts/check-craft-diagram.py on each diagrams/*.html --check; check-composition.py on presentation if diagram-embed present
 - Inject diagram-meta block in <head> (see diagram-meta.md)
 - data-theme="{dark|light}" on <html>
 - Footer section last: brand wordmark, date, meta links
@@ -312,10 +382,24 @@ Rules:
   // Reveal on scroll
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('v'); obs.unobserve(e.target); }
+      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
     });
   }, { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+  // iframe height: data-height fallback + optional postMessage from diagrams
+  document.querySelectorAll('.diagram-frame').forEach(function (iframe) {
+    var h = parseInt(iframe.dataset.height || '400', 10);
+    iframe.style.height = h + 'px';
+  });
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'forge-diagram-resize') return;
+    document.querySelectorAll('.diagram-frame').forEach(function (iframe) {
+      if (iframe.src && iframe.src.includes(e.data.id)) {
+        iframe.style.height = Math.max(e.data.height, parseInt(iframe.dataset.height || '200', 10)) + 'px';
+      }
+    });
+  });
 
   // Lightbox (optional)
   // ...
@@ -342,8 +426,12 @@ Deploy:  make forge deploy
 - [ ] File written to `~/.roxabi/forge/{PROJ}/visuals/{name}.html`
 - [ ] Section count: {N} sections (hero + §01...§XX + footer)
 - [ ] Aesthetic applied: `{aesthetic}.css` — `data-theme` matches
-- [ ] CSS inline order verified: reset → typography → aesthetic → explainer-base
-- [ ] Reveal animations: `.reveal` class on sections, IntersectionObserver in `<script>`
+- [ ] CSS inline order verified: reset → typography → aesthetic → explainer-base → composition
+- [ ] Reveal animations: `.reveal` on sections; IntersectionObserver adds `.visible` (not `.v`)
+- [ ] Craft diagrams: `data-anchor` + `#craft-edges` + inlined `craft-anchors.js` (no orphan hardcoded paths)
+- [ ] `check-craft-diagram.py --check` exit 0 on each `diagrams/*.html`
+- [ ] Composition: no inline `.craft-embed`; craft diagrams in `diagrams/*.html` + iframe
+- [ ] `check-composition.py --check` exit 0 (if any diagram-embed present)
 - [ ] Hero section: wordmark + release date + tagline + scroll indicator
 - [ ] Sections numbered: §01, §02, §03... with `.section-h` structure
 - [ ] `prefers-reduced-motion`: transitions disabled via `@media (prefers-reduced-motion: reduce)`
@@ -359,7 +447,7 @@ Deploy:  make forge deploy
 |---|---|
 | PDF export | Deferred — requires separate print stylesheet |
 | Multi-tab variant | Deferred — use `forge-guide` for tab-based docs |
-| Auto-generated diagrams from text | Deferred — requires explicit diagram sections |
+| Auto-generated diagrams from text | Deferred — use explicit `craft-diagram` / `architecture` sections + composition matrix |
 | WYSIWYG editor | Out of scope — forge generates, not edits |
 
 ---
