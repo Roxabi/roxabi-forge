@@ -30,6 +30,8 @@ ls ~/.roxabi/forge/index.html 2>/dev/null
 
 Report what exists and what's missing.
 
+After `make -C plugins/forge deploy`, plugin references (showcases, craft diagrams, templates) sync to `~/.roxabi/forge/references/`. Open **`references/showcase-index.html`** for the full catalog.
+
 ---
 
 ## Phase 2 — Create Structure

@@ -16,6 +16,10 @@ allowed-tools: Read, Bash, Glob
 
 Thin wrapper around `render-md.py` (single file) and `render-md-tabs.py` (multi-file tabbed). Use when the user has already authored markdown and wants it rendered — **do not rewrite, restructure, or plan tabs**. The scripts handle sorting, tab labels, tables, task lists, and the roxabi dark aesthetic.
 
+**Catalog:** `${CLAUDE_PLUGIN_ROOT}/references/showcase-index.html` — all skill + diagram references.
+
+**Golden reference:** `${CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-md.html` (source: `showcase-sample.md`) — render-as-is preview pattern.
+
 **No diagram runtime:** Mermaid-style fenced diagram blocks are not supported. The render scripts emit an error to stderr and exit non-zero when they encounter a legacy diagram fence. For diagrams, author a native fgraph template under `plugins/forge/references/graph-templates/` (see `graph-templates/README.md`) and reference its output path from the markdown, or switch to `forge-guide` for a multi-tab doc with inline diagrams.
 
 ## When to use this skill vs. others

@@ -44,6 +44,12 @@ deploy:
 	@cp -v $(REPO_ROOT)/scripts/validate-fd-browser.py $(FORGE_DIR)/scripts/validate-fd-browser.py
 	@cp -v $(REPO_ROOT)/scripts/validate-descriptor.py $(FORGE_DIR)/scripts/validate-descriptor.py
 	@cp -v $(REPO_ROOT)/scripts/audit-forge-diagrams.py $(FORGE_DIR)/scripts/audit-forge-diagrams.py
+	@cp -v $(REPO_ROOT)/scripts/check-composition.py $(FORGE_DIR)/scripts/check-composition.py
+	@cp -v $(REPO_ROOT)/scripts/build-reference-showcases.py $(FORGE_DIR)/scripts/build-reference-showcases.py
+	@cp -v $(REPO_ROOT)/scripts/gen-showcase-thumbs.py $(FORGE_DIR)/scripts/gen-showcase-thumbs.py
+	@cp -v $(REPO_ROOT)/scripts/bake-reference-previews.py $(FORGE_DIR)/scripts/bake-reference-previews.py
+	@cp -v $(REPO_ROOT)/scripts/validate-reference-runtime.py $(FORGE_DIR)/scripts/validate-reference-runtime.py
+	@cp -v $(REPO_ROOT)/scripts/check-craft-diagram.py $(FORGE_DIR)/scripts/check-craft-diagram.py
 	@cp -v $(REPO_ROOT)/scripts/migrate-fd-batch.py $(FORGE_DIR)/scripts/migrate-fd-batch.py
 	@cp -v $(REPO_ROOT)/scripts/validate-descriptor.test.sh $(FORGE_DIR)/scripts/validate-descriptor.test.sh
 	@cp -v $(REPO_ROOT)/scripts/forge_paths.test.sh $(FORGE_DIR)/scripts/forge_paths.test.sh
@@ -64,15 +70,35 @@ deploy:
 	@chmod +x $(FORGE_DIR)/scripts/validate-fd-browser.py
 	@chmod +x $(FORGE_DIR)/scripts/validate-descriptor.py
 	@chmod +x $(FORGE_DIR)/scripts/audit-forge-diagrams.py
+	@chmod +x $(FORGE_DIR)/scripts/check-composition.py
+	@chmod +x $(FORGE_DIR)/scripts/check-craft-diagram.py
 	@chmod +x $(FORGE_DIR)/scripts/migrate-fd-batch.py
 	# gen-og-images.py / _og_common.py: invoked via 'uv run python3', no chmod +x needed
 	@chmod +x $(FORGE_DIR)/scripts/render-md.py
 	@chmod +x $(FORGE_DIR)/scripts/render-md-tabs.py
-	@echo "── reference gallery + showcases ──"
+	@echo "── plugin references (showcases, diagrams, templates) ──"
+	@mkdir -p "$(FORGE_DIR)/references"
+	@cp -v $(PLUGIN_DIR)references/showcase-index.html $(FORGE_DIR)/references/showcase-index.html
 	@cp -v $(PLUGIN_DIR)references/reference-gallery.html $(FORGE_DIR)/reference-gallery.html
-	@mkdir -p "$(FORGE_DIR)/references/showcases" "$(FORGE_DIR)/references/graph-templates/examples"
-	@rsync -av --delete --include='*.html' --exclude='*' $(PLUGIN_DIR)references/showcases/ "$(FORGE_DIR)/references/showcases/"
-	@rsync -av --delete --include='*.html' --exclude='*' $(PLUGIN_DIR)references/graph-templates/examples/ "$(FORGE_DIR)/references/graph-templates/examples/"
+	@rsync -av --delete \
+	  --include='*/' --include='*.html' --exclude='*' \
+	  $(PLUGIN_DIR)references/showcases/ "$(FORGE_DIR)/references/showcases/"
+	@cp -v $(PLUGIN_DIR)references/showcases/showcase-sample.md $(FORGE_DIR)/references/showcases/showcase-sample.md 2>/dev/null || true
+	@rsync -av --delete \
+	  --include='*/' --include='*.html' --exclude='*' \
+	  $(PLUGIN_DIR)references/diagrams/ "$(FORGE_DIR)/references/diagrams/"
+	@rsync -av --delete \
+	  --include='*/' --include='*.html' --exclude='*' \
+	  $(PLUGIN_DIR)references/graph-templates/ "$(FORGE_DIR)/references/graph-templates/"
+	@rsync -av --delete \
+	  --include='*/' --include='*.html' --exclude='*' \
+	  $(PLUGIN_DIR)references/gallery-templates/ "$(FORGE_DIR)/references/gallery-templates/"
+	@rsync -av --delete \
+	  --include='*/' --include='*.html' --exclude='*' \
+	  $(PLUGIN_DIR)references/gallery-templates/examples/ "$(FORGE_DIR)/references/gallery-templates/examples/" 2>/dev/null || true
+	@mkdir -p "$(FORGE_DIR)/references/thumbs"
+	@rsync -av --delete \
+	  $(PLUGIN_DIR)references/thumbs/ "$(FORGE_DIR)/references/thumbs/"
 	@echo "Done."
 	@echo ""
 	@echo "Note: rsync --delete mirrors references/graph-templates/fd/, references/aesthetics/,"

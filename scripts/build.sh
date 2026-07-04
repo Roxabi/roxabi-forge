@@ -23,10 +23,13 @@ fi
 echo "▸ Generating image gallery manifests…"
 python3 "$SCRIPT_DIR/gen-image-manifests.py"
 
+echo "▸ Injecting Open Graph meta tags…"
+python3 "$SCRIPT_DIR/gen-og-tags.py"
+
 echo "▸ Rendering per-artifact OG images…"
 if command -v uv >/dev/null 2>&1; then
-  # non-fatal: playwright absent / hang -> OG cards fall back to banner
-  timeout 120 uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
+  # After og-tags so HTML mtimes are stable; non-fatal if playwright absent.
+  timeout 600 uv run --with playwright python3 "$SCRIPT_DIR/gen-og-images.py" \
     || echo "  ⚠ OG image render skipped (rc=$?) — cards fall back to banner"
 else
   echo "  ⚠ uv not found — skipping OG image render (cards fall back to banner)"
@@ -34,9 +37,6 @@ fi
 
 echo "▸ Refreshing manifest.json (card preview flags)…"
 python3 "$SCRIPT_DIR/gen-manifest.py"
-
-echo "▸ Injecting Open Graph meta tags…"
-python3 "$SCRIPT_DIR/gen-og-tags.py"
 
 if [ -x "$SCRIPT_DIR/gen-fd.py" ] && [ -f "$SCRIPT_DIR/validate-fd.py" ]; then
   FIXTURE="$SCRIPT_DIR/fixtures/lyra-stack-v2.json"

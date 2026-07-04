@@ -18,7 +18,9 @@ Create a self-contained HTML gallery from a template. Galleries live at `~/.roxa
 **Read before generating:**
 
 ```
+${CLAUDE_PLUGIN_ROOT}/references/showcase-index.html                 — full catalog of golden refs (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md                       — brand detection, output paths, deploy commands
+${CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-gallery.html    — golden filterable reference gallery
 ${CLAUDE_PLUGIN_ROOT}/references/aesthetics/                        — lyra.css, roxabi.css (brand tokens)
 ${CLAUDE_PLUGIN_ROOT}/references/diagram-meta.md                    — meta tag format + categories
 ${CLAUDE_PLUGIN_ROOT}/references/gallery-templates/README.md        — template guide + customisation steps

@@ -102,7 +102,7 @@ Output lands in `~/.roxabi/forge/<project>/visuals/`. Open in a browser, or `mak
 </table>
 
 > [!TIP]
-> All seven showcases live as canonical HTML references in [`plugins/forge/references/showcases/`](plugins/forge/references/showcases/). Use them as style + structure guides when authoring new outputs.
+> All references ship inside the plugin. **Entry point:** [`plugins/forge/references/showcase-index.html`](plugins/forge/references/showcase-index.html) — searchable catalog of 31+ artifacts (skill outputs, craft diagrams, fd-engine goldens, fgraph templates, gallery shells). Individual showcases live in [`plugins/forge/references/showcases/`](plugins/forge/references/showcases/).
 
 ## How it works
 

@@ -10,8 +10,7 @@ node_modules/
 pnpm-lock.yaml
 pnpm-workspace.yaml
 
-# Dev-core (DO NOT commit)
-.claude/stack.yml
+# Dev-core (local overrides — stack.yml is committed for CI context-lint)
 .claude/dev-core.yml
 .claude/scheduled_tasks.lock
 

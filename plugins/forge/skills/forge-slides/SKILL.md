@@ -22,7 +22,9 @@ Single-file — all CSS and JS inlined. No split-file, no external links at runt
 **Read before generating:**
 
 ```
+${CLAUDE_PLUGIN_ROOT}/references/showcase-index.html                   — full catalog of golden refs (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/forge-ops.md                         — brand detection, output paths, deploy commands
+${CLAUDE_PLUGIN_ROOT}/references/showcases/showcase-slides.html       — golden scroll-snap deck (read first)
 ${CLAUDE_PLUGIN_ROOT}/references/slide-patterns.md                    — 10 slide types, 6 aesthetic presets, init sequence (primary Phase 3 reference)
 ${CLAUDE_PLUGIN_ROOT}/references/base/reset.css                       — inline 1st
 ${CLAUDE_PLUGIN_ROOT}/references/base/typography.css                  — inline 2nd

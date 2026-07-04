@@ -23,6 +23,8 @@ roxabi-forge/
 │       │   ├── showcases/       # reference demo (showcase-chart — fd-engine premium pipeline)
 │       │   ├── device-frames/   # iOS/Android device frame CSS for mobile mockups
 │       │   ├── aesthetics/      # brand presets (lyra-v2, cool-dark, …) — inlined into output
+│       │   ├── composition-contract.md  # presentation × craft diagram layers (iframe SSoT)
+│       │   ├── diagrams/        # craft-diagram-starter, craft-anchors.js, QA checklist
 │       ├── runtime/             # Makefile + run.sh + .env.example for ~/.roxabi/forge/
 │       └── Makefile             # deploy target (copies runtime → ~/.roxabi/forge/)
 ├── scripts/                     # Build scripts (build.sh, gen-manifest.py, gen-plugin-manifest.py, render-md{,-tabs}.py, etc.)

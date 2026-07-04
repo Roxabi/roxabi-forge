@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ═══════════════════════════════════════════════════════════════
+     CUSTOMISE: diagram-meta — update title, date, color, badges
+     ═══════════════════════════════════════════════════════════════ -->
+<title>Forge · Audio Gallery</title>
+<!-- diagram-meta:start -->
+<meta name="diagram:title"     content="Forge · Audio Gallery">
+<meta name="diagram:date"      content="2026-07-04">
+<meta name="diagram:category"  content="gallery">
+<meta name="diagram:cat-label" content="Gallery">
+<meta name="diagram:color"     content="#f0b429">
+<meta name="diagram:badges"    content="latest,voice">
+<!-- diagram-meta:end -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* gallery-base — baked */
+/* ══════════════════════════════════════════════════════════════════
+   gallery-base.css — shared foundation for all forge gallery templates
+   v0.2.0 — brand-aligned default (Roxabi hub palette)
+
+   Default tokens below match the Roxabi brand book (bg #0d1117,
+   accent #f0b429 amber, text #f0ede6 warm off-white, Inter).
+   Project galleries (Lyra #e85d04, etc.) should OVERRIDE
+   --accent / --accent-dim / --font in the consuming page's <style>.
+
+   Brand SSoT: ~/.roxabi/forge/roxabi-site/brand/BRAND-BOOK.md §6
+   Drift check: scripts/check-brand-drift.sh (lefthook pre-commit)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Tokens ── */
+:root {
+  --bg:#0d1117; --surface:#13191f; --surface2:#161b22; --card:#1e2133;
+  --border:rgba(255,255,255,0.07); --border2:#30363d;
+  --text:#f0ede6; --text-dim:#9ca3af; --text-xdim:#6b7280;
+  /* CUSTOMISE: swap accent for your project brand (Lyra=#e85d04, etc.) */
+  --accent:#f0b429;
+  --accent-dim:rgba(240,180,41,0.12);
+  --green:#34d399; --green-dim:rgba(52,211,153,0.12);
+  --blue:#60a5fa;  --blue-dim:rgba(96,165,250,0.12);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);
+  --orange:#fb923c;--orange-dim:rgba(251,146,60,0.12);
+  --cyan:#22d3ee;  --cyan-dim:rgba(34,211,238,0.12);
+  --amber:#f0b429; --amber-dim:rgba(240,180,41,0.12);
+  --red:#f87171;   --red-dim:rgba(248,113,113,0.12);
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+[data-theme="light"] {
+  --bg:#f5f2ec; --surface:#ede9e0; --surface2:#e5e0d5; --card:#faf8f4;
+  --border:rgba(0,0,0,0.08); --border2:rgba(0,0,0,0.15);
+  --text:#1a1d2b; --text-dim:#5a6070; --text-xdim:#9aa0ae;
+  --green:#047857; --green-dim:rgba(4,120,87,0.1);
+  --blue:#1d4ed8;  --blue-dim:rgba(29,78,216,0.1);
+  --purple:#7c3aed;--purple-dim:rgba(124,58,237,0.1);
+  --orange:#ea580c;--orange-dim:rgba(234,88,12,0.1);
+  --cyan:#0891b2;  --cyan-dim:rgba(8,145,178,0.1);
+  --amber:#b8760a; --amber-dim:rgba(184,118,10,0.1);
+  --red:#dc2626;   --red-dim:rgba(220,38,38,0.1);
+}
+
+/* ── Base resets ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
+
+/* ── Header ── */
+.header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.header-left h1{font-size:1.3rem;font-weight:700;letter-spacing:-0.01em}
+.header-left h1 span{color:var(--accent)}
+.header-left .sub{font-size:.72rem;color:var(--text-dim);margin-top:3px;line-height:1.4}
+.theme-btn{background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:.85rem;padding:5px 10px;flex-shrink:0}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.toolbar:last-of-type{margin-bottom:12px}
+.ctrl{display:flex;align-items:center;gap:4px}
+.ctrl-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-xdim);font-family:var(--mono)}
+
+/* ── Segmented controls ── */
+.segs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.seg{background:none;border:none;border-right:1px solid var(--border);color:var(--text-dim);cursor:pointer;font-family:var(--font);font-size:.65rem;font-weight:500;padding:4px 8px;transition:background .1s,color .1s;white-space:nowrap}
+.seg:last-child{border-right:none}
+.seg:hover{background:var(--surface2);color:var(--text)}
+.seg.on{background:var(--accent-dim);color:var(--accent);font-weight:600}
+
+/* ── Checkbox toggle buttons (OFF = inactive = show all) ── */
+.check-group{display:flex;gap:3px;flex-wrap:wrap}
+.check-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;font-size:.6rem;padding:3px 6px;font-family:var(--mono);transition:all .1s}
+.check-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.check-btn:hover{border-color:var(--accent)}
+
+/* ── Size +/− ── */
+.size-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;font-size:.85rem;font-weight:700;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-family:var(--mono)}
+.size-btn:hover{border-color:var(--accent);color:var(--accent)}
+.size-label{font-size:.6rem;color:var(--text-xdim);font-family:var(--mono);min-width:24px;text-align:center}
+
+/* ── Inputs ── */
+.filter-input{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:.65rem;padding:4px 8px;outline:none}
+.filter-input:focus{border-color:var(--accent)}
+.search-input{width:140px}
+
+/* ── Stats ── */
+.stats{font-family:var(--mono);font-size:.6rem;color:var(--text-xdim);margin-left:auto}
+
+/* ── Group headers ── */
+.group-hdr{display:flex;align-items:center;gap:8px;margin:16px 0 8px;padding:4px 0;border-top:1px solid var(--border)}
+.group-tag{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:4px;font-family:var(--mono);background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)}
+.group-cnt{font-family:var(--mono);font-size:.58rem;color:var(--text-xdim)}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:64px 24px;color:var(--text-xdim);font-size:.84rem}
+
+/* ── Pixel-art rendering utility ──
+   Apply to <img> in sprite galleries (32×32, 64×64, etc.) to disable
+   browser smoothing and preserve crisp pixel edges at any scale.
+   Declaration order matters: last supported value wins. `pixelated` goes
+   last so modern browsers (Chromium/Firefox/Safari all support it natively
+   as of 2021+) use nearest-neighbour scaling rather than `crisp-edges`
+   (which is W3C-defined as edge-preserving, potentially with smoothing). */
+.pixelated{image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;image-rendering:pixelated}
+
+/* ── Downloads dropdown ──
+   Wire via initDownloads({dropdownId, toggleId, menuId, entries}). */
+.dl-wrap{position:relative;display:inline-block}
+.dl-toggle{background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:.72rem;padding:5px 10px;font-family:var(--mono);display:flex;align-items:center;gap:4px}
+.dl-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.dl-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 0;min-width:240px;z-index:50;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.dl-menu.open{display:block}
+.dl-item{display:block;width:100%;background:none;border:none;color:var(--text-dim);cursor:pointer;font-family:var(--mono);font-size:.6rem;padding:7px 14px;text-align:left;transition:all .1s}
+.dl-item:hover{background:var(--accent-dim);color:var(--accent)}
+.dl-item[data-loading="true"]{opacity:.5;cursor:wait;pointer-events:none}
+.dl-item[data-loading="true"]::after{content:" ⏳"}
+.dl-hint{display:block;font-size:.48rem;color:var(--text-xdim);margin-top:1px}
+.dl-item:hover .dl-hint{color:var(--accent)}
+
+/* ── Toast stack ──
+   Populated by showToast(message, variant, duration). */
+.toast-stack{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:200;pointer-events:none}
+.toast{background:var(--card);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:.65rem;color:var(--text);max-width:340px;box-shadow:0 4px 16px rgba(0,0,0,.35);pointer-events:auto;animation:toast-in .2s ease-out}
+.toast-info{border-color:var(--blue);color:var(--blue)}
+.toast-error{border-color:var(--red);color:var(--red)}
+.toast-leaving{opacity:0;transform:translateX(8px);transition:all .2s ease-in}
+@keyframes toast-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Responsive ── */
+@media(max-width:860px){.ctrl-label{display:none}}
+@media(max-width:600px){.toolbar{gap:4px}.seg{font-size:.58rem;padding:3px 5px}.search-input{width:100px}.dl-menu{min-width:200px}}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: override accent tokens for your project brand
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --accent:#f0b429;   /* e.g. #c084fc (purple), #e8a030 (amber) */
+  --accent-dim:rgba(240,180,41,0.12); /* e.g. rgba(192,132,252,0.12) */
+}
+
+/* ── Layout ── */
+.layout{max-width:1400px;margin:0 auto;padding:24px 24px 64px}
+
+/* ── Header overrides ── */
+.header{padding-bottom:20px;margin-bottom:18px}
+.header-left h1{font-size:1.4rem;letter-spacing:-0.02em}
+.header-left .sub{font-size:.78rem;margin-top:4px;line-height:1.5}
+.header-left .tech{font-family:var(--mono);font-size:.65rem;color:var(--text-xdim);margin-top:2px}
+
+/* ── Source text block (optional) ── */
+.text-block{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:.8rem;color:var(--text-dim);line-height:1.7;font-style:italic}
+.text-block .text-label{font-family:var(--mono);font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-xdim);margin-bottom:6px;font-style:normal}
+
+/* ── Toolbar overrides ── */
+.toolbar{padding:8px 0}
+.toolbar:last-of-type{margin-bottom:16px}
+.seg{padding:4px 9px}
+.size-label{min-width:28px}
+.stats{white-space:nowrap}
+
+/* Search (enhanced version) */
+.search-wrap{position:relative;flex:1;max-width:260px}
+.search-wrap::before{content:'⌕';position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-xdim);font-size:.9rem;pointer-events:none}
+.search-wrap input{background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:.72rem;padding:5px 10px 5px 28px;width:100%;outline:none;transition:border-color .15s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--text-xdim)}
+
+/* ── Group section ── */
+.group-sec{margin-bottom:28px}
+.group-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.group-tag{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:2px 8px;border-radius:4px;font-family:var(--mono)}
+/* CUSTOMISE: color variants for group tags — add/remove to match your engines */
+.group-tag.blue  {background:var(--blue-dim);  color:var(--blue);  border:1px solid var(--blue)}
+.group-tag.cyan  {background:var(--cyan-dim);  color:var(--cyan);  border:1px solid var(--cyan)}
+.group-tag.green {background:var(--green-dim); color:var(--green); border:1px solid var(--green)}
+.group-tag.orange{background:var(--orange-dim);color:var(--orange);border:1px solid var(--orange)}
+.group-tag.purple{background:var(--purple-dim);color:var(--purple);border:1px solid var(--purple)}
+.group-tag.amber {background:var(--amber-dim); color:var(--amber); border:1px solid var(--amber)}
+.group-tag.neutral{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2)}
+.group-name{font-size:.88rem;font-weight:600;color:var(--text)}
+.group-cnt{font-family:var(--mono);font-size:.62rem;color:var(--text-xdim)}
+
+/* ── Card grid ── */
+.card-grid{display:grid;gap:8px}
+.audio-card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,transform .1s}
+.audio-card:hover{transform:translateY(-1px)}
+.audio-card.playing{border-color:var(--accent)}
+.audio-card.starred{border-color:var(--amber)}
+.audio-card.hidden{display:none}
+
+/* Card top row */
+.card-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.card-title{font-size:.82rem;font-weight:600;color:var(--text);flex:1;min-width:0}
+.card-file{font-family:var(--mono);font-size:.58rem;color:var(--text-xdim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.6}
+
+/* Metadata row */
+.card-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-family:var(--mono);font-size:.64rem;color:var(--text-xdim);line-height:1.5}
+.card-meta .key{color:var(--text-xdim)}
+.card-meta .val{color:var(--text-dim)}
+.card-meta .sep{opacity:.4}
+
+/* Phrase / transcript */
+.card-phrase{font-size:.76rem;color:var(--text-dim);font-style:italic;line-height:1.5}
+
+/* Actions row */
+.card-actions{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.star-btn{background:none;border:none;color:var(--text-xdim);font-size:13px;cursor:pointer;transition:color .15s;padding:0}
+.star-btn:hover{color:var(--amber)}
+.audio-card.starred .star-btn{color:var(--amber)}
+
+/* ── Badges ── */
+.bdg{font-family:var(--mono);font-size:.56rem;font-weight:600;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em;border:1px solid}
+/* CUSTOMISE: badge color variants — add entries matching your ENGINE_META keys */
+.bdg.blue  {background:var(--blue-dim);  color:var(--blue);  border-color:var(--blue)}
+.bdg.cyan  {background:var(--cyan-dim);  color:var(--cyan);  border-color:var(--cyan)}
+.bdg.green {background:var(--green-dim); color:var(--green); border-color:var(--green)}
+.bdg.orange{background:var(--orange-dim);color:var(--orange);border-color:var(--orange)}
+.bdg.purple{background:var(--purple-dim);color:var(--purple);border-color:var(--purple)}
+.bdg.amber {background:var(--amber-dim); color:var(--amber); border-color:var(--amber)}
+.bdg.neutral{background:var(--surface2);color:var(--text-dim);border-color:var(--border2)}
+
+/* ── List view ── */
+.list-view{display:flex;flex-direction:column;gap:2px}
+.list-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;background:var(--card);border:1px solid var(--border);transition:background .12s}
+.list-item:hover{background:var(--surface2)}
+.list-item.playing{border-color:var(--accent)}
+.list-item.starred{border-color:var(--amber)}
+.list-item.hidden{display:none}
+.li-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.li-dot.blue{background:var(--blue)}.li-dot.cyan{background:var(--cyan)}.li-dot.green{background:var(--green)}
+.li-dot.orange{background:var(--orange)}.li-dot.purple{background:var(--purple)}.li-dot.amber{background:var(--amber)}
+.li-title{font-size:.8rem;font-weight:500;color:var(--text);flex-shrink:0;min-width:140px}
+.li-badges{display:flex;gap:3px;flex-shrink:0}
+.li-desc{font-family:var(--mono);font-size:.64rem;color:var(--text-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-audio{flex-shrink:0;width:200px}
+.li-star{background:none;border:none;color:var(--text-xdim);font-size:12px;cursor:pointer;padding:0 4px;flex-shrink:0}
+.li-star:hover{color:var(--amber)}
+.list-item.starred .li-star{color:var(--amber)}
+@media(max-width:860px){.li-desc{display:none}.li-audio{width:160px}}
+@media(max-width:600px){.li-audio{width:120px}.li-title{min-width:80px;font-size:.72rem}}
+
+/* ── Audio player ── */
+audio{width:100%;height:34px;border-radius:5px;margin-top:3px}
+[data-theme="dark"] audio{color-scheme:dark}
+[data-theme="light"] audio{color-scheme:light}
+
+/* ── Notes box ── */
+.notes{margin-top:24px;padding:14px 18px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:.77rem;line-height:1.8;color:var(--text-dim)}
+.notes strong{color:var(--text)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+@media(max-width:580px){.seg{padding:4px 7px;font-size:.62rem}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CUSTOMISE: header — update title, subtitle, tech line
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-left">
+    <h1>Forge <span>Audio Gallery</span></h1>
+    <div class="sub" id="subtitle">Baked gallery template preview</div>
+    <div class="tech"></div>
+  </div>
+  <button class="theme-btn" id="themeBtn" title="Toggle theme">&#127769;</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CUSTOMISE: source text block — remove if not needed
+     ═══════════════════════════════════════════════════════════════ -->
+<!-- <div class="text-block">
+  <div class="text-label"></div>
+  
+</div> -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOOLBAR ROW 1: group + view + sort + size
+     CUSTOMISE: add/remove group options matching your data keys
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="toolbar">
+  <div class="ctrl"><span class="ctrl-label">Group</span>
+    <div class="segs">
+      <!-- CUSTOMISE: data-v must match a grouping key — 'engine', 'quality', 'batch', 'none' -->
+      <button class="seg on" data-k="group" data-v="engine">Engine</button>
+      <button class="seg" data-k="group" data-v="quality">Quality</button>
+      <button class="seg" data-k="group" data-v="batch">Batch</button>
+      <button class="seg" data-k="group" data-v="none">None</button>
+    </div>
+  </div>
+  <div class="ctrl"><span class="ctrl-label">View</span>
+    <div class="segs">
+      <button class="seg on" data-k="view" data-v="card">&#8862; Cards</button>
+      <button class="seg" data-k="view" data-v="list">&#8801; List</button>
+    </div>
+  </div>
+  <div class="ctrl"><span class="ctrl-label">Sort</span>
+    <div class="segs">
+      <button class="seg on" data-k="sort" data-v="default">Default</button>
+      <button class="seg" data-k="sort" data-v="title">Title</button>
+      <!-- CUSTOMISE: add sort options e.g. data-k="sort" data-v="engine" -->
+    </div>
+  </div>
+  <div class="ctrl"><span class="ctrl-label">Width</span>
+    <button class="size-btn" onclick="resizeCards(-20)">&#8722;</button>
+    <span class="size-label" id="sizeLabel">280</span>
+    <button class="size-btn" onclick="resizeCards(+20)">+</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOOLBAR ROW 2: dynamic filters + search + stats
+     Filters auto-built from FILTERS_DIMS — do not hardcode buttons
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="toolbar" id="filterBar">
+  <div class="search-wrap">
+    <input type="search" id="searchInput" placeholder="Filter…" autocomplete="off">
+  </div>
+  <span class="stats" id="stats"></span>
+</div>
+
+<div id="content"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CUSTOMISE: notes — remove or update
+     ═══════════════════════════════════════════════════════════════ -->
+<!-- <div class="notes">
+  <strong>Notes</strong><br>
+  
+</div> -->
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   gallery-base.js — shared utilities for forge gallery templates
+   v0.4.0
+
+   Provides: theme toggle, dynamic filter builder, filter application,
+   segmented control wiring, file discovery.
+
+   Each template adds its own <script> block for rendering, lightbox,
+   starring, boot logic, etc.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Theme ── */
+
+/**
+ * Initialize dark/light theme toggle with localStorage persistence.
+ * Requires: element #themeBtn, html[data-theme].
+ * @param {string} storeKey - localStorage prefix (e.g. 'lyra-avatar')
+ * @returns {{ theme: string }} - mutable state object
+ */
+function initTheme(storeKey) {
+  const stored = localStorage.getItem(`${storeKey}-theme`) || 'dark'
+  const state = { theme: stored }
+
+  function apply(t) {
+    document.documentElement.setAttribute('data-theme', t)
+    document.getElementById('themeBtn').textContent = t === 'dark' ? '\u{1F319}' : '\u2600\uFE0F'
+    localStorage.setItem(`${storeKey}-theme`, t)
+    state.theme = t
+  }
+
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    apply(state.theme === 'dark' ? 'light' : 'dark')
+  })
+
+  apply(stored)
+  return state
+}
+
+/* ── Dynamic filter builder ── */
+
+/**
+ * Build check-btn filter buttons from data + dimension definitions.
+ * Rule: all buttons OFF = inactive = show everything.
+ *
+ * @remarks
+ * **Dual-API contract:** this function is type-agnostic about the items it receives.
+ * `dim.fn` is called with each element of `items` verbatim — whether that's a filename
+ * string (as in pivot-gallery.html) or a structured item object (as in comparison-gallery,
+ * audio-gallery, and multi-mode-gallery). The caller picks the representation and
+ * defines `dim.fn` accordingly. No runtime type inspection happens inside this function.
+ *
+ * Filename-string example:
+ *     buildDimFilters(files, { batch: { label:'Batch', fn: f => f[0] } }, ...)
+ *
+ * Item-object example:
+ *     buildDimFilters(items, { rarity: { label:'Rarity', fn: it => it.rarity } }, ...)
+ *
+ * See README §"Items-as-objects vs filename-strings" for when to pick each.
+ *
+ * @param {Array} items - Data array to scan. Elements can be strings, objects, or anything `dim.fn` accepts.
+ * @param {Object} dims - { key: { label: string, fn: item => string, order?: string[] } }
+ * @param {Object} filters - Mutable map: dim key → Set (empty = inactive). Populated by this function.
+ * @param {string} barId - ID of the toolbar element to insert buttons into
+ * @param {Function} renderFn - Called after any filter toggle
+ */
+function buildDimFilters(items, dims, filters, barId, renderFn) {
+  const bar = document.getElementById(barId)
+
+  for (const [key, dim] of Object.entries(dims)) {
+    const counts = {}
+    items.forEach((item) => {
+      const v = dim.fn(item)
+      counts[v] = (counts[v] || 0) + 1
+    })
+    const values = Object.keys(counts).sort((a, b) => {
+      if (dim.order) {
+        const ia = dim.order.indexOf(a),
+          ib = dim.order.indexOf(b)
+        if (ia >= 0 && ib >= 0) return ia - ib
+        if (ia >= 0) return -1
+        if (ib >= 0) return 1
+      }
+      return a.localeCompare(b)
+    })
+
+    if (values.length < 2) continue
+
+    filters[key] = new Set()
+
+    const ctrl = document.createElement('div')
+    ctrl.className = 'ctrl'
+    ctrl.innerHTML = `<span class="ctrl-label">${escHtml(dim.label)}</span>`
+    const group = document.createElement('div')
+    group.className = 'check-group'
+
+    for (const v of values) {
+      const btn = document.createElement('button')
+      btn.className = 'check-btn'
+      btn.dataset.b = v
+      btn.textContent = `${v} (${counts[v]})`
+      btn.onclick = () => {
+        btn.classList.toggle('on')
+        if (btn.classList.contains('on')) filters[key].add(v)
+        else filters[key].delete(v)
+        renderFn()
+      }
+      group.appendChild(btn)
+    }
+    ctrl.appendChild(group)
+    bar.insertBefore(ctrl, bar.firstChild)
+  }
+}
+
+/* ── Filter application ── */
+
+/**
+ * Apply active dimension filters to an array of items.
+ *
+ * @remarks
+ * **Dual-API contract:** like {@link buildDimFilters}, this function is type-agnostic.
+ * `dim.fn` receives whatever `items` contains — strings, objects, anything — and the
+ * caller is responsible for defining `dim.fn` to match. No type inspection happens here.
+ *
+ * See {@link buildDimFilters} JSDoc for worked examples and the README subsection
+ * "Items-as-objects vs filename-strings" for guidance on picking a representation.
+ *
+ * @param {Array} items - Items to filter (strings, objects, or anything `dim.fn` accepts)
+ * @param {Object} dims - Dimension definitions with fn(item) → category
+ * @param {Object} filters - Active filters: dim key → Set of selected values
+ * @returns {Array} Filtered items (new array)
+ */
+function applyDimFilters(items, dims, filters) {
+  let result = items
+  for (const [dim, activeSet] of Object.entries(filters)) {
+    if (activeSet.size === 0) continue
+    const fn = dims[dim]?.fn
+    if (fn) result = result.filter((item) => activeSet.has(fn(item)))
+  }
+  return result
+}
+
+/* ── Segmented controls ── */
+
+/**
+ * Wire a segmented control: click → toggle .on class, call handler.
+ *
+ * @param {string} containerId - ID of the .segs container
+ * @param {Function} handler - Called with (value, button) on click
+ */
+function wireSegs(containerId, handler) {
+  document.querySelectorAll(`#${containerId} .seg`).forEach((btn) => {
+    btn.onclick = () => {
+      // biome-ignore lint/suspicious/useIterableCallbackReturn: DOM forEach, no return needed
+      document.querySelectorAll(`#${containerId} .seg`).forEach((b) => b.classList.remove('on'))
+      btn.classList.add('on')
+      handler(btn.dataset.v, btn)
+    }
+  })
+}
+
+/* ── File discovery ── */
+
+/**
+ * Resolve a gallery-relative directory path to its forge-root-relative form
+ * for /api/list/ calls. Galleries nested under project subdirs (e.g.
+ * lyra/brand/v23-gallery.html loading concepts/avatar-lyra-v23/) need the
+ * full path from the forge root, not from the browser origin.
+ *
+ * Returns null if the resolved path fails same-origin or character checks.
+ *
+ * @param {string} dir - Directory path (relative or absolute from origin)
+ * @returns {string|null} Forge-root-relative path (no leading slash), or null
+ */
+function resolveApiListPath(dir) {
+  try {
+    const resolved = new URL(dir, window.location.href)
+    if (resolved.origin !== window.location.origin) return null
+    const pathPart = resolved.pathname.replace(/^\//, '')
+    // Same character allowlist as the pre-fix guard — applied to the resolved
+    // path so '../' and './' in dir don't slip past validation.
+    if (!/^[\w./-]+$/.test(pathPart)) return null
+    return pathPart
+  } catch (_) {
+    return null
+  }
+}
+
+/**
+ * Discover files via img-manifest.json → /api/list/ fallback.
+ * Returns array of filename strings.
+ *
+ * @param {string} dir - Directory path (relative to HTML)
+ * @param {string} ext - File extension filter (e.g. '.png')
+ * @returns {Promise<string[]>} Sorted filenames
+ */
+async function discoverFiles(dir, ext) {
+  try {
+    const r = await fetch(`${dir}img-manifest.json`)
+    if (r.ok) {
+      const listing = await r.json()
+      return listing
+        .filter((f) => f.name.endsWith(ext))
+        .map((f) => f.name)
+        .sort()
+    }
+  } catch (_) {}
+  const apiPath = resolveApiListPath(dir)
+  if (apiPath) {
+    try {
+      const r = await fetch(`/api/list/${apiPath}`)
+      if (r.ok) {
+        const listing = await r.json()
+        return listing
+          .filter((f) => f.name.endsWith(ext))
+          .map((f) => f.name)
+          .sort()
+      }
+    } catch (_) {}
+  }
+  return []
+}
+
+/**
+ * Discover subdirectories of a parent directory via img-manifest.json → /api/list/ fallback.
+ * Returns sorted array of subdirectory names (no trailing slash).
+ *
+ * Symmetric with {@link discoverFiles}: img-manifest.json is tried first for static /
+ * file:// hosting (Cloudflare Pages), then /api/list/ for the forge dev server.
+ * Manifest entries must include `is_dir:true` to be treated as directories.
+ *
+ * Use this for **two-level** galleries where the parent dir contains one subdir
+ * per group (run, batch, LoRA, engine…) and each subdir contains the actual
+ * image/audio files. The typical flow:
+ *
+ *     const DIR = 'concepts/avatar-lyra-v23/'
+ *     const discovered = await discoverDirs(DIR)
+ *     // → ['v23a-rank', 'v23c-dop', 'v23d-island0', 'v23d-island1', …]
+ *     for (const run of discovered) {
+ *       const files = await discoverFiles(DIR + run + '/', '.jpg')
+ *       // …
+ *     }
+ *
+ * See the "Dynamic subdirectory discovery" section in the gallery-templates
+ * README for worked examples and the ordering-with-metadata pattern.
+ *
+ * **Static-hosting requirement:** on static hosts, the parent directory must
+ * contain an img-manifest.json listing its subdirs as `is_dir:true` entries. The
+ * forge `gen-image-manifests.py` build step generates these automatically.
+ *
+ * @param {string} dir - Parent directory path (relative to HTML)
+ * @returns {Promise<string[]>} Sorted subdirectory names
+ */
+async function discoverDirs(dir) {
+  try {
+    const r = await fetch(`${dir}img-manifest.json`)
+    if (r.ok) {
+      const listing = await r.json()
+      return listing
+        .filter((e) => e.is_dir)
+        .map((e) => e.name)
+        .sort()
+    }
+  } catch (_) {}
+  const apiPath = resolveApiListPath(dir)
+  if (apiPath) {
+    try {
+      const r = await fetch(`/api/list/${apiPath}`)
+      if (r.ok) {
+        const listing = await r.json()
+        return listing
+          .filter((e) => e.is_dir)
+          .map((e) => e.name)
+          .sort()
+      }
+    } catch (_) {}
+  }
+  return []
+}
+
+/**
+ * Discover batch of items with catalogue metadata.
+ * Used by simple-gallery for multi-batch image galleries.
+ *
+ * @param {Object} cfg - { id, dir, ext?, catalogue? }
+ * @param {Function} [itemBuilder] - Optional (stem, cfg) → item. Defaults to itemFromStem.
+ * @returns {Promise<Array>} Array of item objects
+ */
+async function discoverBatch(cfg, itemBuilder) {
+  const ext = cfg.ext || '.png'
+  const build =
+    itemBuilder ||
+    ((stem, c) => {
+      const meta = c.catalogue?.[stem] || { label: stem.replace(/-/g, ' '), tags: [] }
+      return { stem, file: stem + ext, label: meta.label, tags: meta.tags || [], batch: c.id, dir: c.dir }
+    })
+
+  /* Try img-manifest.json */
+  try {
+    const r = await fetch(`${cfg.dir}img-manifest.json`)
+    if (r.ok) {
+      const listing = await r.json()
+      return listing
+        .filter((f) => f.name.endsWith(ext))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((f) => {
+          const stem = f.name.replace(ext, '')
+          /* Enriched manifest: entry carries label + tags — no catalogue lookup needed */
+          if (f.label !== undefined || f.tags !== undefined)
+            return { stem, file: f.name, label: f.label || stem, tags: f.tags || [], batch: c.id, dir: c.dir }
+          return build(stem, cfg)
+        })
+    }
+  } catch (_) {}
+  /* Fallback: /api/list/ */
+  const apiPath = resolveApiListPath(cfg.dir)
+  if (apiPath) {
+    try {
+      const r = await fetch(`/api/list/${apiPath}`)
+      if (r.ok) {
+        const listing = await r.json()
+        return listing
+          .filter((f) => f.name.endsWith(ext))
+          .map((f) => f.name.replace(ext, ''))
+          .sort()
+          .map((stem) => build(stem, cfg))
+      }
+    } catch (_) {}
+  }
+  /* Fallback: catalogue keys */
+  if (cfg.catalogue && Object.keys(cfg.catalogue).length) {
+    return Object.keys(cfg.catalogue).map((stem) => build(stem, cfg))
+  }
+  return []
+}
+
+/* ── Batch bar ── */
+
+/**
+ * Build batch tab buttons from item counts.
+ *
+ * @param {Object} opts
+ * @param {string} opts.barId - ID of the batch bar element
+ * @param {Array} opts.batches - BATCHES config array
+ * @param {Object} opts.counts - { batchId: count }
+ * @param {number} opts.total - Total item count
+ * @param {Function} opts.onSelect - Called with (batchId) on click
+ */
+function buildBatchBar(opts) {
+  const bar = document.getElementById(opts.barId)
+  bar.innerHTML = ''
+
+  const allBtn = document.createElement('button')
+  allBtn.className = 'batch-btn active'
+  allBtn.dataset.batch = 'all'
+  allBtn.textContent = `ALL (${opts.total})`
+  allBtn.onclick = () => selectBatch(bar, allBtn, 'all', opts.onSelect)
+  bar.appendChild(allBtn)
+
+  for (const b of opts.batches) {
+    if (!(opts.counts[b.id] > 0)) continue
+    const btn = document.createElement('button')
+    btn.className = 'batch-btn'
+    btn.dataset.batch = b.id
+    btn.textContent = `${b.id.toUpperCase()} \u2014 ${b.label} (${opts.counts[b.id] || 0})`
+    btn.onclick = () => selectBatch(bar, btn, b.id, opts.onSelect)
+    bar.appendChild(btn)
+  }
+}
+
+function selectBatch(bar, btn, id, callback) {
+  // biome-ignore lint/suspicious/useIterableCallbackReturn: DOM forEach, no return needed
+  bar.querySelectorAll('.batch-btn').forEach((b) => b.classList.remove('active'))
+  btn.classList.add('active')
+  callback(id)
+}
+
+/* ── Starring ── */
+
+/**
+ * Create a starring manager with localStorage persistence.
+ *
+ * @param {string} storeKey - localStorage prefix
+ * @param {string} [suffix='-starred'] - localStorage key suffix
+ * @returns {{ has, toggle, size, set: Set }}
+ */
+function initStarred(storeKey, suffix) {
+  const key = storeKey + (suffix || '-starred')
+  const set = new Set(JSON.parse(localStorage.getItem(key) || '[]'))
+
+  function save() {
+    localStorage.setItem(key, JSON.stringify([...set]))
+  }
+
+  return {
+    set,
+    has: (id) => set.has(id),
+    toggle: (id) => {
+      if (set.has(id)) set.delete(id)
+      else set.add(id)
+      save()
+      return set.has(id)
+    },
+    get size() {
+      return set.size
+    },
+  }
+}
+
+/* ── HTML escaping ── */
+
+/**
+ * Escape a string for safe insertion into innerHTML / attribute contexts.
+ * Covers &, <, >, ", ' to prevent XSS via user-controlled data
+ * (filenames, manifest fields, tags, labels).
+ *
+ * @param {string} s - Raw string
+ * @returns {string} HTML-safe string
+ */
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/**
+ * Validate a string as a safe CSS class name suffix.
+ * Returns the string if it matches [a-zA-Z0-9_-]+, otherwise returns 'unknown'.
+ *
+ * @param {string} s - Raw class name candidate
+ * @returns {string} Safe class name
+ */
+function safeClass(s) {
+  return /^[a-zA-Z0-9_-]+$/.test(s) ? s : 'unknown'
+}
+
+/* ── Toast ── */
+
+/**
+ * Show a transient toast message. Auto-dismisses after duration ms.
+ * Multiple toasts stack vertically.
+ *
+ * @param {string} message - Text to display
+ * @param {'info'|'error'} [variant='info'] - Visual variant (sets .toast-info or .toast-error)
+ * @param {number} [duration=3000] - Auto-dismiss delay in ms
+ */
+function showToast(message, variant = 'info', duration = 3000) {
+  let stack = document.getElementById('toast-stack')
+  if (!stack) {
+    stack = document.createElement('div')
+    stack.id = 'toast-stack'
+    stack.className = 'toast-stack'
+    /* aria-live announces toasts to screen readers without stealing focus.
+       'polite' batches announcements; individual error toasts escalate to
+       'assertive' via role="alert" below. */
+    stack.setAttribute('aria-live', 'polite')
+    stack.setAttribute('aria-atomic', 'false')
+    document.body.appendChild(stack)
+  }
+  const isError = variant === 'error'
+  const toast = document.createElement('div')
+  toast.className = `toast toast-${isError ? 'error' : 'info'}`
+  /* Error toasts get role="alert" → assertive announcement; info toasts
+     inherit polite announcement from the stack container. */
+  if (isError) toast.setAttribute('role', 'alert')
+  toast.textContent = message
+  stack.appendChild(toast)
+  setTimeout(() => {
+    toast.classList.add('toast-leaving')
+    setTimeout(() => toast.remove(), 200)
+  }, duration)
+}
+
+/* ── Downloads dropdown ── */
+
+/**
+ * Initialize a downloads dropdown with async handlers and error toasts.
+ *
+ * Behavior:
+ * - Clicking the toggle toggles `.open` class on the menu (CSS handles visibility)
+ * - Clicking outside the dropdown closes it
+ * - Each entry button gets a click handler that invokes entry.handler
+ * - During async handlers, the button gets `data-loading="true"` (CSS handles visual)
+ * - On handler rejection, shows an error toast via showToast + logs to console.error
+ * - Loading state is always cleared in `finally`, even on error
+ *
+ * The button's innerHTML (label + hint) is preserved — loading state is purely attribute-based.
+ *
+ * @param {Object} config
+ * @param {string} config.dropdownId - ID of the .dl-wrap container
+ * @param {string} config.toggleId - ID of the .dl-toggle button
+ * @param {string} config.menuId - ID of the .dl-menu panel
+ * @param {Array<{id: string, label: string, hint?: string, handler: () => (Promise<void>|void)}>} config.entries
+ */
+function initDownloads(config) {
+  const wrap = document.getElementById(config.dropdownId)
+  const toggle = document.getElementById(config.toggleId)
+  const menu = document.getElementById(config.menuId)
+  if (!wrap || !toggle || !menu) return
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation()
+    menu.classList.toggle('open')
+  })
+  /* Guard the document-level outside-click listener with a dataset sentinel
+     so repeated initDownloads calls on the same wrap don't stack listeners. */
+  if (!wrap.dataset.dlInitialised) {
+    wrap.dataset.dlInitialised = 'true'
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) menu.classList.remove('open')
+    })
+  }
+
+  menu.innerHTML = ''
+  for (const entry of config.entries) {
+    const btn = document.createElement('button')
+    btn.className = 'dl-item'
+    /* Validate id to prevent accidental selector breakage or multi-word IDs
+       from crafted config. safeClass returns 'unknown' for invalid input. */
+    btn.id = safeClass(entry.id)
+    btn.type = 'button'
+    btn.innerHTML = `${escHtml(entry.label)}${entry.hint ? `<span class="dl-hint">${escHtml(entry.hint)}</span>` : ''}`
+    btn.addEventListener('click', async () => {
+      btn.dataset.loading = 'true'
+      try {
+        await entry.handler()
+      } catch (err) {
+        const msg = err?.message ? err.message : String(err)
+        showToast(`Download failed: ${msg}`, 'error', 5000)
+        /* Log only the message — avoid dumping full error objects that may
+           carry response bodies, headers, or other sensitive details. */
+        console.error('[initDownloads]', entry.id, msg)
+      } finally {
+        /* Use removeAttribute — delete btn.dataset.loading is not guaranteed
+           by the spec to remove the underlying data-loading DOM attribute. */
+        btn.removeAttribute('data-loading')
+      }
+    })
+    menu.appendChild(btn)
+  }
+}
+
+/* ── Thumbnail resize ──
+   Galleries expose state as `window.thumbSize = N` and define a top-level
+   `function render()`. The shared resizeThumb clamps by window.THUMB_MIN/MAX,
+   updates #sizeLabel, and calls render(). Override MIN/MAX per-gallery before
+   first call if a different range is needed. */
+
+window.THUMB_MIN = 40
+window.THUMB_MAX = 400
+
+/**
+ * Clamp window.thumbSize by delta, update #sizeLabel, re-render.
+ * @param {number} d - Delta in px (e.g. -20, +20)
+ */
+function resizeThumb(d) {
+  const cur = typeof window.thumbSize === 'number' ? window.thumbSize : 120
+  window.thumbSize = Math.max(window.THUMB_MIN, Math.min(window.THUMB_MAX, cur + d))
+  const lbl = document.getElementById('sizeLabel')
+  if (lbl) lbl.textContent = window.thumbSize
+  if (typeof render === 'function') render()
+}
+
+/* ── Dynamic pivot seg builder ── */
+
+/**
+ * Build Col/Row segmented control buttons from a DIMS object.
+ *
+ * Replaces hardcoded `<button class="seg" data-v="...">` HTML in a template
+ * with dynamic buttons iterating Object.entries(dims). Each dim becomes a seg
+ * button; a "None" button is auto-prepended as the first option.
+ *
+ * **Initial active state:** controlled by the `initial` argument. Defaults to
+ * `{col: 'none', row: 'none'}`. Pass `{col, row}` to restore a specific axis
+ * selection — used by pivot-gallery to preserve its `Row: Batch` default, and
+ * by multi-mode templates that want to rehydrate state on mode switch.
+ *
+ * Wires click handlers via the existing `wireSegs` pattern — clicking a button
+ * toggles its `.on` class and invokes `onChange(axis, dimKey)`.
+ *
+ * @param {Object} dims - { key: { label: string, fn: Function, order?: string[] } }
+ * @param {string} colBarId - ID of the Col .segs container
+ * @param {string} rowBarId - ID of the Row .segs container
+ * @param {(axis: 'col'|'row', dimKey: string) => void} onChange - Called on selection change
+ * @param {{col?: string, row?: string}} [initial] - Initial active dim per axis. Defaults to none/none.
+ */
+function buildPivotSegsFromDims(dims, colBarId, rowBarId, onChange, initial) {
+  const colBar = document.getElementById(colBarId)
+  const rowBar = document.getElementById(rowBarId)
+  if (!colBar || !rowBar) return
+
+  const colActive = initial?.col || 'none'
+  const rowActive = initial?.row || 'none'
+
+  const mkSegs = (active) => {
+    const parts = [`<button class="seg${active === 'none' ? ' on' : ''}" data-v="none">None</button>`]
+    for (const [key, dim] of Object.entries(dims)) {
+      parts.push(
+        `<button class="seg${active === key ? ' on' : ''}" data-v="${escHtml(key)}">${escHtml(dim.label)}</button>`,
+      )
+    }
+    return parts.join('')
+  }
+
+  colBar.innerHTML = mkSegs(colActive)
+  rowBar.innerHTML = mkSegs(rowActive)
+
+  wireSegs(colBarId, (v) => onChange('col', v))
+  wireSegs(rowBarId, (v) => onChange('row', v))
+}
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: ENGINE_META
+   Maps engine key → { color, label, order }.
+   color must match a .bdg.{color} and .li-dot.{color} CSS class.
+   order controls default display order (lower = first).
+
+   Example:
+   const ENGINE_META = {
+     'qwen':       { color:'blue',   label:'Qwen3 TTS',           order:0 },
+     'chatterbox': { color:'green',  label:'Chatterbox',          order:1 },
+     'voxtral':    { color:'purple', label:'Voxtral 4B (int4)',   order:2 },
+   };
+   ══════════════════════════════════════════════════════════════════ */
+const ENGINE_META = {
+  demo: { color: 'amber', label: 'Demo Engine', order: 0 },
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: QUALITY_META (optional)
+   Maps quality key → { color, label, order }.
+
+   Example:
+   const QUALITY_META = {
+     'default': { color:'neutral', label:'Default',   order:0 },
+     'fast':    { color:'amber',   label:'Fast',      order:1 },
+     'q8':      { color:'green',   label:'Quality q8',order:2 },
+     'clone':   { color:'cyan',    label:'Voice Clone',order:3 },
+   };
+   ══════════════════════════════════════════════════════════════════ */
+const QUALITY_META = {
+  default: { color: 'neutral', label: 'Default', order: 0 },
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: BATCHES
+   Array of batch configs — one entry per audio directory.
+   Discovery loads img-manifest.json from each batch dir.
+   Each manifest entry must have: { file, engine, label, ... }
+
+   If you have a single manifest at the root, use one batch with dir:''.
+   If your manifest has a flat list of objects, the ENGINE_META key
+   must be present on each object as d.engine.
+
+   Example:
+   const BATCHES = [
+     { id:'b1', label:'FR Instruct', dir:'samples/b1/', manifest:'img-manifest.json' },
+     { id:'b2', label:'EN Instruct', dir:'samples/b2/', manifest:'img-manifest.json' },
+   ];
+
+   When using a single root manifest:
+   const BATCHES = [
+     { id:'main', label:'All Samples', dir:'', manifest:'img-manifest.json' },
+   ];
+   ══════════════════════════════════════════════════════════════════ */
+const BATCHES = [{ id: 'demo', label: 'Demo', dir: '', manifest: 'img-manifest.json' }];
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: FILTERS_DIMS — which data fields generate filter buttons.
+   fn(item) must return a string category.
+   Rule: all buttons OFF = inactive = show all items.
+
+   Example:
+   const FILTERS_DIMS = {
+     engine: {
+       label: 'Engine',
+       fn: item => item.engine || 'unknown',
+     },
+     quality: {
+       label: 'Quality',
+       fn: item => item.quality || 'default',
+       order: ['default','fast','q8','clone'],
+     },
+   };
+   ══════════════════════════════════════════════════════════════════ */
+const FILTERS_DIMS = {
+  engine: { label: 'Engine', fn: item => item.engine || 'unknown' },
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: how to build search index string from an item
+   ══════════════════════════════════════════════════════════════════ */
+function itemSearchStr(d) {
+  return [
+    d.label || '',
+    d.engine || '',
+    d.quality || '',
+    d.voice || '',
+    d.phrase_text || '',
+    d.file || '',
+    ...(d.tags || []),
+  ].join(' ').toLowerCase();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: how to render extra metadata for a card / list item.
+   Return an HTML string (will be placed in .card-meta div).
+   Return '' to skip.
+   ══════════════════════════════════════════════════════════════════ */
+function itemMeta(d, forHtml) {
+  const parts = [];
+  const kv = (k, v) => forHtml
+    ? `<span class="key">${escHtml(k)}</span> <span class="val">${escHtml(v)}</span>`
+    : `${k} ${v}`;
+  if (d.voice)       parts.push(kv('voice', d.voice));
+  if (d.language)    parts.push(kv('lang', d.language));
+  if (d.personality) parts.push(escHtml(d.personality));
+  if (d.emotion)     parts.push(escHtml(d.emotion));
+  /* CUSTOMISE: add more fields as needed */
+  return parts.join(forHtml ? ' <span class="sep">·</span> ' : ' · ');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: audio file type — change if not wav
+   ══════════════════════════════════════════════════════════════════ */
+const AUDIO_TYPE = '';  /* e.g. 'audio/wav', 'audio/mp3', 'audio/ogg' */
+
+/* ══════════════════════════════════════════════════════════════════
+   CUSTOMISE: localStorage key prefix — change per project
+   ══════════════════════════════════════════════════════════════════ */
+const STORE_KEY = 'forge-gallery-preview';  /* e.g. 'audio-gallery' */
+
+/* ══════════════════════════════════════════════════════════════════
+   ENGINE — do not edit below unless extending functionality
+   ══════════════════════════════════════════════════════════════════ */
+
+let DATA = [];
+const starred = initStarred(STORE_KEY, '-stars');
+const filters = {};  /* dim key → Set; empty = inactive = show all */
+
+const S = {
+  theme:  localStorage.getItem(STORE_KEY + '-theme')  || 'dark',
+  view:   localStorage.getItem(STORE_KEY + '-view')   || 'card',
+  group:  localStorage.getItem(STORE_KEY + '-group')  || 'engine',
+  sort:   'default',
+  q: '',
+};
+
+let cardMinWidth = 280;
+
+const contentEl = document.getElementById('content');
+const statsEl   = document.getElementById('stats');
+
+/* ── Helpers ── */
+
+function engineMeta(key) {
+  return ENGINE_META[key] || { color:'neutral', label: key || 'unknown', order: 99 };
+}
+
+function qualityMeta(key) {
+  return QUALITY_META[key] || { color:'neutral', label: key || 'default', order: 99 };
+}
+
+function qualityBadge(d) {
+  if (!d.quality) return '';
+  const m = qualityMeta(d.quality);
+  return `<span class="bdg ${safeClass(m.color)}">${escHtml(m.label)}</span>`;
+}
+
+/* ── Discovery ── */
+
+// Audio-specific discovery — manifest entries are full objects (not filename-only)
+async function discoverAudioBatch(cfg) {
+  const manifest = cfg.manifest || 'img-manifest.json';
+  const base = cfg.dir || '';
+  try {
+    /* Try img-manifest.json */
+    const r = await fetch(base + manifest + '?_=' + Date.now());
+    if (r.ok) {
+      const data = await r.json();
+      return data.map(d => ({ ...d, batch: cfg.id, _base: base }));
+    }
+  } catch (_) {}
+  /* Fallback: /api/list/ */
+  if (/^[\w./-]*$/.test(base)) {
+    try {
+      const r = await fetch('/api/list/' + base);
+      if (r.ok) {
+        const listing = await r.json();
+        const audioExts = ['.wav','.mp3','.ogg','.flac'];
+        return listing
+          .filter(f => audioExts.some(e => f.name.endsWith(e)))
+          .map(f => ({
+            file: f.name,
+            label: f.name.replace(/\.[^.]+$/, '').replace(/-/g, ' '),
+            engine: 'unknown',
+            batch: cfg.id,
+            _base: base,
+          }));
+      }
+    } catch (_) {}
+  }
+  return [];
+}
+
+/* ── Dynamic filter builder (delegated to gallery-base.js) ── */
+
+/* ── Filtering ── */
+
+function getFiltered() {
+  let items = applyDimFilters([...DATA], FILTERS_DIMS, filters);
+
+  /* Search */
+  const q = S.q.toLowerCase();
+  if (q) items = items.filter(d => itemSearchStr(d).includes(q));
+
+  return items;
+}
+
+/* ── Sorting ── */
+
+function sortItems(items) {
+  return [...items].sort((a, b) => {
+    if (S.sort === 'title') return (a.label || '').localeCompare(b.label || '');
+    /* Default: by engine order, then voice, then file */
+    const oa = engineMeta(a.engine).order, ob = engineMeta(b.engine).order;
+    if (oa !== ob) return oa - ob;
+    const va = a.voice || '', vb = b.voice || '';
+    if (va !== vb) return va.localeCompare(vb);
+    return (a.file || '').localeCompare(b.file || '');
+  });
+}
+
+/* ── Size ── */
+
+function resizeCards(d) {
+  cardMinWidth = Math.max(160, Math.min(600, cardMinWidth + d));
+  document.getElementById('sizeLabel').textContent = cardMinWidth;
+  document.querySelectorAll('.card-grid').forEach(g => {
+    g.style.gridTemplateColumns = 'repeat(auto-fill,minmax(' + cardMinWidth + 'px,1fr))';
+  });
+}
+
+/* ── Card renderer ── */
+
+function mkCard(d) {
+  const m = engineMeta(d.engine);
+  const meta = itemMeta(d, true);
+  const isStarred = starred.has(d.file);
+  return `<div class="audio-card${isStarred ? ' starred' : ''}" data-file="${escHtml(d.file)}">
+    <div class="card-top">
+      <span class="bdg ${safeClass(m.color)}">${escHtml(d.engine)}</span>
+      ${qualityBadge(d)}
+      <span class="card-title">${escHtml(d.label || d.file)}</span>
+    </div>
+    ${d.phrase_text ? `<div class="card-phrase">"${escHtml(d.phrase_text)}"</div>` : ''}
+    ${meta ? `<div class="card-meta">${meta}</div>` : ''}
+    <audio controls preload="metadata"><source src="${escHtml((d._base||'')+d.file)}" type="${AUDIO_TYPE||'audio/wav'}"></audio>
+    <div class="card-actions">
+      <button class="star-btn" title="Star">${isStarred ? '\u2605' : '\u2606'}</button>
+      <span class="card-file">${escHtml(d.file)}</span>
+    </div>
+  </div>`;
+}
+
+/* ── List renderer ── */
+
+function mkRow(d) {
+  const m = engineMeta(d.engine);
+  const meta = itemMeta(d, true);
+  const isStarred = starred.has(d.file);
+  return `<div class="list-item${isStarred ? ' starred' : ''}" data-file="${escHtml(d.file)}">
+    <span class="li-dot ${safeClass(m.color)}"></span>
+    <span class="li-title">${escHtml(d.label || d.file)}</span>
+    <div class="li-badges"><span class="bdg ${safeClass(m.color)}">${escHtml(d.engine)}</span>${qualityBadge(d)}</div>
+    <span class="li-desc">${meta}</span>
+    <div class="li-audio"><audio controls preload="metadata" style="width:100%;height:30px"><source src="${escHtml((d._base||'')+d.file)}" type="${AUDIO_TYPE||'audio/wav'}"></audio></div>
+    <button class="li-star" title="Star">${isStarred ? '\u2605' : '\u2606'}</button>
+  </div>`;
+}
+
+/* ── Section builder ── */
+
+function mkSection(label, color, items) {
+  const grid = S.view === 'card'
+    ? `<div class="card-grid" style="grid-template-columns:repeat(auto-fill,minmax(${cardMinWidth}px,1fr))">${items.map(mkCard).join('')}</div>`
+    : `<div class="list-view">${items.map(mkRow).join('')}</div>`;
+
+  const hdr = label
+    ? `<div class="group-hdr">
+        <span class="group-tag ${safeClass(color || 'neutral')}">${escHtml(label)}</span>
+        <span class="group-cnt">${items.length} sample${items.length !== 1 ? 's' : ''}</span>
+       </div>`
+    : '';
+
+  return `<div class="group-sec">${hdr}${grid}</div>`;
+}
+
+/* ── Main render ── */
+
+function render() {
+  const filtered = sortItems(getFiltered());
+  const total = DATA.length;
+
+  contentEl.innerHTML = '';
+
+  if (!filtered.length) {
+    contentEl.innerHTML = `<div class="empty">No samples match the current filters.</div>`;
+    statsEl.textContent = '0 / ' + total;
+    return;
+  }
+
+  if (S.group === 'none') {
+    contentEl.innerHTML = mkSection(null, null, filtered);
+  } else if (S.group === 'quality') {
+    const byQ = new Map();
+    filtered.forEach(d => {
+      const q = d.quality || 'default';
+      if (!byQ.has(q)) byQ.set(q, []);
+      byQ.get(q).push(d);
+    });
+    byQ.forEach((items, q) => {
+      const m = qualityMeta(q);
+      contentEl.innerHTML += mkSection(m.label, m.color, items);
+    });
+  } else if (S.group === 'batch') {
+    const byBatch = new Map();
+    filtered.forEach(d => {
+      const b = d.batch || 'main';
+      if (!byBatch.has(b)) byBatch.set(b, []);
+      byBatch.get(b).push(d);
+    });
+    byBatch.forEach((items, b) => {
+      const cfg = BATCHES.find(c => c.id === b) || {};
+      contentEl.innerHTML += mkSection(cfg.label || b, 'neutral', items);
+    });
+  } else {
+    /* Default: group by engine */
+    const byEngine = new Map();
+    filtered.forEach(d => {
+      const e = d.engine || 'unknown';
+      if (!byEngine.has(e)) byEngine.set(e, []);
+      byEngine.get(e).push(d);
+    });
+    byEngine.forEach((items, engine) => {
+      const m = engineMeta(engine);
+      contentEl.innerHTML += mkSection(m.label, m.color, items);
+    });
+  }
+
+  statsEl.textContent = filtered.length < total
+    ? `${filtered.length} of ${total}`
+    : `${total} samples`;
+
+  wireInteractions();
+}
+
+/* ── Interaction wiring ── */
+
+function wireInteractions() {
+  /* Stop other audio on play, highlight playing card */
+  contentEl.querySelectorAll('audio').forEach(audio => {
+    audio.addEventListener('play', () => {
+      contentEl.querySelectorAll('audio').forEach(o => {
+        if (o !== audio) { o.pause(); o.currentTime = 0; }
+      });
+      contentEl.querySelectorAll('.playing').forEach(c => c.classList.remove('playing'));
+      audio.closest('.audio-card,.list-item')?.classList.add('playing');
+    });
+    audio.addEventListener('pause', () => audio.closest('.audio-card,.list-item')?.classList.remove('playing'));
+    audio.addEventListener('ended', () => audio.closest('.audio-card,.list-item')?.classList.remove('playing'));
+  });
+
+  /* Stars (using initStarred from gallery-base.js) */
+  contentEl.querySelectorAll('.star-btn,.li-star').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const row = btn.closest('.audio-card,.list-item');
+      const file = row.dataset.file;
+      const isNowStarred = starred.toggle(file);
+      row.classList.toggle('starred', isNowStarred);
+      btn.textContent = isNowStarred ? '\u2605' : '\u2606';
+    });
+  });
+}
+
+/* ── Toolbar wiring ── */
+
+document.querySelectorAll('.seg').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const k = btn.dataset.k, v = btn.dataset.v;
+    S[k] = v;
+    if (k === 'view')  localStorage.setItem(STORE_KEY + '-view',  v);
+    if (k === 'group') localStorage.setItem(STORE_KEY + '-group', v);
+    document.querySelectorAll(`[data-k="${k}"]`).forEach(b => b.classList.toggle('on', b === btn));
+    render();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  S.q = e.target.value;
+  render();
+});
+
+/* ── Theme (delegated to gallery-base.js) ── */
+
+/* ── Init ── */
+
+initTheme(STORE_KEY);
+['view','group'].forEach(k => {
+  document.querySelectorAll(`[data-k="${k}"]`).forEach(b => b.classList.toggle('on', b.dataset.v === S[k]));
+});
+
+(async () => {
+  DATA = [
+    { file: 'demo-01.wav', label: 'Alpha Sample', engine: 'demo', quality: 'default', batch: 'demo', phrase_text: 'Hello forge' },
+    { file: 'demo-02.wav', label: 'Beta Sample', engine: 'demo', quality: 'default', batch: 'demo', phrase_text: 'Preview tile' },
+    { file: 'demo-03.wav', label: 'Gamma Sample', engine: 'demo', quality: 'default', batch: 'demo', phrase_text: 'Gallery demo' },
+    { file: 'demo-04.wav', label: 'Delta Sample', engine: 'demo', quality: 'default', batch: 'demo', phrase_text: 'Baked preview' },
+  ];
+  buildDimFilters(DATA, FILTERS_DIMS, filters, 'filterBar', render);
+  document.getElementById('subtitle').textContent = '4 demo samples · baked preview';
+  render();
+})();
+</script>
+</body>
+</html>

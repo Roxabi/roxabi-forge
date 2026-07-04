@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="diagram:title" content="Craft Diagram Starter">
+  <meta name="diagram:category" content="architecture">
+  <meta name="diagram:color" content="#f0b429">
+  <title>Craft Diagram Starter</title>
+  <script>
+    (function () {
+      if (/[?&]embed=hero/.test(location.search)) {
+        document.documentElement.classList.add('embed-hero');
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #13191f;
+      --surface: #161b22;
+      --accent: #f0b429;
+      --cyan: #38bdf8;
+      --green: #34d399;
+      --text: #f0ede6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --border: #21262d;
+      --border-hi: #30363d;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html.embed-hero, html.embed-hero body { background: transparent; }
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    html.embed-hero body { padding: 12px 8px; min-height: 0; }
+    .diagram {
+      position: relative;
+      width: 960px;
+      height: 640px;
+      max-width: 100%;
+      flex-shrink: 0;
+    }
+    html.embed-hero .diagram {
+      transform: scale(min(1, calc((100vw - 32px) / 960)));
+      transform-origin: top center;
+    }
+    .title-block {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      text-align: center;
+      z-index: 20;
+    }
+    .title-block h1 {
+      font-weight: 700;
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .title-block .subtitle {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .hub {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -46%);
+      width: 180px; height: 180px;
+      background: var(--panel);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 12;
+      box-shadow: 0 0 40px rgba(240, 180, 41, 0.15);
+    }
+    .hub-label { font-weight: 600; font-size: 1.05rem; color: var(--accent); }
+    .spoke {
+      position: absolute;
+      width: 140px;
+      height: 96px;
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      z-index: 11;
+    }
+    .spoke-a { top: 120px; left: 56px; }
+    .spoke-b { top: 120px; right: 56px; }
+    .spoke-c { bottom: 72px; left: 56px; }
+    .spoke-d { bottom: 72px; right: 56px; }
+    svg.craft-connections {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 6;
+    }
+    .connection {
+      stroke: var(--border-hi);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 6 4;
+    }
+    .connection.active { stroke: var(--accent); stroke-dasharray: none; opacity: 0.75; }
+    .connection.cyan { stroke: var(--cyan); stroke-dasharray: none; opacity: 0.6; }
+    .connection.green { stroke: var(--green); stroke-dasharray: none; opacity: 0.65; }
+    .legend {
+      position: absolute;
+      bottom: 12px;
+      left: 0; right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <div class="diagram" id="diagram" data-slug="craft-starter-preview" data-canvas-width="960" data-canvas-height="640">
+    <div class="title-block">
+      <h1>Craft Diagram Starter</h1>
+      <div class="subtitle">Baked preview — copy scaffold from craft-diagram-starter.html</div>
+    </div>
+
+    <svg class="craft-connections" aria-hidden="true"></svg>
+
+    <div class="spoke spoke-a" data-anchor="input-a">
+      <span>Input A</span>
+    </div>
+    <div class="spoke spoke-b" data-anchor="input-b">
+      <span>Input B</span>
+    </div>
+    <div class="hub" data-anchor="hub">
+      <div class="hub-label">Hub</div>
+    </div>
+    <div class="spoke spoke-c" data-anchor="output-c">
+      <span>Output C</span>
+    </div>
+    <div class="spoke spoke-d" data-anchor="output-d">
+      <span>Output D</span>
+    </div>
+
+    <div class="legend">
+      <span>— active</span>
+      <span>— optional</span>
+    </div>
+  </div>
+
+  <script type="application/json" id="craft-edges">
+  {
+    "viewBox": "0 0 960 640",
+    "edges": [
+      { "from": "input-a", "to": "hub", "class": "connection active", "curve": "q" },
+      { "from": "input-b", "to": "hub", "class": "connection cyan", "curve": "q" },
+      { "from": "hub", "to": "output-c", "class": "connection active", "curve": "q" },
+      { "from": "hub", "to": "output-d", "class": "connection green", "curve": "q" }
+    ]
+  }
+  </script>
+
+  <script>
+/**
+ * craft-anchors.js — data-driven SVG edges for hand-authored craft diagrams.
+ * Inline into diagrams/*.html (file:// safe). Recomputes paths from DOM positions.
+ *
+ * Markup:
+ *   <div class="diagram" data-canvas-width="960" data-canvas-height="640">
+ *     <div class="spoke" data-anchor="feedback">…</div>
+ *     <div class="hub" data-anchor="hub">…</div>
+ *     <svg class="craft-connections" aria-hidden="true"></svg>
+ *   </div>
+ *   craft-edges JSON in a separate script[type=application/json] block
+ *
+ * Edge JSON:
+ *   {
+ *     "viewBox": "0 0 960 640",
+ *     "edges": [
+ *       { "from": "feedback", "to": "hub", "class": "connection active", "curve": "q" },
+ *       { "from": "hub", "to": "github", "class": "connection active", "curve": "q" },
+ *       { "from": "prod", "to": "staging", "class": "connection green", "curve": "h", "y": 478 }
+ *     ]
+ *   }
+ *
+ * curve: "l" straight | "q" quadratic bezier toward target | "h" horizontal at y (use edge.y)
+ */
+(function (global) {
+  'use strict';
+
+  function parseEdges() {
+    var el = document.getElementById('craft-edges');
+    if (!el) return null;
+    try {
+      return JSON.parse(el.textContent);
+    } catch (e) {
+      console.warn('[craft-anchors] invalid craft-edges JSON', e);
+      return null;
+    }
+  }
+
+  function canvasSize(diagram) {
+    var w = parseFloat(diagram.dataset.canvasWidth || '960');
+    var h = parseFloat(diagram.dataset.canvasHeight || '640');
+    return { w: w, h: h };
+  }
+
+  function centerInCanvas(el, diagram) {
+    var d = diagram.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    var size = canvasSize(diagram);
+    var sx = size.w / d.width;
+    var sy = size.h / d.height;
+    return {
+      x: ((r.left + r.right) / 2 - d.left) * sx,
+      y: ((r.top + r.bottom) / 2 - d.top) * sy,
+    };
+  }
+
+  /** Rim point on card rect toward target — lines attach to edges, not centers */
+  function rimPoint(el, diagram, toward) {
+    var c = centerInCanvas(el, diagram);
+    var d = diagram.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    var size = canvasSize(diagram);
+    var sx = size.w / d.width;
+    var sy = size.h / d.height;
+    var hw = (r.width * sx) / 2;
+    var hh = (r.height * sy) / 2;
+    var dx = toward.x - c.x;
+    var dy = toward.y - c.y;
+    if (dx === 0 && dy === 0) return c;
+    var t = Math.min(
+      dx !== 0 ? hw / Math.abs(dx) : Infinity,
+      dy !== 0 ? hh / Math.abs(dy) : Infinity
+    );
+    return { x: c.x + dx * t, y: c.y + dy * t };
+  }
+
+  function pathForEdge(from, to, edge) {
+    var curve = edge.curve || 'q';
+    if (curve === 'h') {
+      var y = edge.y != null ? edge.y : (from.y + to.y) / 2;
+      return 'M ' + from.x + ' ' + from.y + ' L ' + from.x + ' ' + y + ' L ' + to.x + ' ' + y + ' L ' + to.x + ' ' + to.y;
+    }
+    if (curve === 'l') {
+      return 'M ' + from.x + ' ' + from.y + ' L ' + to.x + ' ' + to.y;
+    }
+    var mx = (from.x + to.x) / 2;
+    var my = (from.y + to.y) / 2;
+    var cx = mx + (from.y - to.y) * 0.12;
+    var cy = my + (to.x - from.x) * 0.12;
+    return 'M ' + from.x + ' ' + from.y + ' Q ' + cx + ' ' + cy + ' ' + to.x + ' ' + to.y;
+  }
+
+  function render(diagram) {
+    var spec = parseEdges();
+    if (!spec || !spec.edges) return;
+    var svg = diagram.querySelector('svg.craft-connections');
+    if (!svg) return;
+
+    var size = canvasSize(diagram);
+    var vb = spec.viewBox || ('0 0 ' + size.w + ' ' + size.h);
+    svg.setAttribute('viewBox', vb);
+    svg.innerHTML = '';
+
+    var anchors = {};
+    diagram.querySelectorAll('[data-anchor]').forEach(function (node) {
+      anchors[node.dataset.anchor] = node;
+    });
+
+    spec.edges.forEach(function (edge) {
+      var a = anchors[edge.from];
+      var b = anchors[edge.to];
+      if (!a || !b) {
+        console.warn('[craft-anchors] missing anchor', edge.from, edge.to);
+        return;
+      }
+      var bc = centerInCanvas(b, diagram);
+      var ac = centerInCanvas(a, diagram);
+      var from = rimPoint(a, diagram, bc);
+      var to = rimPoint(b, diagram, ac);
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathForEdge(from, to, edge));
+      path.setAttribute('class', edge.class || 'connection');
+      svg.appendChild(path);
+    });
+  }
+
+  function validateBounds(diagram) {
+    var size = canvasSize(diagram);
+    var issues = [];
+    diagram.querySelectorAll('[data-anchor]').forEach(function (node) {
+      var c = centerInCanvas(node, diagram);
+      var pad = 8;
+      if (c.x < pad || c.y < pad || c.x > size.w - pad || c.y > size.h - pad) {
+        issues.push('anchor "' + node.dataset.anchor + '" near/outside canvas');
+      }
+    });
+    if (issues.length) console.warn('[craft-anchors] bounds:', issues.join('; '));
+    return issues;
+  }
+
+  function notifyResize(diagram, slug) {
+    if (!slug || global.parent === global) return;
+    var h = Math.max(document.body.scrollHeight, diagram.offsetHeight + 80);
+    global.parent.postMessage({ type: 'forge-diagram-resize', id: slug, height: h }, '*');
+  }
+
+  function boot() {
+    var diagram = document.querySelector('.diagram[data-canvas-width]') || document.querySelector('.diagram');
+    if (!diagram) return;
+    var slug = diagram.dataset.slug || '';
+
+    function redraw() {
+      render(diagram);
+      validateBounds(diagram);
+      notifyResize(diagram, slug);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(redraw);
+    } else {
+      redraw();
+    }
+    global.addEventListener('resize', redraw);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  global.CraftAnchors = { render: render, validateBounds: validateBounds };
+})(typeof window !== 'undefined' ? window : globalThis);
+  </script>
+</body>
+</html>
