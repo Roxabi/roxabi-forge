@@ -1,0 +1,62 @@
+# .claude/stack.yml — dev-core stack configuration (roxabi-forge)
+schema_version: "1.0"
+
+runtime: bun
+package_manager: bun
+
+backend:
+  framework: none
+
+frontend:
+  framework: none
+
+build:
+  orchestrator: none
+  formatter: biome
+  formatter_config: biome.json
+  formatter_fix_cmd: "bunx biome check --write"
+  formatters:
+    - cmd: "bunx biome check --write"
+      ext: [".js", ".jsx", ".ts", ".tsx", ".json"]
+    - cmd: "python3 -m py_compile"
+      ext: [".py"]
+
+testing:
+  unit: vitest
+  e2e: none
+
+hooks:
+  tool: lefthook
+
+lsp:
+  enabled: true
+
+deploy:
+  platform: cloudflare-pages
+  secrets_cmd: "wrangler pages secret"
+
+docs:
+  framework: none
+  path: docs
+  format: md
+
+commands:
+  dev: make start
+  build: make build
+  test: bun run test
+  lint: bun run lint
+  format: bun run format
+  install: bun install
+
+artifacts:
+  analyses: artifacts/analyses
+  specs: artifacts/specs
+  frames: artifacts/frames
+  plans: artifacts/plans
+
+standards:
+  contributing: docs/contributing.md
+  deployment: docs/guides/deployment.md
+  troubleshooting: docs/guides/troubleshooting.md
+  dev_process: docs/processes/dev-process.md
+  issue_management: docs/processes/issue-management.md
