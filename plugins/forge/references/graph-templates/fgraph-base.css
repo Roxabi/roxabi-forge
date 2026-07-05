@@ -858,7 +858,10 @@
   border-radius: 4px;
 }
 
-/* ── legend strip (bottom of container) ── */
+/* ── legend strip (bottom of container) ──
+   Legacy carve-out (forge-chart R8): one-line caption inside .fgraph-wrap.
+   New diagrams: plane/tone keys belong in shell .card.accent, not here.
+   Live mode: .fgraph-legend--live (fgraph-interact.js) is exempt. */
 .fgraph-legend {
   position: absolute;
   bottom: 14px;

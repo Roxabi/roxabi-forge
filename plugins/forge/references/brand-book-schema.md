@@ -101,7 +101,7 @@ components:
 # Bias Structure decisions for this project. Does not override content
 # topology, but resolves ties between equally valid choices.
 structure_defaults:
-  prefer_fgraph_under: 6       # hub-and-spoke with ≤ N peers → fgraph
+  prefer_fgraph_under: 6       # tiebreaker: print/no-JS fgraph when hub-spoke ≤ N peers; fd-engine default at any scale
   comparison_as_table: true    # matrices use HTML tables, not grid cards
 
 # ── Canonical examples ──────────────────────────────────────────

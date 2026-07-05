@@ -266,6 +266,8 @@ Full reference: `${CLAUDE_PLUGIN_ROOT}/references/frame-phase.md` — three Fram
 
 Aesthetic is never chosen by Frame — it's mechanical (see `forge-ops.md § Aesthetic Detection`). Frame produces purpose, not CSS.
 
+**Pre-draw gate (before Structure):** If an HTML `<table>`, bullet list, or two sentences carry the same information as the planned figure, do not draw — use prose instead. If the reader would need a guided tour to parse the diagram, split or simplify. Before committing to a figure, ask: can any node, arrow, or label be deleted or merged without losing information?
+
 ### Structure — Which visual type?
 
 Content-driven in both tracks. Brand `structure_defaults` (if present) act as **tiebreakers only** when content topology is genuinely ambiguous.
@@ -645,6 +647,8 @@ When drawing tiered memory, bind tiers to the palette consistently across diagra
 
 ## Layout Rules (CRITICAL)
 
+**Agent mental model (all paths):** three invariants — **paint order** (connectors readable under/at node edges), **semantic encoding** (color/shape = role, not decoration; R5), **spatial discipline** (computed gaps, legend outside drawable bounds; R1–R3, R8). fd-engine delegates paint + space to `gen-fd.py` + `validate-fd.py`; the rules below are the **fgraph static appendix** when hand-placing nodes.
+
 These rules apply to ANY fgraph diagram with multiple node rows — `system-architecture`, `layered`, `machine-clusters`, `deployment-tiers`. Each rule caused a real bug in a prior rendering cycle. Skip these and the output will overlap, clip, or look visibly uneven on first render.
 
 Each rule has a **formula** (mechanical check) and **Wrong / Right** examples. Compute the math before writing the template, not after.
@@ -722,6 +726,17 @@ Use non-straight paths only for **intentional cross-section routes** (e.g., Anth
 
 **Right:** `.fgraph-node.purple.solid` — opaque `--bg-card` base + purple tint via `background-image`; arrow stroke cleanly masked. Or: `<rect class="fg-edge-mask" x="..." y="..." width="..." height="..."/>` immediately before the `<path>`.
 
+**Static SVG double-rect (hand-authored inline nodes):** stack an opaque underlay before any semi-transparent styled rect (same x/y/w/h):
+
+```html
+<rect fill="var(--bg-card)" x="..." y="..." width="..." height="..." rx="6"/>
+<rect fill="rgba(...)" stroke="..." x="..." y="..." width="..." height="..." rx="6"/>
+```
+
+Draw connector `<path>` elements before node groups (document order) when not using `.solid` / `.fg-edge-mask`.
+
+**fd-engine `kind:"bus"` placement:** bus nodes sit in the vertical band *between* adjacent service rows — not overlapping either row. Row-to-row clearance ≥ ~4% of canvas height (vertical spacing analogue; not the R2 horizontal formula).
+
 ### R7. Overlay labels must not wrap
 
 **CRITICAL:** `.fgraph-group__label` has `white-space: nowrap` + `max-width: calc(100% - 20px)` + `text-overflow: ellipsis`. Labels longer than the overlay width truncate; they never wrap into children. **Keep labels ≤ 20 chars** to avoid the truncation:
@@ -729,6 +744,22 @@ Use non-straight paths only for **intentional cross-section routes** (e.g., Anth
 **Wrong:** `"Authenticator + GuardChain · trust levels"` — 42 chars, truncates to `"Authenticator + GuardCha…"` on a narrow overlay.
 
 **Right:** `"Auth · Guard · trust"` — 20 chars, fits without truncation.
+
+### R8. Legend & tone keys outside drawable bounds
+
+**CRITICAL:** Semantic legends (plane/tone keys, bus legend, node-type swatches) belong in **page shell** chrome — `.bar .legend` (fd-engine), `.card.accent` below the diagram, `.kv-strip` — never inside `.fgraph-frame`, never overlapping the active node/edge bbox.
+
+| Path | Rule |
+|---|---|
+| **fd-engine** | `.legend` in `.bar` above `#fd-canvas` — canonical (`examples/fd-architecture.html`) |
+| **New fgraph static** | Prefer shell `.card.accent` tone key; do not add new in-wrap plane swatches |
+| **Legacy templates** | Existing `{{LEGEND}}` / `.fgraph-legend` inside `.fgraph-wrap` remains valid — **one-line caption only**, not a tone matrix |
+| **Live fgraph** | Runtime `.fgraph-legend--live` is exempt (`fgraph-interact.js` contract) |
+| **`radar.html`** | Exception: in-SVG legend required (SC3: all text inside `<svg>`) |
+
+**Wrong:** A 4-tone swatch grid inside a dashed `.fgraph-frame` boundary — competes with topology.
+
+**Right:** fd-engine `.bar .legend` chips; or shell `.card.accent` listing only tones present (R5-aligned).
 
 ---
 
@@ -807,33 +838,23 @@ Serve + Deploy: see forge-ops.md
 
 ### Visual Quality Gates (run before writing file)
 
-14-item pre-flight checklist. Every item is binary — tick it or fix it. Sourced from the gmdiagram QC pattern + architecture-diagram-generator conventions.
+Three layers — agent pre-flight (all paths), fgraph static appendix (R1–R7), mandatory scripts. Every item is binary — tick it or fix it.
 
-- [ ] **Even-stride (R1):** for every N-card row, compute `(100/2N)×(2i+1)` and verify each `--x` matches; edge margins and inter-card gaps are all equal
-- [ ] **Min gap (R2):** for every card row, `stride − width ≥ 2%` (cards do not touch)
-- [ ] **Row clearance (R3):** first row inside a `.fgraph-frame` has top edge ≥ 2% below frame sub label (compute half-height by content line count)
-- [ ] **Straight arrows (R4):** vertical flow paths have `start.x == end.x`; horizontal have `start.y == end.y`; all diagonal paths are labeled intentional beziers with explicit control points
-- [ ] **Edge semantics (R5):** red/rose reserved for security only; cyan for ingress; orange for message bus; purple for storage; amber for cloud-API out; dim for phase-2
-- [ ] **Solid nodes (R6):** every `.fgraph-node.{tone}` that sits over an edge path has `.solid` class; or an explicit `.fg-edge-mask` rect precedes the crossing path
-- [ ] **Overlay label length (R7):** every `.fgraph-group__label` is ≤ 20 chars (otherwise it truncates with ellipsis)
-- [ ] **Text fit:** no labels overlap, no text overflows its container, no truncation ellipses on node titles
-- [ ] **Arrow routing:** SVG paths do not pass through unrelated node boxes; endpoints land on node edges (not centers)
-- [ ] **foreignObject xmlns:** every `<foreignObject>` root has `xmlns="http://www.w3.org/1999/xhtml"` — silent failure in Chrome/Edge otherwise
-- [ ] **Layer gaps:** vertical spacing between layered rows matches `--layer-gap` (50px default from `shape-vocabulary.md`); no row heights drift from `--layer-h`
-- [ ] **CSS class names:** semantic classes only (`.fgraph-node.cylinder`, `.arch-frontend`) — no inline `style="color:#..."` on nodes/edges (tokens only)
-- [ ] **ViewBox fit:** content fills 80–95% of declared dimensions — no large empty regions, no clipping
-- [ ] **Text escaping:** `&`, `<`, `>`, `"`, `'` escaped in labels/titles rendered inside SVG `<text>` or `<foreignObject>`
-- [ ] **Legend accuracy:** legend lists only node types + edge tones actually present in the diagram — no leftover entries
-- [ ] **Title accuracy:** `<title>` + `diagram:title` meta + hero `<h1>` all state the Frame Signal 2 takeaway consistently
-- [ ] **Marker units:** no `<marker>` uses `markerUnits="userSpaceOnUse"` (giant/distorted heads on the stretched `.fgraph-edges` SVG); every arrow/crow's-foot marker omits `markerUnits` and uses `markerWidth="6" markerHeight="6"`
-- [ ] **Marker refs:** every `url(#id)` arrow marker has a matching `<marker id="id">` in `<defs>` (including `fg-arr-*` arrow markers and, for ER diagrams, `fg-er-one`/`fg-er-many`/`fg-er-zero-one`/`fg-er-one-many`/`fg-er-zero-many` crow's-foot markers)
-- [ ] **Tag balance:** SVG + HTML parse cleanly (no unclosed tags, no stray `<`/`>` in text nodes)
-- [ ] **fgraph inlining:** `fgraph-base.css` is inlined into the output `<style>` (Mode A) — no `<link>` to `_shared/fgraph-base.css`
-- [ ] **Color contrast:** body text uses `var(--text)` not `var(--text-dim)` on `var(--surface)`; AA minimum, AAA preferred
-- [ ] **Craft bar — glow:** the hub / hero node carries `.fd-glow` (`node.glow: true`) — exactly one focal glow, not scattered
-- [ ] **Craft bar — edge-flow:** passive data/async edges use `.flow` (`edge.flow: true`); the critical path stays solid (no flow) for contrast
-- [ ] **Craft bar — icons:** node cards carry an `.fd-ico` / `.fgraph-node__icon` glyph where it aids scanning (all-or-none per diagram for consistency)
-- [ ] **Craft bar — dual-font:** both fd-engine and static fgraph render Sans title + Mono descriptor — verify no override flattened the pairing
-- [ ] **SVG validator:** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate-svg.sh <output>` exits 0 (checks tag balance, attr quotes, marker refs, path data, rsvg-convert smoke — skips gracefully if tools absent)
+**Agent pre-flight (8 items):**
+
+- [ ] **Pre-draw:** table, bullets, or ≤2 sentences carry the takeaway → don't draw (see Frame pre-draw gate)
+- [ ] **Route:** correct engine per Structure table (fd-engine default for node-edge arch; table for matrices)
+- [ ] **Semantics (R5):** plane/tones reserved — red/rose = security only; exactly one focal `.fd-glow` on fd-engine
+- [ ] **Paint (R6):** fgraph static — nodes over edges → `.solid` or `.fg-edge-mask`; fd-engine → N/A (validate-fd handles routing)
+- [ ] **Legend (R8):** tone/plane keys in shell only (fd: `.bar .legend`; new work: `.card.accent`); legacy `.fgraph-legend` one-line caption OK
+- [ ] **Frame trace:** `<title>` + `diagram:title` meta + hero `<h1>` state Signal 2 takeaway consistently
+- [ ] **Anti-patterns:** pass `anti-patterns.md` walk (Deliver phase)
+- [ ] **Scripts:** `validate-fd.py` exit 0 (fd-engine path); `validate-svg.sh` exit 0 (fgraph/static SVG path)
+
+**fgraph static appendix — run R1–R7** (formulas in § Layout Rules above) when output is hand-placed static fgraph, not fd-engine and not live mode. Also verify: text fit (no overlap/truncation on node titles), `fgraph-base.css` inlined (Mode A), `foreignObject` roots have `xmlns` if used.
+
+**fd-engine appendix:** craft bar — one `.fd-glow`, `.flow` on passive edges, dual-font pairing (Sans title + Mono descriptor), icons all-or-none per diagram.
+
+**Delegated to scripts (do not duplicate manually):** marker units/refs, tag balance, path data (`validate-svg.sh`); node-in-canvas bounds, layout pair gaps (`validate-fd.py` + expect JSON).
 
 $ARGUMENTS

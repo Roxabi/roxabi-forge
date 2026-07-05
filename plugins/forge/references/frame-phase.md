@@ -158,11 +158,10 @@ information density.
 
 **Flows to Structure:**
 
-Topology is hub-and-spoke with three peers and one central hub — four nodes total, well under the
-six-peer fgraph threshold. Reader-action (onboarding) and sentence verb (see) both point away from
-dense Mermaid and toward the radial fgraph layout. Spacious tone confirms it: fgraph's fixed-
-position nodes with explicit whitespace match the "reflective" axis better than dagre's auto-packed
-layout.
+Topology is hub-and-spoke with three peers and one central hub — four nodes total. Reader-action
+(onboarding) and sentence verb (see) both point away from dense Mermaid and toward a spacious layout.
+Default path today is fd-engine `type:"hub-spoke"`; `prefer_fgraph_under: 6` in `forge.yml` is a
+print/no-JS tiebreaker only, not a density cap.
 
 **Flows to Style:**
 
@@ -174,9 +173,9 @@ severity markers (those are debugging, not onboarding).
 **Flows to Deliver:**
 
 Verification criterion: the hub node must be visually dominant, topic labels must be readable at
-normal zoom, the node count must not exceed six, and the narrative copy accompanying the diagram
-must explicitly state "no direct imports" — because that is the Signal 2 takeaway, and the visual alone
-does not communicate it without a caption.
+normal zoom, and the narrative copy accompanying the diagram must explicitly state "no direct imports"
+— because that is the Signal 2 takeaway, and the visual alone does not communicate it without a caption.
+(fd-engine handles dense hub-and-spoke at any scale; `prefer_fgraph_under` in `forge.yml` is a print/no-JS tiebreaker only.)
 
 ---
 

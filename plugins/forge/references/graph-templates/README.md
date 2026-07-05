@@ -521,7 +521,7 @@ model depends on the consumer (see "Inlined vs shared" below).
 | `.fgraph-pill.{tone}` | Inline badge (priority, port, status) |
 | `.fgraph-sub` / `.muted` / `.warn` / `.ok` | Node subtitles (default / muted / red / green) |
 | `.fgraph-lbl.{tone}` | Absolute HTML edge label via `--x` / `--y` |
-| `.fgraph-legend` | Bottom legend strip |
+| `.fgraph-legend` | Bottom legend strip inside `.fgraph-wrap` — **legacy carve-out** (R8): one-line caption only; new work prefers shell `.card.accent` tone keys. Live mode uses `.fgraph-legend--live` (exempt). `radar.html` uses in-SVG legend instead (SC3 exception). |
 | `.fg-bus-strip.{tone}` | Full-width horizontal pill band — use when a message bus / event bus spans the diagram between two node rows. Positioned via `--y` (top %) + `--h` (height %). Default tone is `.orange` (message-bus semantic); `.amber`/`.cyan`/`.purple`/`.green`/`.red` available. Contains `.fg-bus-strip__title` + `.fg-bus-strip__sub`. |
 | `.fg-live-dot.{tone}` | Pulsing status indicator. Inline element; sits next to a title to signal "live system". Default green (healthy); `.amber` (warn), `.red` (down). Pure CSS animation, no JS. |
 

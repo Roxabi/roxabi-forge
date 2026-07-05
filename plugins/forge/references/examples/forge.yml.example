@@ -54,7 +54,7 @@ components:
 
 # ── Structure preferences ───────────────────────────────────────
 structure_defaults:
-  prefer_fgraph_under: 6     # hub-and-spoke ≤ 6 peers → fgraph (matches existing visuals)
+  prefer_fgraph_under: 6     # tiebreaker only: print/no-JS fgraph when hub-spoke ≤ 6 peers; fd-engine is default at any scale
   comparison_as_table: true  # matrices as HTML tables, not grid cards
 
 # ── Canonical examples ──────────────────────────────────────────
