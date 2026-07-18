@@ -6,6 +6,7 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
+    "prepare": "git config --get core.hooksPath > /dev/null 2>&1 || bunx lefthook install",
     "lint": "bunx biome check .",
     "format": "bunx biome check --write",
     "gen-fd": "python3 scripts/gen-fd.py",
