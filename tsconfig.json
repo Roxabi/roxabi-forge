@@ -5,10 +5,11 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "types": ["@cloudflare/workers-types", "vitest/globals", "node"],
     "lib": ["ES2022", "WebWorker"],
     "noEmit": true,
+    // Resolved relative to this file: TypeScript 7 removed `baseUrl`, and the only
+    // non-relative imports here are `@functions/*` (mirrored in vitest.config.ts).
     "paths": {
       "@functions/*": ["./functions/*"]
     }
