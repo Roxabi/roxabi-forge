@@ -110,6 +110,19 @@ describe("tree page", () => {
     expect(closed.next).not.toHaveBeenCalled()
   })
 
+  // `/talk/index.html` gets a 308 to `/talk/`: the directory url is a page too.
+  it("applies the page ACL to the directory url of an index.html page", async () => {
+    const open = ctxFor("/lyra/", { "vis:lyra/index.html": "public" })
+    expect((await onRequest(open as never)).status).toBe(200)
+    expect(open.next).toHaveBeenCalled()
+
+    const closed = ctxFor("/lyra/private/")
+    const refused = await onRequest(closed as never)
+    expect(refused.status).toBe(302)
+    expect(refused.headers.get("location")).toMatch(/^\/login\?next=/)
+    expect(closed.next).not.toHaveBeenCalled()
+  })
+
   it("does not mistake an asset for a page", async () => {
     const ctx = ctxFor("/lyra/visuals/app.css")
     const res = await onRequest(ctx as never)

@@ -48,7 +48,7 @@ describe("page share grant", () => {
   it("sets a cookie and redirects to the real path without the key", async () => {
     const res = await onShare(shareCtx(`/s/${PAGE}/${KEY}`, shared) as never)
     expect(res.status).toBe(302)
-    expect(res.headers.get("location")).toBe(`/${PAGE}`)
+    expect(res.headers.get("location")).toBe("/lyra/visuals/architecture")
     expect(res.headers.get("location")).not.toContain(KEY)
     expect(res.headers.get("set-cookie")).toContain("forge_share=")
     expect(res.headers.get("set-cookie")).toContain("HttpOnly")
@@ -87,5 +87,26 @@ describe("page share grant", () => {
     const orphan = await onShare(shareCtx(`/s/${PAGE}/${KEY}`, { [`share:${PAGE}`]: KEY }) as never)
     expect(orphan.status).toBe(404)
     expect(orphan.headers.get("set-cookie")).toBeNull()
+  })
+
+  // Pages answers `/talk/index.html` with a 308 to `/talk/`. That directory URL
+  // is where the visitor lands, so the grant has to open it — and only it.
+  it("opens an index.html page on the directory url Pages serves it at", async () => {
+    const INDEX = "companyos-talk/index.html"
+    const store = { [`vis:${INDEX}`]: "shared", [`share:${INDEX}`]: KEY }
+    const exchange = await onShare(shareCtx(`/s/${INDEX}/${KEY}/`, store) as never)
+    expect(exchange.status).toBe(302)
+    expect(exchange.headers.get("location")).toBe("/companyos-talk/")
+    const cookie = (exchange.headers.get("set-cookie") || "").split(";")[0]
+
+    const page = edgeCtx("/companyos-talk/", store, cookie)
+    const pageRes = await onEdge(page as never)
+    expect(pageRes.status).toBe(200)
+    expect(page.next).toHaveBeenCalled()
+
+    const other = edgeCtx("/other-talk/", store, cookie)
+    const otherRes = await onEdge(other as never)
+    expect(otherRes.status).not.toBe(200)
+    expect(other.next).not.toHaveBeenCalled()
   })
 })

@@ -10,6 +10,7 @@ import {
   getVisibility,
   timingSafeEqualStr,
 } from "../_lib/access"
+import { artefactPath } from "../_lib/assets"
 import { parseShareRoute, shareAssetPath } from "../_lib/share-path"
 
 async function plain404(): Promise<Response> {
@@ -33,7 +34,8 @@ export const onRequest: PagesFunction<ForgeEnv> = async (context) => {
     const stored = await context.env.SHARES.get(`share:${page}`)
     if (vis !== "shared" || !stored || !timingSafeEqualStr(stored, key)) return plain404()
     const headers = new Headers()
-    headers.set("location", `/${page}`)
+    // Straight to the canonical URL: `/${page}` would cost the visitor a 308.
+    headers.set("location", artefactPath(page))
     headers.set("cache-control", "no-store")
     headers.set(
       "set-cookie",

@@ -95,18 +95,22 @@ const CORE_PATHS: Record<string, true> = {
 /**
  * Page id for a request path, or null when the path is not a page.
  *
- * Both URL shapes map to the same page: Cloudflare Pages answers
- * `/lyra/visuals/architecture.html` with a 308 to the extensionless
- * `/lyra/visuals/architecture`, so a rule that only knows the `.html` form
- * hands the visitor a redirect and then 404s the target it just sent them to.
+ * Every URL shape Pages redirects to maps to the same page: `/lyra/x.html` is
+ * answered with a 308 to the extensionless `/lyra/x`, and `/talk/index.html`
+ * with a 308 to the directory `/talk/`. A rule that only knows the `.html`
+ * form hands the visitor a redirect and then 404s the target it sent them to.
  * Identity stays the stored path — the `.html` id — whichever form was asked.
  */
 function treePageId(path: string): string | null {
-  if (path.includes("..") || path.endsWith("/")) return null
+  if (path.includes("..")) return null
   if (isPublicShell(path)) return null
   if (path.startsWith("/api/") || path.startsWith("/s/") || path.startsWith("/a/")) return null
   if (path.endsWith(".html")) {
     return /^\/[A-Za-z0-9._/-]+\.html$/.test(path) ? path.slice(1) : null
+  }
+  // Directory form: the `index.html` inside it (the root `/` is the shell).
+  if (path.endsWith("/")) {
+    return /^\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*\/$/.test(path) ? `${path.slice(1)}index.html` : null
   }
   // Extensionless: no dot in the last segment, so an asset like `app.css`
   // never gets mistaken for a page.

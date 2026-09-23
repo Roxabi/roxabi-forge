@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [1.1.2] - 2026-09-23
+
+### Fixed
+
+- A page stored as `<dir>/index.html` can be shared and made public again. Cloudflare Pages answers `/<dir>/index.html` with a 308 to `/<dir>/`, and the edge did not recognise that directory URL as a page: a share link or an anonymous visit ended on a 404 (the team, who can open anything, never saw it). The directory URL now carries the page's ACL, and the share-link exchange redirects straight to the canonical URL instead of costing a 308.
+
 ## [1.1.1] - 2026-09-23
 
 ### Fixed

@@ -5,13 +5,14 @@ import type { ForgeEnv } from "./access"
 /**
  * Public URL path of an identifier.
  *
- * Two shapes, two locations: a tree page IS its path, served on the
- * extensionless canonical form (Pages answers `.html` with a 308). A legacy
- * slug is a directory under `/a/`. Resolving both in one place keeps every
- * caller -- existence check, public URL, shortlink -- from having to know
- * which layout it is looking at.
+ * Two shapes, two locations: a tree page IS its path, served on the form Pages
+ * settles on (`x.html` → `/x`, `x/index.html` → `/x/`; anything else gets a
+ * 308). A legacy slug is a directory under `/a/`. Resolving both in one place
+ * keeps every caller -- existence check, public URL, shortlink -- from having
+ * to know which layout it is looking at.
  */
 export function artefactPath(ref: string): string {
+  if (ref === "index.html" || ref.endsWith("/index.html")) return `/${ref.slice(0, -"index.html".length)}`
   if (ref.endsWith(".html")) return `/${ref.slice(0, -".html".length)}`
   return `/a/${ref}/`
 }
