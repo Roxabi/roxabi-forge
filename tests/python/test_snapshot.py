@@ -355,6 +355,78 @@ class CompareTests(SnapshotCLIBase):
         self.assertFalse(payload["verifiable"])
         self.assertEqual([], payload["unexpected_removals"])
 
+    # --- narration under publish.sh's overrides ---------------------------
+    # publish.sh forwards --allow-removals / --allow-unverified as
+    # --removals-allowed / --unverified-allowed. The report must say what the
+    # publish then does; the exit code and JSON must not move, because the
+    # shell decides from those.
+
+    def _stale_hub_record(self, deployment_id: str = LIVE) -> Path:
+        self._artifact(self.artifacts, "deck-a")
+        self._artifact(self.artifacts, "teammate-deck")
+        record = self._record(self._fingerprint()["slugs"], deployment_id=deployment_id)
+        for child in sorted((self.artifacts / "teammate-deck").iterdir()):
+            child.unlink()
+        (self.artifacts / "teammate-deck").rmdir()
+        return record
+
+    def _compare_proc(self, record: Path, *extra: str) -> subprocess.CompletedProcess:
+        return self._run(
+            "compare", "--record", str(record), "--live-deployment-id", self.LIVE, *extra
+        )
+
+    def test_allowed_removal_narrates_a_deletion_not_a_refusal(self) -> None:
+        record = self._stale_hub_record()
+        plain = self._compare_proc(record)
+        allowed = self._compare_proc(record, "--removals-allowed")
+
+        self.assertEqual(3, allowed.returncode)
+        self.assertEqual(self._json(plain), self._json(allowed))
+        self.assertIn(
+            "- deleting 1 artifact(s) from the live site on purpose "
+            "(--allow-removals): teammate-deck",
+            allowed.stderr,
+        )
+        self.assertNotIn("refusing", allowed.stderr)
+        self.assertNotIn("re-run", allowed.stderr)
+
+    def test_untrusted_removal_with_only_removals_allowed_keeps_the_refusal(self) -> None:
+        # publish.sh refuses this one (the removal list of an unanchored record
+        # is incomplete), so the report must keep refusing too.
+        record = self._stale_hub_record(deployment_id="dep-rolled-back")
+        proc = self._compare_proc(record, "--removals-allowed")
+
+        self.assertEqual(3, proc.returncode)
+        self.assertIn(
+            "✗ refusing to deploy: 1 artifact(s) would be deleted from the live site: "
+            "teammate-deck",
+            proc.stderr,
+        )
+        self.assertIn("re-run with --allow-unverified", proc.stderr)
+        self.assertNotIn("deleting", proc.stderr)
+
+    def test_untrusted_removal_with_both_allowed_narrates_no_refusal(self) -> None:
+        record = self._stale_hub_record(deployment_id="dep-rolled-back")
+        proc = self._compare_proc(record, "--removals-allowed", "--unverified-allowed")
+
+        self.assertEqual(3, proc.returncode)
+        self.assertFalse(self._json(proc)["verifiable"])
+        self.assertIn("- deleting 1 artifact(s)", proc.stderr)
+        # The diagnosis of what the flags accept stays visible.
+        self.assertIn("dep-rolled-back", proc.stderr)
+        self.assertNotIn("refusing", proc.stderr)
+        self.assertNotIn("re-run", proc.stderr)
+
+    def test_untrusted_record_with_unverified_allowed_narrates_no_refusal(self) -> None:
+        self._artifact(self.artifacts, "deck-a")
+        record = self._record(self._fingerprint()["slugs"], deployment_id="dep-rolled-back")
+        proc = self._compare_proc(record, "--unverified-allowed")
+
+        self.assertEqual(4, proc.returncode)
+        self.assertIn("dep-rolled-back", proc.stderr)
+        self.assertNotIn("refusing", proc.stderr)
+        self.assertNotIn("re-run", proc.stderr)
+
     def test_unreadable_record_path_is_an_error_not_a_bootstrap(self) -> None:
         self._artifact(self.artifacts, "deck-a")
         proc = self._run(

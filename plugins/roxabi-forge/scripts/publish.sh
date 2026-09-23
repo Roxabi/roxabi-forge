@@ -666,15 +666,21 @@ snapshot_guard() {
     if $LIVE_RESOLVED_UNKNOWN; then
       live_unknown_flag="--live-unknown"
     fi
+    # Narration only: compare reports what the case below will decide, so it
+    # never prints a refusal the flags then override. Exit code and payload
+    # are unchanged by these.
+    local allow_flags=""
+    $ALLOW_REMOVALS && allow_flags="--removals-allowed"
+    $ALLOW_UNVERIFIED && allow_flags="$allow_flags --unverified-allowed"
 
     local rc=0 cmp_json="" verifiable="false"
-    # shellcheck disable=SC2086  # live_unknown_flag is empty or one flag
+    # shellcheck disable=SC2086  # live_unknown_flag / allow_flags: empty or fixed flags
     cmp_json=$(printf '%s' "$record" | PYTHONPATH="$LIB_DIR${PYTHONPATH:+:$PYTHONPATH}" \
       python3 "$snap" compare \
         --record - \
         --live-deployment-id "$live_id" \
         --expected-removals "$EXPECTED_REMOVALS" \
-        $live_unknown_flag) || rc=$?
+        $live_unknown_flag $allow_flags) || rc=$?
     # The payload, not just the exit code: compare returns 3 on a non-empty
     # removal list whether or not the record is anchored on what is live, so
     # reading only the code let --allow-removals clear an untrusted record.
@@ -692,6 +698,8 @@ print("true" if d.get("verifiable") is True else "false")' 2>/dev/null) || verif
         return 0
         ;;
       3)
+        # Keep in sync with deploy_proceeds() in lib/snapshot.py, which
+        # narrates this same predicate (and the exit-4 $ALLOW_UNVERIFIED one).
         if $ALLOW_REMOVALS && { [ "$verifiable" = "true" ] || $ALLOW_UNVERIFIED; }; then
           if [ "$verifiable" = "true" ]; then
             warn "hub drift: removing live artifacts because --allow-removals was passed"
@@ -718,6 +726,7 @@ print("true" if d.get("verifiable") is True else "false")' 2>/dev/null) || verif
     esac
   fi
 
+  # deploy_proceeds() in lib/snapshot.py mirrors this exit-4 override too.
   if $ALLOW_UNVERIFIED; then
     if [ -n "$unverified_reason" ]; then
       warn "hub drift unverified ($unverified_reason) — proceeding because --allow-unverified was passed"

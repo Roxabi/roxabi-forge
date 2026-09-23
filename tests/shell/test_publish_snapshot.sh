@@ -231,7 +231,15 @@ ALLOW_REMOVALS=true
 guard || { guard_err; fail "--allow-removals must let the deploy through"; }
 grep -q "allow-removals" "$TD/guard.err" \
   || { guard_err; fail "the override must still warn"; }
-pass "--allow-removals proceeds, with a warning"
+# The compare report runs before the override is applied: it must not claim a
+# refusal the flag then overrides.
+grep -qF -- "- deleting 1 artifact(s) from the live site on purpose (--allow-removals): gone" "$TD/guard.err" \
+  || { guard_err; fail "the report must name the deliberate deletion"; }
+if grep -q "refusing" "$TD/guard.err"; then
+  guard_err
+  fail "a deploy that proceeds must not be reported as refused"
+fi
+pass "--allow-removals proceeds, with a warning and a truthful report"
 
 # --- 5. a removal the command performs by design is accepted -----------------
 ALLOW_REMOVALS=false
@@ -347,6 +355,10 @@ grep -q -- "--allow-removals was passed" "$TD/guard.err" \
   || { guard_err; fail "the double override must still warn about the removal"; }
 grep -q "unanchored record" "$TD/guard.err" \
   || { guard_err; fail "the double override must say the record is unanchored, not just that artifacts are removed"; }
+if grep -q "refusing" "$TD/guard.err"; then
+  guard_err
+  fail "the double override proceeds, so the report must not say refusing"
+fi
 ALLOW_UNVERIFIED=false
 ALLOW_REMOVALS=false
 pass "untrusted record + both flags -> proceeds, naming the unanchored record"
