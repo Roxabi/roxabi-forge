@@ -515,9 +515,10 @@ cfg.setdefault("internal_prefix", "a")
 # A fresh hub has no marker directories to check. An existing list is the
 # operator's choice and is left alone.
 cfg.setdefault("vault_markers", [])
-# forge_repo is the engine stage 10 deploys. An operator value is kept; unset
-# (or the archived legacy engine) becomes the checkout this wizard runs from,
-# else the canonical engine URL — a marketplace install has no checkout.
+# forge_repo is the engine stage 10 deploys. An operator value is kept (a
+# local checkout there is an explicit dev mode); unset or the archived legacy
+# engine becomes the canonical URL, i.e. release mode: the engine tagged with
+# this plugin's version. A checkout is never picked on the operator's behalf.
 cfg["forge_repo"] = pick_forge_repo(cfg.get("forge_repo") or "")
 p.write_text(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(f"  ✓ wrote {p}")

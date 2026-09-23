@@ -2,7 +2,7 @@
 name: roxabi-forge-setup
 description: >-
   One-time machine config for roxabi-forge (forge.roxabi.dev) — local data-root
-  path, artifacts folder and engine checkout. Triggers: "roxabi forge setup",
+  path, artifacts folder and engine source. Triggers: "roxabi forge setup",
   "roxabi-forge-setup". Operator-invoked only (do not run unless asked).
 ---
 
@@ -18,7 +18,7 @@ run this skill. Do not invent a path.
 |---|---|---|
 | **SSOT artifacts** | `$hub_root/$artifacts_dir/<slug>/` | HTML source in the vault |
 | **Live deploy** | `wrangler pages deploy` | Direct Upload (token in `forge.env`) |
-| **Machine config** | `~/.config/roxabi/forge/forge.config.json` | personal hub path + engine checkout (`forge_repo`) + `pages_project` / `public_host` (not git) |
+| **Machine config** | `~/.config/roxabi/forge/forge.config.json` | personal hub path + optional engine source (`forge_repo`, empty = release mode) + `pages_project` / `public_host` (not git) |
 | **Credentials** | `~/.config/roxabi/forge/forge.env` | token, account, KV, Access — never host/project |
 | **Defaults** | plugin `forge.config.example.json` | fallback if no local file |
 
@@ -135,8 +135,12 @@ On exit `0` the token is already present (`deploy_ready` requires it), so the
 live check can run now — and must: an offline `0` still says ready with a
 revoked token or a deleted Pages project. Doctor's own last line points here.
 
-`--online` also runs an advisory Browser Run probe (OG thumbnails, step 7b): it
-never changes the exit code, so the table below is unaffected.
+`--online` also runs an advisory Browser Run probe (OG thumbnails, step 7b) and
+prints one engine line, `engine   : prod <L|unknown> · plugin <P> · <state>`
+(`aligned`, `update plugin`, `upgrade on next publish`, `stamped on next
+publish`, …). Neither changes the exit code, so the table below is unaffected.
+`update plugin` means production runs a newer engine than this plugin: publish
+will refuse until the plugin is updated (commands in `roxabi-forge-publish`).
 
 ```bash
 : "${S:?bind S in the § Step 0 block above first}"
@@ -220,27 +224,34 @@ esac
 
 ### Bind `ENGINE` (forge_repo, before step 2)
 
-`forge_repo` is the engine `publish.sh` deploys: `git archive HEAD` of a
-checkout, or a clone of `main` for a URL. Its default is the engine checkout
-this plugin runs from (the git top-level of the plugin, accepted only with a
-commit and the tree-engine markers doctor checks), else the canonical engine
-`https://github.com/Roxabi/roxabi-forge.git` — a marketplace install caches
-only the plugin, so it has no checkout to detect. Print the detected one:
+`forge_repo` decides which engine `publish.sh` deploys. Two modes:
+
+| Mode | `forge_repo` | Deploys | Stamp on the Pages deployment |
+|---|---|---|---|
+| **release** (default) | empty, or a URL (`https://github.com/Roxabi/roxabi-forge.git`) | the tag `roxabi-forge/v<plugin version>` — the same release as the running scripts. A missing tag stops the publish; there is no fallback to `main`. | `roxabi-forge/v<version>` |
+| **dev** (explicit) | an absolute path to a committed engine checkout | `git archive HEAD` of that checkout — uncommitted changes are **not** deployed | `roxabi-forge/v<version>+dev.<sha7>` |
+
+Dev mode refuses when the checkout's `plugins/roxabi-forge/package.json`
+version (at `HEAD`) differs from this plugin's, unless `publish.sh` itself runs
+from that checkout. Doctor warns in dev mode: which commit will deploy, whether
+`HEAD` is pushed to its upstream, and how many uncommitted changes stay behind.
+
+**Default to release mode** (`ENGINE` empty). Offer dev mode only when the
+operator develops the engine. To suggest it, print the engine checkout this
+plugin runs from (empty for a marketplace install, which caches only the
+plugin):
 
 ```bash
 : "${FORGE_ROOT:?run § Shell setup first}"
 python3 "$FORGE_ROOT/scripts/lib/load_config.py" --print-engine-root
 ```
 
-**Propose** the printed path (or the `engine :` source step 0 printed, when the
-local config already names one) and **confirm** with the operator; they may
-override it with another committed tree-layout engine checkout. Empty output
-and no existing value → propose the canonical URL above. Never use
-`Roxabi/roxabi-forge-legacy`: that is the archived pre-tree engine, and
-deploying it overwrites production.
+A printed path is a **suggestion**, never a default: bind it only after the
+operator explicitly asks for dev mode. Never use `Roxabi/roxabi-forge-legacy`:
+that is the archived pre-tree engine, and deploying it overwrites production.
 
 ```bash
-ENGINE="<engine confirmed by the operator; empty keeps the config's, else the detected checkout, else the canonical URL>"
+ENGINE="<empty for release mode (recommended); an engine checkout path only if the operator chose dev mode>"
 ```
 
 ## Step 2 — Write local config
@@ -326,7 +337,7 @@ if not vault_ok(hub, markers):
 
 base["hub_root"] = str(hub)
 # Operator choice first, then the existing config value; pick_forge_repo
-# falls back to the detected engine checkout, then the canonical engine URL.
+# falls back to the canonical engine URL (release mode), never a checkout.
 base["forge_repo"] = pick_forge_repo(
     os.environ.get("ENGINE") or base.get("forge_repo") or ""
 )
@@ -340,16 +351,18 @@ PY
 
 Never commit `forge.config.json` into roxabi-forge.
 
-`forge_repo` precedence: `$ENGINE` → existing local value → detected engine
-checkout → `https://github.com/Roxabi/roxabi-forge.git`. The legacy engine
-(`Roxabi/roxabi-forge-legacy`) counts as unset; the SSH form of the canonical
-URL is written as HTTPS. `FORGE_REPO` in the environment still overrides the
-config at publish time.
+`forge_repo` precedence: `$ENGINE` → existing local value →
+`https://github.com/Roxabi/roxabi-forge.git` (release mode). No checkout is
+ever picked implicitly. The legacy engine (`Roxabi/roxabi-forge-legacy`)
+counts as unset; the SSH form of the canonical URL is written as HTTPS.
+`FORGE_REPO` in the environment still overrides the config at publish time.
+To leave dev mode, rebind `ENGINE` to the canonical URL and rerun step 2.
 
-This step does not validate the engine; `forge-doctor.sh` does (git work tree,
-a commit, tree-engine markers for a checkout; a legacy URL is an issue). Run it
-now (step 0 command): a bad checkout or a legacy URL shows as a `forge_repo …`
-issue — rebind `ENGINE` and rerun step 2.
+This step does not validate the engine; `forge-doctor.sh` does (release: the
+plugin version the tag is derived from; dev: git work tree, a commit,
+tree-engine markers, a version matching the plugin; a legacy URL is an issue).
+Run it now (step 0 command): a bad checkout or a legacy URL shows as a
+`forge_repo …` issue — rebind `ENGINE` and rerun step 2.
 
 Optional: sync the shared `hub-root` file if absent:
 

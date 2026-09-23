@@ -1,11 +1,11 @@
 {
   "name": "roxabi-forge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Team HTML artifact host on Cloudflare Pages — roxabi-forge-publish and roxabi-forge-setup.",
   "owner": { "name": "Roxabi" },
   "plugins": [{
     "name": "roxabi-forge",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Cloudflare Pages upload for forge hosts — publish plus fail-closed setup and doctor.",
     "source": "./plugins/roxabi-forge",
     "category": "productivity"

@@ -37,8 +37,9 @@ Usage: forge-doctor.sh [--json] [--quiet] [--online]
   Checks ~/.config/roxabi/forge/forge.config.json (example fallback) and the
   Cloudflare credentials in ~/.config/roxabi/forge/forge.env.
   --online : also check token/account/project/KV against the Cloudflare API,
-             and probe Browser Run (advisory: OG thumbnails only — it never
-             changes an exit code).
+             report the production engine version against this plugin
+             (engine : prod <L|unknown> · plugin <P> · <state>), and probe
+             Browser Run (both advisory — they never change an exit code).
 
 Exit: 0 ready · 1 config KO (run the roxabi-forge-setup skill) · 2 deploy blocked
       (each blocker is reported with the command that fixes it).
@@ -156,12 +157,14 @@ acct_s = f"{acct[:8]}…" if len(acct) > 8 else (acct or "—")
 print(f"  pages    : {d.get('pages_project') or 'forge'}")
 eng = d.get("engine") or {}
 eng_src = eng.get("source") or "—"
+stamp = eng.get("stamp") or ""
 if eng.get("kind") == "url":
-    # Not fetched: cloning the wrong remote is how production was nearly
-    # overwritten, and that check cannot be done offline.
-    eng_detail = "url unverified"
+    # Release mode: the tag is named, but not fetched. Cloning the wrong
+    # remote is how production was nearly overwritten, and that check (like
+    # the tag's existence) cannot be done offline.
+    eng_detail = f"release {stamp} · url unverified" if stamp else "url unverified"
 elif eng.get("head"):
-    eng_detail = eng["head"]
+    eng_detail = f"dev {eng['head']} → {stamp}" if stamp else eng["head"]
 else:
     eng_detail = "no HEAD"
 print(f"  engine   : {eng_src} ({eng_detail})")
@@ -175,11 +178,17 @@ if online:
     print(f"  online   : {'OK' if online_ok else 'KO'}")
     for k, v in (d.get("online_checks") or {}).items():
         print(f"    {k}: {v}")
+    # Production engine vs this plugin: one line, advisory. publish.sh is the
+    # gate that refuses a downgrade; the doctor only says it is coming.
+    drift = d.get("engine_drift") or {}
+    if drift.get("line"):
+        print(f"  engine   : {drift['line']}")
 
 # online_warnings only exists on an --online payload, and it carries the
-# advisories that change no exit code. Today that is the Browser Run render
-# permission and nothing else: preflight_mutations' only other warning needs
-# require_kv false, which doctor_online never passes. Appended once, so the
+# advisories that change no exit code: the Browser Run render permission and
+# a production engine newer than this plugin (publish.sh refuses that one).
+# preflight_mutations' only other warning needs require_kv false, which
+# doctor_online never passes. Appended once, so the
 # three status branches below print each warning exactly one time.
 warnings = list(d.get("warnings") or [])
 if online:
@@ -244,7 +253,7 @@ blocker_hint() {
     forge_env_permissions)
       echo "→ env perms: chmod 600 ${ENV_PATH}" ;;
     forge_repo)
-      echo "→ forge_repo: point it at a committed tree-layout engine checkout (publish.sh deploys git archive HEAD) or https://github.com/Roxabi/roxabi-forge.git" ;;
+      echo "→ forge_repo: clear it (release mode: the tagged engine matching this plugin), or point it at a committed tree-layout engine checkout whose version matches the plugin (dev mode: publish.sh deploys git archive HEAD)" ;;
     *)
       echo "→ $1: see forge-doctor.sh --json" ;;
   esac

@@ -39,9 +39,9 @@ EXAMPLE_PATH = PLUGIN_ROOT / "forge.config.example.json"
 LOCAL_PATH = Path.home() / ".config/roxabi/forge/forge.config.json"
 HUB_ROOT_FILE = Path.home() / ".config/roxabi/forge/hub-root"
 FORGE_ENV_PATH = Path.home() / ".config/roxabi/forge/forge.env"
-# The public tree-layout engine. A marketplace install caches only
-# plugins/roxabi-forge/ (no engine around it), so detection finds nothing
-# there and this URL is the only engine such a machine can name.
+# The public tree-layout engine, and the default forge_repo: an empty value is
+# release mode, which clones the tag roxabi-forge/v<plugin version> from here,
+# so the engine always matches the scripts of the plugin that publishes.
 CANONICAL_FORGE_REPO = "https://github.com/Roxabi/roxabi-forge.git"
 # Same repository over SSH. Written back as the HTTPS form so every config
 # names the engine one way and clones without an SSH key.
@@ -63,7 +63,7 @@ REQUIRED_KEYS = (
     "hub_root",
     "artifacts_dir",
     "public_host",
-    "forge_repo",
+    # forge_repo is optional (empty = release mode), so it is not listed.
     "site_dir",
     "registry_dir",
     "internal_prefix",
@@ -194,12 +194,14 @@ def _safe_resolve(path: Path) -> Path | None:
 def detect_engine_checkout(start: Path | str | None = None) -> str | None:
     """Engine checkout this plugin runs from, or None.
 
-    forge_repo is what publish.sh deploys (`git archive HEAD`). The only
-    engine this machine can vouch for is the checkout the running plugin
-    lives in: the git top-level of `start` (default: this script's directory).
-    It is accepted only with a commit and the tree-engine markers doctor
-    checks, so an installed plugin copy or an unrelated repository that
-    merely contains the plugin never becomes the default.
+    Never a forge_repo default: an empty forge_repo is release mode (the
+    plugin's own tagged engine), and dev mode — `git archive HEAD` of a
+    checkout — is an explicit operator choice. Setup uses this only to
+    *suggest* dev mode, and publish uses it to recognise the one checkout
+    whose version may differ from the plugin's: the one publish.sh runs from.
+    The git top-level of `start` (default: this script's directory) is
+    accepted only with a commit and the tree-engine markers doctor checks, so
+    an installed plugin copy or an unrelated repository never matches.
     """
     here = Path(start) if start is not None else Path(__file__).resolve().parent
     code, top = _git(here, "rev-parse", "--show-toplevel")
@@ -223,19 +225,20 @@ def is_legacy_forge_repo(value: str) -> bool:
 
 
 def pick_forge_repo(current: str) -> str:
-    """forge_repo to write: explicit value → detected checkout → canonical URL.
+    """forge_repo to write: explicit value → canonical URL (release mode).
 
     The legacy engine counts as unset, so a machine configured before the
     swap is moved off it. The SSH spelling of the canonical engine is
-    written as the HTTPS URL. A checkout this plugin runs from beats the
-    remote because it is what the operator is actually developing.
+    written as the HTTPS URL. A checkout is never picked implicitly: that
+    would silently put a machine in dev mode, deploying whatever HEAD that
+    checkout sits on instead of the release matching the plugin.
     """
     current = (current or "").strip()
     if current in _CANONICAL_FORGE_REPO_ALIASES:
         return CANONICAL_FORGE_REPO
     if current and not is_legacy_forge_repo(current):
         return current
-    return detect_engine_checkout() or CANONICAL_FORGE_REPO
+    return CANONICAL_FORGE_REPO
 
 
 def _add_hub_candidate(
@@ -943,6 +946,19 @@ def doctor_online(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
             f"(publish still succeeds): {browser_run['reason']}"
         )
 
+    # The engine line is read-only and advisory (no exit code): publish is
+    # the gate that refuses. It spends a Pages API call only when the
+    # credentials already passed the preflight, like the Browser Run probe.
+    import engine_drift  # lazy: engine_drift imports this module
+
+    engine_drift_summary = engine_drift.summary_line(cfg, fetch=bool(pf["ok"]))
+    if engine_drift_summary.get("verdict") == "newer_prod":
+        online_warnings.append(
+            f"{engine_drift_summary.get('message')} "
+            + " ; ".join(engine_drift.UPDATE_COMMANDS)
+            + " — publish refuses until then"
+        )
+
     return {
         **base,
         "online_ok": pf["ok"],
@@ -950,6 +966,7 @@ def doctor_online(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         "online_issues": online_issues,
         "online_warnings": online_warnings,
         "browser_run": browser_run,
+        "engine_drift": engine_drift_summary,
         "forge_env_permissions": perm,
         "deploy_ready": base.get("deploy_ready") and perm["ok"] and pf["ok"],
     }
@@ -1062,26 +1079,33 @@ def resolved_og_renderer(cfg: dict[str, Any]) -> str:
 def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
     """Inspect forge_repo without cloning.
 
-    A local checkout is what publish.sh archives (`git archive HEAD`). No
-    commit means that archive dies. A URL cannot be checked offline; with
-    layout tree that is the incident where the configured remote was still
-    the pre-tree engine and a publish would have overwritten production.
+    Empty or a URL is release mode: publish.sh clones the tag
+    roxabi-forge/v<plugin version>, so the engine matches the plugin's
+    scripts. A local checkout is dev mode: publish.sh archives HEAD (no
+    commit means that archive dies) and stamps it <version>+dev.<sha7>. A
+    non-canonical URL cannot be checked offline; with layout tree that is the
+    incident where the configured remote was still the pre-tree engine and a
+    publish would have overwritten production.
 
     `issues` / `warnings` / `path_failed` feed doctor(). The report payload
-    keeps only source, kind, head, markers_ok.
+    keeps source, kind, mode, stamp, head, markers_ok.
     """
-    source = str(cfg.get("forge_repo") or "").strip()
+    # Lazy: engine_drift imports this module.
+    import engine_drift
+
+    configured = str(cfg.get("forge_repo") or "").strip()
+    source = configured or CANONICAL_FORGE_REPO
     status: dict[str, Any] = {
         "source": source,
-        "kind": "url" if source and _is_repo_url(source) else "path",
+        "kind": "url" if _is_repo_url(source) else "path",
+        "mode": "release" if _is_repo_url(source) else "dev",
+        "stamp": None,
         "head": None,
         "markers_ok": False,
         "issues": [],
         "warnings": [],
         "path_failed": False,
     }
-    if not source:
-        return status
     if is_legacy_forge_repo(source):
         # Checked before the generic URL warnings: this remote is known to be
         # the archived pre-tree engine, so there is nothing left to verify.
@@ -1089,15 +1113,31 @@ def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
         status["issues"].append(
             f"forge_repo names the archived legacy engine ({source}) — "
             "publishing it would overwrite production with pre-tree code; "
-            f"set forge_repo to {CANONICAL_FORGE_REPO} or an engine checkout "
+            "clear forge_repo (release mode) or point it at an engine checkout "
             "(re-running roxabi-forge-setup does it)"
         )
         status["path_failed"] = True
         return status
     if status["kind"] == "url":
+        try:
+            version = engine_drift.read_plugin_version()
+        except engine_drift.EngineError as exc:
+            status["issues"].append(
+                f"{exc} — release mode clones the tag of the plugin version; "
+                "reinstall the roxabi-forge plugin"
+            )
+            status["path_failed"] = True
+            return status
+        tag = engine_drift.release_tag(version)
+        status["stamp"] = engine_drift.format_stamp(version)
+        if source == CANONICAL_FORGE_REPO:
+            # The supported default: a pinned tag of the public engine. There
+            # is nothing an offline doctor could add, so no warning.
+            return status
         status["warnings"].append(
-            f"forge_repo is a URL ({source}) — not verified offline; "
-            "doctor does not clone, so a wrong remote stays invisible until publish"
+            f"forge_repo is a URL ({source}) — release mode clones tag {tag}; "
+            "not verified offline; doctor does not clone, so a wrong remote "
+            "or a missing tag stays invisible until publish"
         )
         if str(cfg.get("layout") or "").strip() == "tree":
             status["warnings"].append(
@@ -1118,9 +1158,9 @@ def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
         return status
     if not root.is_dir():
         status["issues"].append(
-            f"forge_repo path not found: {source} — publish.sh deploys a "
+            f"forge_repo path not found: {source} — dev mode deploys a "
             "git archive HEAD of this checkout; point forge_repo at a "
-            "committed tree-layout engine"
+            "committed tree-layout engine, or clear it for release mode"
         )
         status["path_failed"] = True
         return status
@@ -1134,8 +1174,9 @@ def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
         status["path_failed"] = True
     elif code != 0 or inside != "true":
         status["issues"].append(
-            f"forge_repo is not a git work tree: {source} — publish.sh "
-            "archives HEAD of a checkout; use a git checkout or an HTTPS URL"
+            f"forge_repo is not a git work tree: {source} — dev mode "
+            "archives HEAD of a checkout; use a git checkout, or clear "
+            "forge_repo for release mode"
         )
         status["path_failed"] = True
     else:
@@ -1160,6 +1201,18 @@ def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
             "point forge_repo at the engine, not the pre-tree repository"
         )
         status["path_failed"] = True
+    if status["path_failed"]:
+        return status
+    # Same resolution publish.sh runs, so doctor refuses exactly what publish
+    # would: a checkout whose version differs from the plugin running it.
+    try:
+        engine = engine_drift.resolve_engine(source)
+    except engine_drift.EngineError as exc:
+        status["issues"].append(str(exc))
+        status["path_failed"] = True
+        return status
+    status["stamp"] = engine["stamp"]
+    status["warnings"].extend(engine_drift.dev_warnings(engine))
     return status
 
 
@@ -1204,7 +1257,8 @@ def doctor(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         if not art.is_dir():
             warnings.append(f"artifacts_dir missing (created at setup): {art}")
 
-    for key in ("public_host", "forge_repo", "site_dir", "registry_dir", "internal_prefix"):
+    # forge_repo is absent on purpose: empty means release mode.
+    for key in ("public_host", "site_dir", "registry_dir", "internal_prefix"):
         if not str(cfg.get(key) or "").strip():
             issues.append(f"{key} empty")
     refused = refused_target_issues(cfg)
@@ -1296,6 +1350,8 @@ def doctor(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         "engine": {
             "source": engine["source"],
             "kind": engine["kind"],
+            "mode": engine["mode"],
+            "stamp": engine["stamp"],
             "head": engine["head"],
             "markers_ok": bool(engine["markers_ok"]),
         },

@@ -118,6 +118,12 @@ new_case() {
   CASE_GUARD_LIVE_UNKNOWN=false
   CASE_LIVE_JSON='{"ok":true,"deployment_id":"dep-guard-1","engine_commit":"eng1"}'
   CASE_ALLOW_UNVERIFIED=false
+  # What engine_drift_gate and materialize_engine arm in a real run: a
+  # release-mode engine, its clone's commit, and a gate that passed.
+  CASE_DRIFT_PASSED=true
+  CASE_ENGINE_COMMIT="0123456789abcdef0123456789abcdef01234567"
+  CASE_ENGINE_STAMP="roxabi-forge/v1.1.0"
+  CASE_ENGINE_DIRTY=false
   mk_engine "$CASE_DIR/work"
 }
 
@@ -154,6 +160,10 @@ run_deploy() {
     SNAPSHOT_GUARD_LIVE_ID="$CASE_GUARD_LIVE_ID"
     SNAPSHOT_GUARD_LIVE_UNKNOWN="$CASE_GUARD_LIVE_UNKNOWN"
     ALLOW_UNVERIFIED="$CASE_ALLOW_UNVERIFIED"
+    ENGINE_DRIFT_PASSED="$CASE_DRIFT_PASSED"
+    ENGINE_COMMIT="$CASE_ENGINE_COMMIT"
+    ENGINE_STAMP="$CASE_ENGINE_STAMP"
+    ENGINE_DIRTY="$CASE_ENGINE_DIRTY"
     export CLOUDFLARE_API_TOKEN="$CASE_TOKEN"
     export CLOUDFLARE_ACCOUNT_ID="$CASE_ACCOUNT"
     # A stale forge.env exports FORGE_PAGES_PROJECT long after startup.
@@ -186,8 +196,17 @@ pass "deploy targets the Pages project from forge.config.json"
 
 must_rec "argv: pages deploy site " "wrangler was not called as 'pages deploy site'"
 must_rec "--branch=main" "deploy did not pin --branch=main (production branch)"
-must_rec "--commit-dirty=true" "deploy did not pass --commit-dirty=true"
-pass "argv: pages deploy site --branch=main --commit-dirty=true"
+pass "argv: pages deploy site --branch=main"
+
+# The version stamp is what the next publish's engine drift gate reads back
+# from production. Without it, production records nothing about its engine.
+must_rec "--commit-hash=0123456789abcdef0123456789abcdef01234567" \
+  "deploy did not stamp the engine commit (--commit-hash)"
+must_rec "--commit-message=roxabi-forge/v1.1.0 " \
+  "deploy did not stamp the engine version (--commit-message=roxabi-forge/v<version>)"
+must_rec "--commit-dirty=false" "a release-mode deploy must pass --commit-dirty=false"
+must_not_rec "--commit-dirty=true" "a release-mode deploy was marked dirty"
+pass "release deploy stamps --commit-hash, --commit-message=roxabi-forge/v1.1.0, --commit-dirty=false"
 
 must_rec "cwd: $CASE_DIR/work/repo" \
   "wrangler ran outside the engine clone — 'site' would resolve to another tree"
@@ -363,5 +382,33 @@ CASE_LIVE_JSON='{"ok":true,"deployment_id":"dep-live-1","engine_commit":"engB"}'
 run_deploy || { dump; fail "an observed, unchanged live deployment must deploy"; }
 must_rec "argv: pages deploy site " "an unchanged observed live id did not reach the upload"
 pass "guard view known and live unchanged: deploy proceeds"
+
+# --- 9. the engine stamp is mandatory -------------------------------------------
+new_case
+CASE_ENGINE_STAMP="roxabi-forge/v1.1.0+dev.abcdef0"
+CASE_ENGINE_DIRTY=true
+run_deploy || { dump; fail "a dev-mode deploy must reach wrangler"; }
+must_rec "--commit-message=roxabi-forge/v1.1.0+dev.abcdef0 " "dev deploy did not stamp +dev.<sha7>"
+must_rec "--commit-dirty=true" "a dev-mode deploy must pass --commit-dirty=true"
+pass "dev deploy stamps roxabi-forge/v<version>+dev.<sha7> and --commit-dirty=true"
+
+new_case
+CASE_DRIFT_PASSED=false
+if run_deploy; then dump; fail "deploy_pages must refuse when the engine drift gate never ran"; fi
+no_wrangler "wrangler ran without the engine drift gate"
+grep -q "engine_drift_gate" "$LOG" || { dump; fail "the internal error must name engine_drift_gate"; }
+pass "no engine drift sentinel: refuses as an internal error, wrangler never runs"
+
+new_case
+CASE_ENGINE_STAMP=""
+if run_deploy; then dump; fail "deploy_pages must refuse without an engine stamp"; fi
+no_wrangler "wrangler ran without an engine version stamp — production would record nothing"
+pass "no engine stamp: refuses, wrangler never runs"
+
+new_case
+CASE_ENGINE_COMMIT=""
+if run_deploy; then dump; fail "deploy_pages must refuse without an engine commit"; fi
+no_wrangler "wrangler ran without an engine commit"
+pass "no engine commit: refuses, wrangler never runs"
 
 echo "all deploy_pages checks passed"

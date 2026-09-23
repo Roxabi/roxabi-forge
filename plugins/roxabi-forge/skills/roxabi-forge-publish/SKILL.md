@@ -116,6 +116,25 @@ later publish `untrusted`. It never builds and never deploys, so it cannot
 touch the live site; it repairs bookkeeping. Propose it (with `--dry-run`
 first) and let the operator run it.
 
+## Engine drift gate
+
+A publish deploys the whole engine, not only the artifacts. The engine is the
+release tagged `roxabi-forge/v<plugin version>` (or `HEAD` of the checkout in
+`forge_repo`, dev mode), and every deploy stamps that version on the Pages
+deployment. Before any Cloudflare mutation — and in `--dry-run` — publish reads
+the production stamp back and refuses to go backwards.
+
+| Message | Override | Agent action |
+|---|---|---|
+| `production runs roxabi-forge L, this plugin is P — update the plugin:` followed by the update commands | `--allow-engine-downgrade` | **Stop.** Quote the commands to the operator: `claude plugin marketplace update roxabi-forge` + `claude plugin update roxabi-forge@roxabi-forge` (Claude Code), or `omp plugin marketplace update roxabi-forge` + `omp plugin upgrade roxabi-forge@roxabi-forge` (OMP); restart the harness, then retry. **Never** pass the override: it replaces the newer engine everyone else relies on. |
+| `production engine version unverified (…)` | `--allow-unverified` (`--allow-engine-downgrade` does not lift it) | **Stop.** The Pages API did not answer; retry later. Same rule as the hub drift guard: never pass the flag yourself. |
+| `engine release roxabi-forge/vP not found on …` | none | **Stop.** This plugin version has no published engine (unreleased build). Tell the operator; publish never falls back to `main`. |
+| `forge_repo checkout … is roxabi-forge V at HEAD, but this plugin is P` | none | **Stop.** Dev-mode checkout and plugin disagree. The operator checks out the matching commit or clears `forge_repo` (release mode) → `/roxabi-forge-setup`. |
+
+Warnings, not refusals: `production engine version unknown (deployed before
+version stamping)` — the publish stamps it; `engine upgrade L → P`;
+`dev build replaces the … release`. Report them; do not stop.
+
 ## Usage
 
 ```bash

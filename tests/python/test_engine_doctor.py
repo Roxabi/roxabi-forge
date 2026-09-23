@@ -58,13 +58,28 @@ def _git(repo: Path, *args: str) -> str:
     return proc.stdout.strip()
 
 
-def _init_engine(root: Path, markers: tuple[str, ...] = ENGINE_TREE_MARKERS, *, commit: bool) -> None:
+# The version publish.sh derives the engine tag from. A dev-mode checkout must
+# carry the same one, or doctor (like publish) refuses it.
+PLUGIN_VERSION = json.loads((LIB.parents[1] / "package.json").read_text(encoding="utf-8"))["version"]
+
+
+def _init_engine(
+    root: Path,
+    markers: tuple[str, ...] = ENGINE_TREE_MARKERS,
+    *,
+    commit: bool,
+    version: str | None = PLUGIN_VERSION,
+) -> None:
     root.mkdir(parents=True, exist_ok=True)
     _git(root, "init", "-q")
     for rel in markers:
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("ok\n", encoding="utf-8")
+    if version is not None:
+        pkg = root / "plugins/roxabi-forge/package.json"
+        pkg.parent.mkdir(parents=True, exist_ok=True)
+        pkg.write_text(json.dumps({"name": "roxabi-forge", "version": version}), encoding="utf-8")
     if commit:
         _git(root, "add", "-A")
         _git(root, "commit", "-q", "-m", "engine")
@@ -129,7 +144,45 @@ class EngineDoctorTests(unittest.TestCase):
         self.assertEqual("path", d["engine"]["kind"])
         self.assertTrue(d["engine"]["markers_ok"])
         self.assertEqual(str(engine), d["engine"]["source"])
+        self.assertEqual("dev", d["engine"]["mode"])
+        self.assertEqual(f"roxabi-forge/v{PLUGIN_VERSION}+dev.{expected[:7]}", d["engine"]["stamp"])
         self.assertNotIn("forge_repo", d["deploy_blockers"])
+
+    def test_dev_checkout_warns_what_will_actually_ship(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            engine = root / "engine"
+            _init_engine(engine, commit=True)
+            (engine / "wip.txt").write_text("not committed\n", encoding="utf-8")
+            head = _git(engine, "rev-parse", "--short=7", "HEAD")
+            d = doctor(self._cfg(root / "hub", forge_repo=str(engine)))
+        self.assertTrue(d["ok"], d["issues"])
+        warns = " | ".join(d["warnings"])
+        self.assertIn(f"deploys HEAD {head}", warns)
+        self.assertIn("uncommitted change(s)", warns)
+        self.assertIn("NOT deployed", warns)
+        self.assertIn("no upstream", warns)
+
+    def test_dev_checkout_on_another_version_is_a_deploy_blocker(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            engine = root / "engine"
+            _init_engine(engine, commit=True, version="0.0.1")
+            d = doctor(self._cfg(root / "hub", forge_repo=str(engine)))
+        self.assertFalse(d["ok"])
+        self.assertTrue(
+            any("0.0.1" in i and PLUGIN_VERSION in i for i in d["issues"]), d["issues"]
+        )
+        self.assertIn("forge_repo", d["deploy_blockers"])
+
+    def test_empty_forge_repo_is_release_mode_on_the_plugin_tag(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            d = doctor(self._cfg(Path(td), forge_repo=""))
+        self.assertTrue(d["ok"], d["issues"])
+        self.assertEqual("https://github.com/Roxabi/roxabi-forge.git", d["engine"]["source"])
+        self.assertEqual("release", d["engine"]["mode"])
+        self.assertEqual(f"roxabi-forge/v{PLUGIN_VERSION}", d["engine"]["stamp"])
+        self.assertFalse(any("forge_repo" in w for w in d["warnings"]), d["warnings"])
 
     def test_tree_layout_url_warns_twice_and_does_not_issue(self) -> None:
         url = "https://example.invalid/roxabi-forge.git"
@@ -140,7 +193,17 @@ class EngineDoctorTests(unittest.TestCase):
         self.assertEqual(2, len(warns), warns)
         self.assertTrue(any("not verified offline" in w for w in warns), warns)
         self.assertTrue(any("overwrite production" in w for w in warns), warns)
-        self.assertEqual({"source": url, "kind": "url", "head": None, "markers_ok": False}, d["engine"])
+        self.assertEqual(
+            {
+                "source": url,
+                "kind": "url",
+                "mode": "release",
+                "stamp": f"roxabi-forge/v{PLUGIN_VERSION}",
+                "head": None,
+                "markers_ok": False,
+            },
+            d["engine"],
+        )
         self.assertNotIn("forge_repo", d["deploy_blockers"])
 
     def test_url_without_tree_layout_has_only_the_offline_warning(self) -> None:
@@ -240,7 +303,10 @@ class EngineDoctorTests(unittest.TestCase):
                 forge_repo="https://example.invalid/engine.git",
                 og_renderer="playwright",
             )
-            with patch("load_config.preflight_mutations", return_value=pf):
+            prod = {"ok": True, "has_deployment": True, "stamp": ""}
+            with patch("load_config.preflight_mutations", return_value=pf), patch(
+                "engine_drift.production_stamp", return_value=prod
+            ):
                 with patch("load_config.browser_run_probe") as spy:
                     with patch("load_config.shutil.which", return_value=None):
                         with patch("load_config._playwright_importable", return_value=False):
@@ -260,9 +326,64 @@ class EngineDoctorTests(unittest.TestCase):
         self.assertFalse(missing["browser_run"]["checked"])
 
 
+class OnlineEngineLineTests(unittest.TestCase):
+    """forge-doctor.sh --online prints `prod <L|unknown> · plugin <P> · <state>`."""
+
+    PF_OK = {"ok": True, "errors": [], "warnings": [], "checks": {}, "require_kv": True}
+
+    def _online(self, prod: dict | None, *, pf: dict | None = None) -> dict:
+        with tempfile.TemporaryDirectory() as td:
+            cfg = EngineDoctorTests()._cfg(Path(td), forge_repo="", og_renderer="off")
+            with patch("load_config.preflight_mutations", return_value=pf or self.PF_OK), patch(
+                "engine_drift.production_stamp", return_value=prod
+            ) as spy:
+                d = doctor_online(cfg)
+        self.stamp_calls = spy.call_count
+        return d
+
+    def test_each_production_state_is_one_line(self) -> None:
+        p = PLUGIN_VERSION
+        major, minor, patch_ = (int(x) for x in p.split("."))
+        newer = f"{major}.{minor}.{patch_ + 1}"
+        older = f"{major}.{minor}.{patch_ - 1}" if patch_ else f"{major - 1}.0.0"
+        cases = (
+            ({"ok": True, "has_deployment": True, "stamp": ""},
+             f"prod unknown · plugin {p} · stamped on next publish"),
+            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{p}"},
+             f"prod {p} · plugin {p} · aligned"),
+            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{newer}"},
+             f"prod {newer} · plugin {p} · update plugin"),
+            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{older}"},
+             f"prod {older} · plugin {p} · upgrade on next publish"),
+            ({"ok": False, "error": "HTTP 403: denied"},
+             f"prod unverified · plugin {p} · HTTP 403: denied"),
+        )
+        for prod, line in cases:
+            with self.subTest(line=line):
+                self.assertEqual(line, self._online(prod)["engine_drift"]["line"])
+
+    def test_newer_production_is_an_advisory_warning_not_an_exit_code(self) -> None:
+        major, minor, patch_ = (int(x) for x in PLUGIN_VERSION.split("."))
+        d = self._online(
+            {"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{major + 1}.0.0"}
+        )
+        self.assertTrue(d["online_ok"])
+        self.assertTrue(
+            any("omp plugin upgrade roxabi-forge@roxabi-forge" in w for w in d["online_warnings"]),
+            d["online_warnings"],
+        )
+
+    def test_failed_preflight_spends_no_pages_call(self) -> None:
+        pf = {**self.PF_OK, "ok": False, "errors": ["token invalid"]}
+        d = self._online({"ok": True, "stamp": ""}, pf=pf)
+        self.assertEqual(0, self.stamp_calls)
+        self.assertIn("prod unverified", d["engine_drift"]["line"])
+
+
 class EngineCheckoutDetectionTests(unittest.TestCase):
-    """detect_engine_checkout is setup's forge_repo default: it must only ever
-    name a checkout doctor would accept, never a guess."""
+    """detect_engine_checkout is setup's dev-mode suggestion and publish's
+    "runs from this checkout" test: it must only ever name a checkout doctor
+    would accept, never a guess."""
 
     def test_committed_engine_is_found_from_the_plugin_lib_dir(self) -> None:
         with tempfile.TemporaryDirectory() as td:

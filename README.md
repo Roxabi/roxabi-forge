@@ -343,6 +343,7 @@ not POST. Instead of deploying it prints the plan:
   account : 1a2b3c4d…
   host    : forge.roxabi.dev
   branch  : main
+  engine  : roxabi-forge/v1.1.0 (0123456789ab)
   dir     : /tmp/tmp.XXXX/repo/site
   files   : 214
   slugs   : 17 under /a/
@@ -352,8 +353,10 @@ not POST. Instead of deploying it prints the plan:
 
 The online preflight still runs, so a dry run is a **gate, not a preview**: it
 exits non-zero on the same missing token, unreachable account or absent Pages
-project that would stop a real deploy. The real hub is never written, no KV
-entry is touched, and no shortlink is minted.
+project that would stop a real deploy — and on a production engine newer than
+this plugin (the engine drift gate, see
+[docs/artifacts-config.md](docs/artifacts-config.md#engine-drift-gate)). The
+real hub is never written, no KV entry is touched, and no shortlink is minted.
 
 Team URL: `https://forge.roxabi.dev/a/<slug>/`  
 Share URL: `https://forge.roxabi.dev/s/<slug>/<key>/`

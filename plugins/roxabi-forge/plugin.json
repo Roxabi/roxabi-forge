@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "roxabi-forge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cloudflare Pages upload for team artifact hosts — roxabi-forge-publish and roxabi-forge-setup.",
   "author": {
     "name": "Roxabi",

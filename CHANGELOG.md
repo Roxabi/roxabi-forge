@@ -7,6 +7,20 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [1.1.0] - 2026-09-23
+
+### Added
+
+- Release-pinned engine: `publish.sh` deploys the engine tagged `roxabi-forge/v<plugin version>`, the same release as the scripts running it. A missing tag stops the publish with a clear message; there is no fallback to `main`.
+- Deploy version stamp: every deploy records its engine on the Pages deployment (`--commit-hash` = engine commit, `--commit-message` = `roxabi-forge/v<version>`, dev builds `roxabi-forge/v<version>+dev.<sha7>` with `--commit-dirty=true`).
+- Engine drift gate: before any Cloudflare mutation, and in `--dry-run`, `publish.sh` reads the production engine version and refuses to deploy an older one, printing the plugin update commands. `--allow-engine-downgrade` deploys the older engine on purpose. An unreadable production version refuses unless `--allow-unverified`; an unstamped production (deployed before 1.1.0) is a warning, and the publish stamps it.
+- `forge-doctor.sh --online` prints `engine   : prod <L|unknown> · plugin <P> · <state>`.
+
+### Changed
+
+- `forge_repo` is optional: empty means the public engine `https://github.com/Roxabi/roxabi-forge.git` in release mode. Setup and `forge-provision.sh` no longer default it to a detected checkout.
+- A local checkout in `forge_repo` is an explicit dev mode: `git archive HEAD`, stamped `<version>+dev.<sha7>`, refused when its version differs from the plugin's unless `publish.sh` runs from that checkout. The doctor warns which commit will deploy, whether it is pushed, and that uncommitted changes are not deployed.
+
 ## [1.0.0] - 2026-09-23
 
 First release of the tree-layout engine at `Roxabi/roxabi-forge`. It replaces roxabi-forge 0.x (plugin `forge`), whose repository is now `Roxabi/roxabi-forge-legacy`, archived. Uninstall `forge@roxabi-forge`, update the `roxabi-forge` marketplace, then install `roxabi-forge@roxabi-forge`.

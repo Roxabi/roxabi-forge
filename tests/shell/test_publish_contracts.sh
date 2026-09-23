@@ -248,12 +248,14 @@ printf 'generated\n' > "$engine/site/a/index.html"
 printf 'name = "forge"\n' > "$engine/wrangler.toml"
 printf 'export default {}\n' > "$engine/functions/hello.js"
 printf '#!/bin/sh\n' > "$engine/plugins/roxabi-forge/scripts/x.sh"
+# Dev mode refuses a checkout whose version differs from the running plugin's.
+cp "$ROOT/plugins/roxabi-forge/package.json" "$engine/plugins/roxabi-forge/package.json"
 git -C "$engine" init -q
 git -C "$engine" config user.email "forge-test@example.com"
 git -C "$engine" config user.name "Forge Test"
 git -C "$engine" add \
   site/404.html wrangler.toml functions/hello.js \
-  plugins/roxabi-forge/scripts/x.sh site/a/index.html
+  plugins/roxabi-forge/scripts/x.sh plugins/roxabi-forge/package.json site/a/index.html
 git -C "$engine" -c commit.gpgsign=false commit -q -m "engine"
 printf 'dirty\n' > "$engine/site/dirty.html"
 

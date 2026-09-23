@@ -15,7 +15,7 @@ Git-connected payload branches are removed. Transport = Direct Upload.
 | Layer | Location | Git? |
 |---|---|---|
 | **SSOT HTML + meta** | `$hub_root/$artifacts_dir/<slug>/` | **no** (shared vault) |
-| **Engine** | `plugins/`, `functions/`, `wrangler.toml`, skeleton `site/` | **main** |
+| **Engine** | `plugins/`, `functions/`, `wrangler.toml`, skeleton `site/` | **yes** — deployed from the tag `roxabi-forge/v<plugin version>` (dev mode: a checkout's `HEAD`) |
 | **Live** | Pages project | **no** — `wrangler pages deploy` |
 
 ```
@@ -60,7 +60,7 @@ attempt — the loser simply re-runs.
 ## Machine config
 
 ```
-~/.config/roxabi/forge/forge.config.json     # hub_root, pages_project, public_host, vault_markers, refused_targets
+~/.config/roxabi/forge/forge.config.json     # hub_root, pages_project, public_host, forge_repo (optional), vault_markers, refused_targets
 ~/.config/roxabi/forge/forge.env             # credentials + CF_ACCESS_* + SHLINK_API_URL (chmod 600)
 .env.example                          # schema reference (committed) — never cp'd onto forge.env
 plugins/.../forge.config.example.json # defaults + code fallback
@@ -95,6 +95,47 @@ artifact works, deploying does not. It is now exit `2` with an explicit blocker
 line, instead of the silent `0` that let a token-less laptop look healthy.
 `publish.sh` hard-stops on exit `1` and names `/roxabi-forge-setup`; it no longer falls
 back to the example config.
+
+### Engine source — `forge_repo`
+
+A deploy is the hub snapshot built by **this plugin's scripts** plus an engine
+(`functions/`, `site/`, `wrangler.toml`). The two must be the same release, so
+`forge_repo` only chooses where that release comes from:
+
+| `forge_repo` | Mode | Engine deployed | Pages stamp (`--commit-message`) |
+|---|---|---|---|
+| empty (default) | release | tag `roxabi-forge/v<P>` of `https://github.com/Roxabi/roxabi-forge.git`, P = the plugin's `package.json` version | `roxabi-forge/v<P>` |
+| a URL | release | tag `roxabi-forge/v<P>` of that remote | `roxabi-forge/v<P>` |
+| a local checkout path | dev (explicit) | `git archive HEAD` — uncommitted changes are not deployed | `roxabi-forge/v<V>+dev.<sha7>`, `--commit-dirty=true` |
+
+- A missing tag stops the publish (`engine release … not found`); it never
+  falls back to `main`.
+- Dev mode refuses when the checkout's version `V` (its
+  `plugins/roxabi-forge/package.json` at `HEAD`) differs from `P`, unless
+  `publish.sh` runs from that very checkout. Doctor warns which commit will
+  deploy, whether `HEAD` is on its upstream, and how many uncommitted changes
+  stay behind.
+- Setup and `forge-provision.sh` never pick a checkout on the operator's
+  behalf; `load_config.py --print-engine-root` only *suggests* one.
+
+### Engine drift gate
+
+Every deploy passes `--commit-hash=<engine commit>` and
+`--commit-message=<stamp>` to `wrangler pages deploy`. Before any Cloudflare
+mutation — and in `--dry-run` — `publish.sh` reads the stamp of the project's
+`canonical_deployment` (Pages API) and compares it with the stamp it would
+write:
+
+| Production `L` vs plugin `P` | Result |
+|---|---|
+| `L > P` | **refuses**: `production runs roxabi-forge L, this plugin is P — update the plugin`, followed by the Claude Code / OMP update commands. `--allow-engine-downgrade` deploys anyway. |
+| `L < P` | `engine upgrade L → P`, proceeds |
+| `L = P` | proceeds; a release replacing a dev build is info, a dev build replacing the release is a warning |
+| no / unparseable stamp | warning `production engine version unknown`, proceeds — this publish stamps it |
+| Pages API unreachable / error | **refuses**, unless `--allow-unverified` (the flag that already means "the live state cannot be read"). `--allow-engine-downgrade` does not lift it. Under `--dry-run` it is a `would refuse` warning. |
+
+`forge-doctor.sh --online` reports the same comparison as one line:
+`engine   : prod <L|unknown> · plugin <P> · <state>`.
 
 ### `hub_root` validation — `vault_markers`
 

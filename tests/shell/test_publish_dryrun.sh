@@ -84,6 +84,10 @@ cp -a "$ROOT/plugins/roxabi-forge/scripts" "$TD/engine/plugins/roxabi-forge/scri
 cp "$ROOT/plugins/roxabi-forge/forge.config.example.json" \
   "$TD/engine/plugins/roxabi-forge/forge.config.example.json" \
   || fail "engine fixture: cannot copy forge.config.example.json"
+# Dev mode (forge_repo is a checkout) refuses an engine whose version differs
+# from the running plugin's, so the fixture carries the plugin's own.
+cp "$ROOT/plugins/roxabi-forge/package.json" "$TD/engine/plugins/roxabi-forge/package.json" \
+  || fail "engine fixture: cannot copy package.json"
 OG_RENDER_COPY="$TD/engine/plugins/roxabi-forge/scripts/lib/og_render.py"
 [ -f "$OG_RENDER_COPY" ] || fail "engine fixture: og_render.py missing"
 mv "$OG_RENDER_COPY" "$OG_RENDER_COPY.real"
@@ -187,11 +191,21 @@ exit 0
 EOS
 chmod +x "$TD/bin/curl"
 
+# The engine drift gate's one network read. The stub answers from a file so a
+# case can put a newer engine in production, and logs the call so the suite can
+# prove a dry run runs the gate. Default: production deployed before stamping.
+printf '{"ok": true, "has_deployment": true, "stamp": ""}\n' > "$TD/prod-stamp.json"
+: > "$TD/gate-calls.log"
 cat > "$TD/bin/python3" <<EOS
 #!/usr/bin/env bash
 # Offline stand-in for publish.sh's online python boundaries only.
 for a in "\$@"; do
   case "\$a" in
+    prod-stamp)
+      printf 'prod-stamp\n' >> "$TD/gate-calls.log"
+      cat "$TD/prod-stamp.json"
+      exit 0
+      ;;
     *preflight_mutations*)
       echo '{"ok": true, "errors": [], "warnings": [], "checks": {"token": "stub"}, "require_kv": false}'
       exit 0
@@ -394,6 +408,13 @@ grep -q 'DRYRUN-BODY-MARKER' "$SANDBOX_ART/dry-deck/index.html" \
   || fail "the deploy tree was never built for dry-deck"
 pass "the whole hub write chain ran, into the sandbox"
 
+# 2b. the engine drift gate ran — read-only, before anything was built
+grep -q '^prod-stamp$' "$TD/gate-calls.log" \
+  || fail "dry run never read the production engine stamp — the engine drift gate did not run"
+grep -q 'production engine version unknown' "$out" \
+  || fail "dry run did not report the unstamped production engine"
+pass "dry run runs the engine drift gate (unstamped production: warning, proceeds)"
+
 # 3. no wrangler, no shlink, no state-changing curl
 [ ! -s "$REC" ] || fail "a mutating CLI ran during the dry run: $(tr '\n' ';' < "$REC")"
 pass "dry-run publish invokes no wrangler / shlink / mutating curl"
@@ -480,6 +501,50 @@ refute 'dry run OK' "$gate" "dry run printed its OK line despite a failed precon
 [ ! -s "$REC" ] || fail "a mutating CLI ran on the failed-precondition path: $(tr '\n' ';' < "$REC")"
 assert_og_not_rendered "empty-token gate"
 pass "empty CLOUDFLARE_API_TOKEN makes the dry run exit non-zero"
+
+# ================================================= engine drift gate refuses
+# Production already runs a newer engine than this plugin: a dry run is a gate,
+# so it refuses exactly like the real publish, with the update commands, and
+# before anything is built or written.
+reset_fixture_env
+printf '{"ok": true, "has_deployment": true, "stamp": "roxabi-forge/v99.0.0"}\n' \
+  > "$TD/prod-stamp.json"
+newer_out="$TD/newer.out"
+DUMP_ON_EXIT=""
+if (
+  trap - EXIT
+  cmd_publish newer-deck "$TD/src/deck.html"
+) > "$newer_out" 2>&1; then
+  cat "$newer_out" >&2
+  fail "dry run proceeded although production runs a newer engine"
+fi
+grep -q 'production runs roxabi-forge 99.0.0, this plugin is' "$newer_out" \
+  || { cat "$newer_out" >&2; fail "the refusal must name both engine versions"; }
+grep -q 'claude plugin update roxabi-forge@roxabi-forge' "$newer_out" \
+  || fail "the refusal must print the Claude Code update command"
+grep -q 'omp plugin upgrade roxabi-forge@roxabi-forge' "$newer_out" \
+  || fail "the refusal must print the OMP update command"
+refute 'hub sandboxed' "$newer_out" "the engine drift gate ran after the build started"
+[ ! -s "$REC" ] || fail "a mutating CLI ran on the engine-drift refusal: $(tr '\n' ';' < "$REC")"
+assert_hub_untouched "engine drift refusal"
+pass "dry run refuses a production engine newer than the plugin, with the update commands"
+
+reset_fixture_env
+downgrade_out="$TD/downgrade.out"
+DUMP_ON_EXIT="$downgrade_out"
+if ! (
+  trap - EXIT
+  ALLOW_ENGINE_DOWNGRADE=true
+  cmd_publish downgrade-deck "$TD/src/deck.html"
+) > "$downgrade_out" 2>&1; then
+  cat "$downgrade_out" >&2
+  fail "--allow-engine-downgrade must let the dry run through"
+fi
+grep -q 'allow-engine-downgrade was passed' "$downgrade_out" \
+  || fail "the override must still warn about the downgrade"
+[ ! -s "$REC" ] || fail "the downgrade dry run mutated something: $(tr '\n' ';' < "$REC")"
+pass "--allow-engine-downgrade lets the dry run through with a warning"
+printf '{"ok": true, "has_deployment": true, "stamp": ""}\n' > "$TD/prod-stamp.json"
 
 # ================================================================ --share: no KV
 reset_fixture_env

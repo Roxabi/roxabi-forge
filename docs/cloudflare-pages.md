@@ -14,7 +14,7 @@ and writes `"vault_markers": []` — see
 | Pages project | `roxabi-forge` (your own forge: whatever `pages_project` says — the wizard defaults to `forge`) |
 | Mode | **Direct Upload** (`wrangler pages deploy`) |
 | Custom domain | `forge.roxabi.dev` → CNAME to the project `pages.dev` (proxied) |
-| Production | wrangler `--branch=main` (label only — no git-connected deploy) |
+| Production | wrangler `--branch=main` (label only — no git-connected deploy), `--commit-message=roxabi-forge/v<version>` + `--commit-hash=<engine commit>`: the engine version stamp the next publish's drift gate reads back |
 
 ## Why not Git Integration
 
@@ -23,7 +23,7 @@ The repo is meant to be **public** (engine / plugin). Team HTML stays in the **h
 ```
 hub / artifacts/<slug>/           SSOT — not git
         ↓ publish.sh (OG local + build)
-temp clone engine (functions + skeleton)
+temp clone engine, tag roxabi-forge/v<plugin version> (functions + skeleton)
         ↓ wrangler pages deploy
 Pages project                     live
 ```
@@ -36,7 +36,7 @@ Deploying with the wrong Cloudflare account breaks production — pin `CLOUDFLAR
 
 | File | Role |
 |---|---|
-| `~/.config/roxabi/forge/forge.config.json` | `hub_root`, `pages_project`, `public_host`, `vault_markers` — SSOT for the project name and host |
+| `~/.config/roxabi/forge/forge.config.json` | `hub_root`, `pages_project`, `public_host`, `vault_markers`, optional `forge_repo` (empty = release engine) — SSOT for the project name and host |
 | `~/.config/roxabi/forge/forge.env` | **credentials only**: token + account + KV id + Access vars · chmod 600 |
 | [`.env.example`](../.env.example) | schema reference (placeholders, safe to commit) — **never copy it over a real `forge.env`** |
 

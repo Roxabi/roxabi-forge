@@ -423,45 +423,53 @@ class ForgeRepoTests(unittest.TestCase):
     def test_example_forge_repo_names_no_engine(self) -> None:
         # Setup merges the example under the local config, so a value here
         # would be carried into every fresh machine as if the operator chose
-        # it and would skip the detected checkout.
+        # it. Empty is release mode: the tag matching the plugin version.
         data = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
         self.assertEqual(data["forge_repo"], "")
 
-    def test_empty_or_legacy_becomes_detected_checkout(self) -> None:
+    def test_empty_or_legacy_becomes_release_mode_even_inside_a_checkout(self) -> None:
+        # Dev mode is explicit: a checkout this plugin runs from must never be
+        # written on the operator's behalf, or the machine would silently
+        # deploy whatever HEAD it sits on.
         with patch("load_config.detect_engine_checkout", return_value="/srv/engine"):
             for value in ("", "  ", *self.LEGACY):
-                with self.subTest(value=value):
-                    self.assertEqual(pick_forge_repo(value), "/srv/engine")
-
-    def test_nothing_detected_falls_back_to_the_canonical_url(self) -> None:
-        # A marketplace install caches only the plugin: no checkout to detect.
-        with patch("load_config.detect_engine_checkout", return_value=None):
-            for value in ("", *self.LEGACY):
                 with self.subTest(value=value):
                     self.assertEqual(pick_forge_repo(value), self.CANONICAL)
 
     def test_canonical_ssh_is_written_as_https(self) -> None:
-        with patch("load_config.detect_engine_checkout", return_value="/srv/engine"):
-            self.assertEqual(
-                pick_forge_repo("git@github.com:Roxabi/roxabi-forge.git"), self.CANONICAL
-            )
-            self.assertEqual(pick_forge_repo(self.CANONICAL), self.CANONICAL)
+        self.assertEqual(
+            pick_forge_repo("git@github.com:Roxabi/roxabi-forge.git"), self.CANONICAL
+        )
+        self.assertEqual(pick_forge_repo(self.CANONICAL), self.CANONICAL)
 
-    def test_legacy_is_never_returned_unpatched(self) -> None:
-        # Real detection on whatever checkout runs the suite.
-        for value in ("", *self.LEGACY):
+    def test_explicit_value_is_kept(self) -> None:
+        for value in (
+            "/home/op/engine",
+            "git@github.com:acme/forge.git",
+            "https://github.com/acme/forge.git",
+        ):
             with self.subTest(value=value):
-                self.assertNotIn(pick_forge_repo(value), self.LEGACY)
+                self.assertEqual(pick_forge_repo(value), value)
 
-    def test_explicit_value_wins_over_detection(self) -> None:
-        with patch("load_config.detect_engine_checkout", return_value="/srv/engine"):
-            for value in (
-                "/home/op/engine",
-                "git@github.com:acme/forge.git",
-                "https://github.com/acme/forge.git",
-            ):
-                with self.subTest(value=value):
-                    self.assertEqual(pick_forge_repo(value), value)
+    def test_empty_forge_repo_is_not_a_doctor_issue(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            d = doctor(
+                {
+                    "version": 1,
+                    "hub_root": td,
+                    "vault_markers": [],
+                    "artifacts_dir": "artifacts",
+                    "public_host": "forge.example.com",
+                    "forge_repo": "",
+                    "site_dir": "site",
+                    "registry_dir": "registry",
+                    "internal_prefix": "a",
+                }
+            )
+        self.assertFalse(any("forge_repo" in i for i in d["issues"]), d["issues"])
+        self.assertNotIn("forge_repo", d["deploy_blockers"])
+        self.assertEqual("release", d["engine"]["mode"])
+        self.assertEqual(self.CANONICAL, d["engine"]["source"])
 
 
 class InferHubLayoutTests(unittest.TestCase):
@@ -696,7 +704,12 @@ class DoctorOnlineAdvisoryTests(unittest.TestCase):
             "checks": {"token": "user"},
             "require_kv": True,
         }
-        with patch("load_config.preflight_mutations", return_value=pf):
+        # The engine line reads the Pages API too; the fake token above would
+        # otherwise make a real request.
+        prod = {"ok": True, "has_deployment": True, "stamp": ""}
+        with patch("load_config.preflight_mutations", return_value=pf), patch(
+            "engine_drift.production_stamp", return_value=prod
+        ):
             with patch("load_config.browser_run_probe", return_value=probe) as spy:
                 payload = doctor_online(self.cfg)
         self.probe_calls = spy.call_count

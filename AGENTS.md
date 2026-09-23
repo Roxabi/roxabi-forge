@@ -232,6 +232,30 @@ and the share bar MUST NOT be written back into the hub. `share_bar_script()`
 is the single resolution point (clone first) — two callers resolving it
 differently flip the hash of the whole catalogue.
 
+## Engine drift gate
+
+A deploy replaces the whole engine, so scripts and engine must be one release:
+`forge_repo` empty (or a URL) clones the tag `roxabi-forge/v<plugin version>`
+(no fallback to `main`); a local checkout is explicit dev mode (`git archive
+HEAD`, refused when its version differs from the plugin's unless `publish.sh`
+runs from it). Every deploy stamps `--commit-message=roxabi-forge/v<version>`
+(`+dev.<sha7>` in dev mode) and `--commit-hash=<engine commit>`;
+`deploy_pages` refuses to reach `wrangler` without the stamp or without
+`ENGINE_DRIFT_PASSED`.
+
+`engine_drift_gate` runs in `preflight_before_live` (before any mutation, in
+`--dry-run` too) and reads the stamp of the production `canonical_deployment`:
+
+|Case|Behaviour|
+|---|---|
+|Production newer than the plugin|**refuses** with the update commands — unless `--allow-engine-downgrade`; fatal in `--dry-run` too|
+|Pages API unreachable / error|**refuses** — unless `--allow-unverified` (`--allow-engine-downgrade` does not lift it); `--dry-run` warns `would refuse`|
+|No / unparseable stamp (pre-1.1.0 production)|warns `production engine version unknown`, proceeds, the deploy stamps it|
+|Older production / same version|proceeds (`engine upgrade`, `aligned`, release-replaces-dev info, dev-replaces-release warning)|
+
+Policy and parsing live in `scripts/lib/engine_drift.py` (unit-tested); the
+shell only orchestrates. Agents never pass either override themselves.
+
 ## Structure
 
 ```

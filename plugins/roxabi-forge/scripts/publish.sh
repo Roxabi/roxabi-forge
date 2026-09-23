@@ -8,7 +8,8 @@
 #
 # Architecture (roxabi-forge shape):
 #   SSOT     = $hub/$artifacts_dir/<slug>/  (shared hub, outside git)
-#   engine   = git main (plugins, functions, site skeleton) — never the HTML
+#   engine   = release tag roxabi-forge/v<plugin version> (default), or git
+#              archive HEAD of a local checkout (dev mode) — never the HTML
 #   deploy   = wrangler pages deploy site  (token ~/.config/roxabi/forge/forge.env)
 #
 set -euo pipefail
@@ -61,6 +62,25 @@ PUBLISH_LOCK_DIR=""
 EXPECTED_REMOVALS=""
 ALLOW_REMOVALS=false
 ALLOW_UNVERIFIED=false
+ALLOW_ENGINE_DOWNGRADE=false
+# Engine identity, resolved once by resolve_engine_source before the drift gate
+# and the clone, so the version the gate compares is the version deployed.
+# ENGINE_COMMIT is only known after materialize_engine (a release clone's sha).
+ENGINE_RESOLVED=false
+ENGINE_ERROR=""
+ENGINE_MODE=""
+ENGINE_SOURCE=""
+ENGINE_VERSION=""
+ENGINE_REF=""
+ENGINE_SHA=""
+ENGINE_STAMP=""
+ENGINE_DIRTY=""
+ENGINE_PUSHED=""
+ENGINE_UPSTREAM=""
+ENGINE_UNCOMMITTED=""
+ENGINE_COMMIT=""
+# Armed by engine_drift_gate on a proceed verdict; deploy_pages refuses without it.
+ENGINE_DRIFT_PASSED=false
 SNAPSHOT_KV_KEY="snapshot:live"
 # The guard runs in the preflight; the upload happens minutes later (engine
 # clone, OG rendering). deploy_pages re-asserts all three of these immediately
@@ -160,6 +180,13 @@ Usage:
               hub can delete a teammate's artifact. Also required on top
               of --allow-removals when the record no longer describes the
               live site: an unanchored record cannot list every removal.
+              Also lifts the engine drift gate's refusal when the Pages API
+              cannot tell which engine production runs.
+
+  --allow-engine-downgrade : deploy even when production runs a newer
+              roxabi-forge engine than this plugin. Without it, that case
+              refuses and prints the plugin update commands — an old plugin
+              would otherwise replace the newer engine everyone else relies on.
 
   --reanchor-snapshot : re-point the KV snapshot record at the deployment the
               live site is serving, keeping its slug set verbatim. The
@@ -171,7 +198,10 @@ Usage:
 
   SSOT   : \$ARTIFACTS_ROOT/<slug>/  (hub, forge.config)
   Deploy : wrangler pages deploy (token ~/.config/roxabi/forge/forge.env)
-  Engine : main (plugins/functions — no HTML, no payload branch)
+  Engine : tag roxabi-forge/v<plugin version> of forge_repo (empty = the
+           public engine), or git archive HEAD when forge_repo is a local
+           checkout (dev mode, stamped <version>+dev.<sha7>). Every deploy
+           stamps that version on the Pages deployment.
 
   Team    : https://${PUBLIC_HOST}/${INTERNAL_PREFIX}/<slug>/
   Share   : https://${PUBLIC_HOST}/s/<slug>/<key>/
@@ -192,22 +222,66 @@ validate_slug() {
 
 whoami_id() { git config user.email 2>/dev/null || echo "${USER:-unknown}@$(hostname)"; }
 
+# Which engine this publish deploys, from forge_repo alone (no clone, no
+# network). engine_drift.py owns the rules; this only loads its verdict:
+#   release (empty / URL) : tag roxabi-forge/v<this plugin's version>
+#   dev (local checkout)  : git archive HEAD, stamped <version>+dev.<sha7>,
+#                           refused when its version differs from the plugin's
+#                           (scripts and engine would be two releases) unless
+#                           this publish.sh runs from that very checkout.
+resolve_engine_source() {
+  $ENGINE_RESOLVED && return 0
+  local assignments
+  assignments=$(PYTHONPATH="$LIB_DIR${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 "$LIB_DIR/engine_drift.py" resolve --forge-repo "$FORGE_REPO") \
+    || die "engine resolution failed to run — check $LIB_DIR/engine_drift.py, then forge-doctor.sh"
+  # shlex-quoted KEY='value' lines from engine_drift.py; nothing else is eval'd.
+  eval "$assignments"
+  [ -z "$ENGINE_ERROR" ] || die "$ENGINE_ERROR"
+  if [ -z "$ENGINE_MODE" ] || [ -z "$ENGINE_STAMP" ]; then
+    die "engine resolution returned no engine — check $LIB_DIR/engine_drift.py"
+  fi
+  ENGINE_RESOLVED=true
+}
+
 materialize_engine() {
   [ -n "${WORK:-}" ] || die "materialize_engine: WORK unset"
-  if [ -d "$FORGE_REPO" ] && [ -f "$FORGE_REPO/site/404.html" ]; then
-    [ "$(GIT -C "$FORGE_REPO" rev-parse --is-inside-work-tree 2>/dev/null)" = true ] \
-      || die "FORGE_REPO is not a git work tree — use the HTTPS URL or a git checkout"
+  resolve_engine_source
+  if [ "$ENGINE_MODE" = dev ]; then
     mkdir -p "$WORK/repo"
     GIT -C "$FORGE_REPO" archive HEAD | tar -x -C "$WORK/repo" \
       || die "git archive HEAD failed for $FORGE_REPO"
     rm -rf "$WORK/repo/site/a" "$WORK/repo/registry"
-    info "engine local $FORGE_REPO (HEAD)"
+    ENGINE_COMMIT="$ENGINE_SHA"
+    info "engine dev checkout $FORGE_REPO @ ${ENGINE_SHA:0:7} → ${ENGINE_STAMP} (HEAD only: uncommitted changes are not deployed)"
+    if [ "${ENGINE_UNCOMMITTED:-0}" != 0 ]; then
+      warn "engine checkout has ${ENGINE_UNCOMMITTED} uncommitted change(s) — NOT deployed"
+    fi
+    case "$ENGINE_PUSHED" in
+      no) warn "engine HEAD ${ENGINE_SHA:0:7} is not on its upstream ${ENGINE_UPSTREAM} — production will run a commit nobody else can check out" ;;
+      unknown) warn "engine HEAD ${ENGINE_SHA:0:7} has no upstream — cannot tell whether it is pushed" ;;
+    esac
   else
-    info "clone engine $FORGE_REPO (main)"
-    GIT clone --depth 1 --branch main --quiet "$FORGE_REPO" "$WORK/repo" \
-      || die "clone failed: $FORGE_REPO (branch main) — check GitHub access, or set forge_repo to a local checkout in ~/.config/roxabi/forge/forge.config.json"
+    # Probe the tag first: a clone of a missing ref fails exactly like an
+    # unreachable remote, and the two need opposite fixes. There is no
+    # fallback to main on purpose — main is not the engine these scripts
+    # were released with.
+    local probe_rc=0
+    GIT ls-remote --exit-code --tags "$ENGINE_SOURCE" "refs/tags/$ENGINE_REF" >/dev/null 2>&1 \
+      || probe_rc=$?
+    case "$probe_rc" in
+      0) ;;
+      2) die "engine release $ENGINE_REF not found on $ENGINE_SOURCE — this plugin ($ENGINE_VERSION) has no published engine; publish never falls back to main. Install a released plugin version, or set forge_repo to an engine checkout (dev mode)" ;;
+      *) die "cannot reach $ENGINE_SOURCE (git ls-remote exit $probe_rc) — check network / GitHub access, then retry" ;;
+    esac
+    info "clone engine $ENGINE_SOURCE ($ENGINE_REF)"
+    # A tag checkout is a detached HEAD by design; git's advice is noise here.
+    GIT -c advice.detachedHead=false clone --depth 1 --branch "$ENGINE_REF" --quiet "$ENGINE_SOURCE" "$WORK/repo" \
+      || die "clone failed: $ENGINE_SOURCE (tag $ENGINE_REF) — check GitHub access, then retry"
+    ENGINE_COMMIT=$(GIT -C "$WORK/repo" rev-parse HEAD) \
+      || die "cannot read the commit of the cloned engine $ENGINE_REF"
   fi
-  [ -d "$WORK/repo/site" ] || die "engine checkout has no site/ skeleton — $FORGE_REPO is not a roxabi-forge engine"
+  [ -d "$WORK/repo/site" ] || die "engine checkout has no site/ skeleton — $ENGINE_SOURCE is not a roxabi-forge engine"
   [ -f "$WORK/repo/site/404.html" ] || die "site/404.html missing"
 }
 
@@ -390,7 +464,49 @@ if blockers:
 preflight_before_live() {
   source_cf_credentials
   preflight_cf_mutations
+  engine_drift_gate
   snapshot_guard
+}
+
+# Engine drift gate.
+#
+# Every deploy replaces the WHOLE engine (functions/, site/, wrangler.toml),
+# not just the artifacts. A teammate whose plugin is behind would therefore
+# roll production back to an older engine without anyone noticing: nothing
+# recorded which engine was live. Every deploy now stamps its version as the
+# Pages commit message, and this gate reads that stamp back from the
+# production (canonical) deployment and refuses to go backwards.
+#
+# Preflight, like snapshot_guard: cmd_remove / cmd_unshare mutate KV long
+# before deploy_pages. Read-only, so it runs in --dry-run too. The policy
+# (which flag lifts which refusal) lives in engine_drift.py's gate().
+production_engine_json() {
+  PYTHONPATH="$LIB_DIR${PYTHONPATH:+:$PYTHONPATH}" python3 "$LIB_DIR/engine_drift.py" prod-stamp
+}
+
+engine_drift_gate() {
+  ENGINE_DRIFT_PASSED=false
+  resolve_engine_source
+  local prod="" verdict="" flags=()
+  # An empty or unparseable answer is "unverified" in gate(): fail closed.
+  prod=$(production_engine_json 2>/dev/null) || prod=""
+  $ALLOW_ENGINE_DOWNGRADE && flags+=(--allow-downgrade)
+  $ALLOW_UNVERIFIED && flags+=(--allow-unverified)
+  $DRY_RUN && flags+=(--dry-run)
+  local DRIFT_ACTION="" DRIFT_LEVEL="" DRIFT_VERDICT="" DRIFT_MESSAGE=""
+  verdict=$(printf '%s' "$prod" | PYTHONPATH="$LIB_DIR${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 "$LIB_DIR/engine_drift.py" gate --stamp "$ENGINE_STAMP" ${flags[@]+"${flags[@]}"}) \
+    || die "engine drift gate failed to run — check $LIB_DIR/engine_drift.py"
+  # shlex-quoted DRIFT_* lines from engine_drift.py; nothing else is eval'd.
+  eval "$verdict"
+  case "$DRIFT_ACTION:$DRIFT_LEVEL" in
+    proceed:ok)   ok "$DRIFT_MESSAGE" ;;
+    proceed:info) info "$DRIFT_MESSAGE" ;;
+    proceed:warn) warn "$DRIFT_MESSAGE" ;;
+    refuse:*)     die "$DRIFT_MESSAGE" ;;
+    *)            die "engine drift gate returned no verdict (${DRIFT_VERDICT:-none}) — refusing" ;;
+  esac
+  ENGINE_DRIFT_PASSED=true
 }
 
 # Hub drift guard.
@@ -751,6 +867,7 @@ print_deploy_plan() {
   echo "  account : ${acct:0:8}…"
   echo "  host    : ${PUBLIC_HOST}"
   echo "  branch  : main"
+  echo "  engine  : ${ENGINE_STAMP:-unresolved} (${ENGINE_COMMIT:0:12})"
   echo "  dir     : ${WORK}/repo/site"
   echo "  files   : ${files}"
   echo "  slugs   : ${slugs} under /${INTERNAL_PREFIX}/"
@@ -824,11 +941,21 @@ deploy_pages() {
       die "hub drift — the live deployment changed while this publish was building (the guard checked '${SNAPSHOT_GUARD_LIVE_ID:-<none>}', live is now '${LIVE_RESOLVED_ID:-<none>}'): someone else deployed, so this snapshot no longer describes the live site and would delete their artifacts. Refresh this machine's copy of the shared artifacts directory, then re-run"
     fi
   fi
+  # The engine stamp is what the next publish's drift gate reads back from
+  # production. A deploy without it would erase the version record, so both
+  # the gate verdict and the stamp are required, never a convention.
+  [ "${ENGINE_DRIFT_PASSED:-false}" = true ] || die \
+    "internal error — deploy reached wrangler without engine_drift_gate: every deploy_pages caller must run preflight_before_live first"
+  if [ -z "${ENGINE_COMMIT:-}" ] || [ -z "${ENGINE_STAMP:-}" ]; then
+    die "internal error — deploy reached wrangler without an engine stamp: materialize_engine must run before deploy_pages"
+  fi
   # shellcheck disable=SC2086
   $wr_cmd pages deploy site \
     --project-name="$project" \
     --branch=main \
-    --commit-dirty=true \
+    --commit-hash="$ENGINE_COMMIT" \
+    --commit-message="$ENGINE_STAMP" \
+    --commit-dirty="${ENGINE_DIRTY:-true}" \
     || die "wrangler pages deploy failed"
   ok "live https://${PUBLIC_HOST}/"
   snapshot_record
@@ -1099,7 +1226,7 @@ inject_og_for_slug() {
       # argparse rejects an unknown flag with 2: this engine really predates
       # --strip. Every other code is a different fault and must not send the
       # operator to update a clone that is already current.
-      warn "engine clone predates inject-share-bar --strip — hub write-back skipped for $slug (update main, or point forge_repo at a current checkout)"
+      warn "engine clone predates inject-share-bar --strip — hub write-back skipped for $slug (update the plugin, or point forge_repo at a current checkout)"
     else
       warn "share-bar strip failed for $slug (exit $strip_rc): ${strip_out##*$'\n'}"
     fi
@@ -1910,7 +2037,8 @@ if [ -n "${FORGE_PUBLISH_LIB_ONLY:-}" ]; then
 fi
 source_cf_credentials
 
-# --dry-run, --force-og, --allow-removals and --allow-unverified are global:
+# --dry-run, --force-og, --allow-removals, --allow-unverified and
+# --allow-engine-downgrade are global:
 # accepted anywhere in argv, for every command. Strip them here, before the
 # dispatch, so no per-command parser ever sees them.
 _dry_run_args=()
@@ -1920,6 +2048,7 @@ for _arg in "$@"; do
     --force-og) FORCE_OG=true ;;
     --allow-removals) ALLOW_REMOVALS=true ;;
     --allow-unverified) ALLOW_UNVERIFIED=true ;;
+    --allow-engine-downgrade) ALLOW_ENGINE_DOWNGRADE=true ;;
     *) _dry_run_args+=("$_arg") ;;
   esac
 done

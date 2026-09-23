@@ -89,6 +89,10 @@ echo "$OUT" | grep -q '  engine   :' \
   || fail "the report must show the engine line, got: $OUT"
 echo "$OUT" | grep -q 'url unverified' \
   || fail "a URL forge_repo must be marked unverified offline, got: $OUT"
+PLUGIN_V="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT/plugins/roxabi-forge/package.json")"
+CANON_ENGINE="https://github.com/Roxabi/roxabi-forge.git"
+echo "$OUT" | grep -qF "  engine   : ${CANON_ENGINE} (release roxabi-forge/v$PLUGIN_V · url unverified)" \
+  || fail "the engine line must name the release tag this plugin deploys, got: $OUT"
 echo "$OUT" | grep -q '  og       : browser-run' \
   || fail "the report must show the default og renderer, got: $OUT"
 pass "healthy fixture → exit 0, report names the engine, the renderer, and the --online live check"
@@ -364,6 +368,10 @@ def doctor_online():
         "(publish still succeeds): " + REASON
     ]
     d["browser_run"] = {"ok": False, "checked": True, "reason": REASON}
+    d["engine_drift"] = {
+        "line": "prod unknown · plugin 1.1.0 · stamped on next publish",
+        "verdict": "unknown",
+    }
     return d
 EOF
 
@@ -382,6 +390,13 @@ printf '%s\n' "$OUT" | grep -q '⚠ Browser Run unavailable' \
   || fail "the advisory must be marked ⚠, not ✗ (it blocks nothing), got: $OUT"
 pass "failing Browser Run probe → exit 0 with one ⚠ advisory line"
 
+ENGINE_LINES="$(printf '%s\n' "$OUT" | grep -c '^  engine   : prod ' || true)"
+[ "$ENGINE_LINES" -eq 1 ] \
+  || fail "--online must print exactly one production engine line, got $ENGINE_LINES: $OUT"
+printf '%s\n' "$OUT" | grep -qx '  engine   : prod unknown · plugin 1.1.0 · stamped on next publish' \
+  || fail "the engine line must read 'engine   : prod <L|unknown> · plugin <P> · <state>', got: $OUT"
+pass "--online prints one 'engine   : prod <L> · plugin <P> · <state>' line"
+
 run_at "$ADV/forge-doctor.sh" --online --quiet
 [ "$RC" -eq 0 ] || fail "--quiet must exit 0 on an advisory-only failure, got $RC: $ERR"
 [ -z "$OUT" ] || fail "--quiet must not print to stdout, got: $OUT"
@@ -394,5 +409,9 @@ if echo "$OUT" | grep -q 'Browser Run'; then
   fail "the offline run must not report an online advisory, got: $OUT"
 fi
 pass "offline run reports no Browser Run advisory"
+if echo "$OUT" | grep -q 'engine   : prod '; then
+  fail "the offline run must not report the production engine (it needs the API), got: $OUT"
+fi
+pass "offline run reports no production engine line"
 
 echo "all forge-doctor behavioral checks passed"
