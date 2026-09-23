@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [1.1.4] - 2026-09-23
+
+### Fixed
+
+- Crawlers still got 404 on a shared index page. The HTML was fetched at `/<dir>/index.html`, which Pages does not serve; the directory URL is the document. The unfurl now falls back to that URL.
+
 ## [1.1.3] - 2026-09-23
 
 ### Fixed
