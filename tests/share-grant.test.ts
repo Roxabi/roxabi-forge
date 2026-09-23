@@ -7,10 +7,17 @@ import { mockKv } from "./helpers/kv"
 const PAGE = "lyra/visuals/architecture.html"
 const KEY = "good-key-value"
 
-function shareCtx(path: string, store: Record<string, string>) {
+function shareCtx(
+  path: string,
+  store: Record<string, string>,
+  init: { headers?: HeadersInit; assets?: (input: RequestInfo | URL) => Promise<Response> } = {},
+) {
   return {
-    request: new Request(`https://forge.roxabi.dev${path}`),
-    env: { SHARES: mockKv(store), ASSETS: { fetch: vi.fn() } },
+    request: new Request(`https://forge.roxabi.dev${path}`, init.headers ? { headers: init.headers } : undefined),
+    env: {
+      SHARES: mockKv(store),
+      ASSETS: { fetch: vi.fn(init.assets ?? (async () => new Response("missing", { status: 404 }))) },
+    },
     next: vi.fn(),
     params: {},
     waitUntil: vi.fn(),
@@ -18,6 +25,8 @@ function shareCtx(path: string, store: Record<string, string>) {
     data: {},
   }
 }
+
+const BROWSER = { "sec-fetch-dest": "document" }
 
 function edgeCtx(path: string, store: Record<string, string>, cookie = "", html = "<html><body>page</body></html>") {
   const next = vi.fn(async () => new Response(html, { status: 200 }))
@@ -46,7 +55,7 @@ const shared = {
 
 describe("page share grant", () => {
   it("sets a cookie and redirects to the real path without the key", async () => {
-    const res = await onShare(shareCtx(`/s/${PAGE}/${KEY}`, shared) as never)
+    const res = await onShare(shareCtx(`/s/${PAGE}/${KEY}`, shared, { headers: BROWSER }) as never)
     expect(res.status).toBe(302)
     expect(res.headers.get("location")).toBe("/lyra/visuals/architecture")
     expect(res.headers.get("location")).not.toContain(KEY)
@@ -55,7 +64,7 @@ describe("page share grant", () => {
   })
 
   it("opens the page and a referenced asset, and not a sibling page", async () => {
-    const exchange = await onShare(shareCtx(`/s/${PAGE}/${KEY}`, shared) as never)
+    const exchange = await onShare(shareCtx(`/s/${PAGE}/${KEY}`, shared, { headers: BROWSER }) as never)
     const cookie = (exchange.headers.get("set-cookie") || "").split(";")[0]
     const page = edgeCtx(`/${PAGE}`, shared, cookie, "<html><!-- forge-share-bar -->bar<!-- /forge-share-bar --><body>page</body></html>")
     const pageRes = await onEdge(page as never)
@@ -94,7 +103,7 @@ describe("page share grant", () => {
   it("opens an index.html page on the directory url Pages serves it at", async () => {
     const INDEX = "companyos-talk/index.html"
     const store = { [`vis:${INDEX}`]: "shared", [`share:${INDEX}`]: KEY }
-    const exchange = await onShare(shareCtx(`/s/${INDEX}/${KEY}/`, store) as never)
+    const exchange = await onShare(shareCtx(`/s/${INDEX}/${KEY}/`, store, { headers: BROWSER }) as never)
     expect(exchange.status).toBe(302)
     expect(exchange.headers.get("location")).toBe("/companyos-talk/")
     const cookie = (exchange.headers.get("set-cookie") || "").split(";")[0]
@@ -108,5 +117,96 @@ describe("page share grant", () => {
     const otherRes = await onEdge(other as never)
     expect(otherRes.status).not.toBe(200)
     expect(other.next).not.toHaveBeenCalled()
+  })
+
+  const SOLITO = "companyos-talk-solito/index.html"
+  const DECK = `<!doctype html><html><head>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta property="og:url" content="https://forge.roxabi.dev/a/companyos-talk-solito/">
+<meta property="og:image" content="https://forge.roxabi.dev/a/companyos-talk-solito/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:image" content="https://forge.roxabi.dev/a/companyos-talk-solito/og.jpg">
+</head><body>deck</body></html>`
+
+  function files(map: Record<string, { body: string; type: string }>) {
+    return async (input: RequestInfo | URL) => {
+      const url = String(input)
+      for (const [path, file] of Object.entries(map)) {
+        if (url.endsWith(path)) {
+          return new Response(file.body, { status: 200, headers: { "content-type": file.type } })
+        }
+      }
+      return new Response("missing", { status: 404 })
+    }
+  }
+
+  it("returns keyed og tags to a crawler and does not redirect", async () => {
+    const store = { [`vis:${SOLITO}`]: "shared", [`share:${SOLITO}`]: KEY }
+    const res = await onShare(
+      shareCtx(`/s/${SOLITO}/${KEY}`, store, {
+        assets: files({
+          [`/${SOLITO}`]: { body: DECK, type: "text/html; charset=utf-8" },
+          "/companyos-talk-solito/og.jpg": { body: "jpeg", type: "image/jpeg" },
+        }),
+      }) as never,
+    )
+    expect(res.status).toBe(200)
+    expect(res.headers.get("location")).toBeNull()
+    expect(res.headers.get("x-robots-tag")).toBeNull()
+    const html = await res.text()
+    expect(html).toContain(`property="og:url" content="https://forge.roxabi.dev/s/${SOLITO}/${KEY}/"`)
+    expect(html).toContain(`property="og:image" content="https://forge.roxabi.dev/s/companyos-talk-solito/og.jpg/${KEY}"`)
+    expect(html).toContain(`name="twitter:image" content="https://forge.roxabi.dev/s/companyos-talk-solito/og.jpg/${KEY}"`)
+    expect(html).not.toContain("/a/companyos-talk-solito")
+    expect(html).not.toContain("noindex")
+    expect(html).not.toContain("index.og.jpg")
+    expect(html).toContain('content="1200"')
+    expect(html).toContain('<base href="https://forge.roxabi.dev/companyos-talk-solito/">')
+  })
+
+  it("serves the directory card without a cookie", async () => {
+    const store = { [`vis:${SOLITO}`]: "shared", [`share:${SOLITO}`]: KEY }
+    const fetch = vi.fn(files({
+      "/companyos-talk-solito/og.jpg": { body: "jpeg-bytes", type: "image/jpeg" },
+    }))
+    const res = await onShare(
+      shareCtx(`/s/companyos-talk-solito/og.jpg/${KEY}`, store, { assets: fetch }) as never,
+    )
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toBe("image/jpeg")
+    expect(res.headers.get("set-cookie")).toBeNull()
+    expect(await res.text()).toBe("jpeg-bytes")
+  })
+
+  it("does not fetch a card for the wrong key", async () => {
+    const store = { [`vis:${SOLITO}`]: "shared", [`share:${SOLITO}`]: KEY }
+    const fetch = vi.fn(files({}))
+    const res = await onShare(
+      shareCtx("/s/companyos-talk-solito/og.jpg/not-the-key", store, { assets: fetch }) as never,
+    )
+    expect(res.status).toBe(404)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("does not open another page's card with this key", async () => {
+    const store = { [`vis:${SOLITO}`]: "shared", [`share:${SOLITO}`]: KEY }
+    const fetch = vi.fn()
+    const res = await onShare(
+      shareCtx(`/s/other-talk/og.jpg/${KEY}`, store, { assets: fetch }) as never,
+    )
+    expect(res.status).toBe(404)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("serves a non-index card beside the html stem", async () => {
+    const fetch = vi.fn(files({
+      "/lyra/visuals/architecture.og.jpg": { body: "card", type: "image/jpeg" },
+    }))
+    const res = await onShare(
+      shareCtx(`/s/lyra/visuals/architecture.og.jpg/${KEY}`, shared, { assets: fetch }) as never,
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe("card")
   })
 })

@@ -89,3 +89,9 @@ Runtime source of truth for share = KV. Registry does **not** store `share_key`.
 | Path (canonical) | `/s/my-slug/<key>/` | **Yes** — KV + Function |
 | Query (alias) | `/s/my-slug/?k=<key>` | **Yes** — same KV key |
 | Query on `/a/…` | `/a/slug/?k=` | No (team Access) |
+
+## Unfurl
+
+A browser navigation (`Sec-Fetch-Dest: document`) of `/s/<page>.html/<key>` still 302s to the pretty URL and sets the cookie. Any other GET — Discord, X, Meta — gets 200 HTML. `og:url` is that keyed URL. `og:image` and `twitter:image` are `/s/<card>/<key>`, the same KV key, no cookie.
+
+An index page's card is `/s/<dir>/og.jpg/<key>` (the file beside the directory). A non-index page's card is `/s/<stem>.og.jpg/<key>`. Legacy `/s/<slug>/<key>/og.jpg` still serves `/a/<slug>/og.jpg`. Publish-time tags stay on `/a/`; the key is never written to the hub.
