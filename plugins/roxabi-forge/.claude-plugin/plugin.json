@@ -1,0 +1,9 @@
+{
+  "name": "roxabi-forge",
+  "description": "Cloudflare Pages upload for team artifact hosts — roxabi-forge-publish + roxabi-forge-setup. Upload only; bring your own HTML.",
+  "author": {
+    "name": "Roxabi",
+    "url": "https://github.com/Roxabi"
+  },
+  "version": "1.0.0"
+}

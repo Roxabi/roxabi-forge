@@ -1,0 +1,22 @@
+# Cloudflare Pages — roxabi-forge
+# Deploy: publish.sh → wrangler pages deploy site --project-name=<pages_project>
+# HTML comes from the hub, never from git.
+#
+# Set real IDs via ~/.config/roxabi/forge/forge.env (see .env.example).
+# publish.sh patches the KV id before deploy. Access / Shlink vars live only
+# on the Pages project (dashboard) — do not commit them here.
+name = "roxabi-forge"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "site"
+
+[[kv_namespaces]]
+binding = "SHARES"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Pages production env (dashboard / API only — not in git):
+#   CF_ACCESS_TEAM_DOMAIN   plain  (also in forge.env — injected at deploy)
+#   CF_ACCESS_AUD           plain
+#   PUBLIC_HOST             plain  (canonical share/catalogue host)
+#   SHLINK_API_KEY          secret
+#   SHLINK_API_URL          plain  (preserved from Pages if missing locally)
+#   FORGE_SHARE_SECRET      secret (POST/DELETE /api/share only)

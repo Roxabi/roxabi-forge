@@ -1,0 +1,36 @@
+# _headers — Cloudflare Pages (projet roxabi-forge)
+#
+# ⚠ Cache-Control : n'est PAS sur /* (héritage cumulatif Pages).
+# Pages concatène les valeurs d'un même en-tête pour toutes les règles qui
+# matchent : un Cache-Control sur /* s'ajouterait à celui des règles ci-dessous.
+
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# HTML toujours frais (republier = voir tout de suite)
+/
+  Cache-Control: no-store
+/*/
+  Cache-Control: no-store
+/*.html
+  Cache-Control: no-store
+/a/*
+  Cache-Control: no-store
+/s/*
+  Cache-Control: no-store
+
+# Assets
+/*.js
+  Cache-Control: public, max-age=300
+/*.css
+  Cache-Control: public, max-age=300
+/images/*
+  Cache-Control: public, max-age=86400
+# OG thumbs follow vis (private revoke must not linger in caches)
+/*/og.jpg
+  Cache-Control: no-store
+/*/og.png
+  Cache-Control: no-store

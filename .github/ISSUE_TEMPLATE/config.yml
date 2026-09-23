@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup & publish docs
+    url: https://github.com/Roxabi/roxabi-forge/blob/main/README.md
+    about: Install plugin, roxabi-forge-setup, roxabi-forge-publish
+  - name: Security
+    url: https://github.com/Roxabi/roxabi-forge/security/policy
+    about: Report vulnerabilities privately

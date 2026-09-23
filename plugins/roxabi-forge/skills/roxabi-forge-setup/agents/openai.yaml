@@ -1,0 +1,5 @@
+interface:
+  display_name: "Roxabi Forge setup"
+  short_description: "One-time roxabi-forge data-root path and artifacts config"
+policy:
+  allow_implicit_invocation: false

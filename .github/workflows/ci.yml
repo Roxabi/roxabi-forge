@@ -1,0 +1,234 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  # Default pull_request types omit ready_for_review. check/test skip drafts
+  # (a skipped job reports Success), so a draft-then-ready PR would never re-run.
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  checks: read
+  pull-requests: read
+
+jobs:
+  check:
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Shell syntax (publish.sh)
+        run: |
+          bash -n plugins/roxabi-forge/scripts/publish.sh
+          bash -n scripts/release-plugin.sh
+
+      # Steps live in scripts/lint-shell.sh — the same file lefthook pre-push
+      # and .dev/stack.yml commands.lint call. Do not inline the list here.
+      - name: ShellCheck (every plugin script + scripts/)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          bash scripts/lint-shell.sh
+
+      - name: Python compile
+        run: |
+          python3 -m py_compile plugins/roxabi-forge/scripts/lib/load_config.py
+          python3 -m py_compile plugins/roxabi-forge/scripts/lib/patch_wrangler.py
+          python3 -m py_compile plugins/roxabi-forge/scripts/lib/snapshot.py
+          python3 -m py_compile scripts/check_plugin_versions.py
+
+      - name: Shell syntax (test_release_plugin.sh)
+        run: bash -n tests/shell/test_release_plugin.sh
+
+      # ShellCheck for this file now runs inside scripts/lint-shell.sh, with
+      # `-x` so the sourced tests/shell/lib/git-env-guard.sh is followed instead
+      # of reported as SC1091. A second bare invocation here would contradict it.
+
+      - name: Plugin versions consistent (Claude/Grok/OMP/Codex + CHANGELOG)
+        run: python3 scripts/check_plugin_versions.py
+
+      - name: patch_wrangler smoke (TOML escaping)
+        run: |
+          cp wrangler.toml /tmp/wrangler-ci.toml
+          python3 plugins/roxabi-forge/scripts/lib/patch_wrangler.py \
+            /tmp/wrangler-ci.toml \
+            "test-kv-id" \
+            'team.example.com' \
+            "aud-one,aud-two" \
+            "forge.example.com" \
+            "https://s.example.com/rest/v3/short-urls"
+          grep -q 'CF_ACCESS_TEAM_DOMAIN' /tmp/wrangler-ci.toml
+          grep -q 'PUBLIC_HOST' /tmp/wrangler-ci.toml
+          grep -q 'SHLINK_API_URL' /tmp/wrangler-ci.toml
+
+      - name: Example config loads
+        run: |
+          PYTHONPATH=plugins/roxabi-forge/scripts/lib \
+            python3 -c "from load_config import load_config; c=load_config(); assert c.get('version')"
+
+      - name: No committed artifact HTML
+        run: |
+          if [ -d site/a ]; then
+            extras=$(find site/a -type f ! -name '.gitkeep' | wc -l)
+            [ "$extras" -eq 0 ] || (echo "site/a must not contain artifact HTML" && find site/a -type f ! -name '.gitkeep' && exit 1)
+          fi
+          test ! -f site/index.html || (echo "site/index.html must not be in git" && exit 1)
+          test ! -f site/manifest.json || (echo "site/manifest.json must not be in git" && exit 1)
+          if [ -d registry ]; then
+            extras=$(find registry -type f 2>/dev/null | wc -l)
+            [ "$extras" -eq 0 ] || (echo "registry must not contain JSON payloads" && exit 1)
+          fi
+
+      # Secret / infra scan — exclusions documented to avoid false positives:
+      #   :!*.md          prose may mention token shapes
+      #   :!tests/**      fake tokens / contract fixtures
+      #   :!.env.example placeholder names only
+      #   :!CHANGELOG.md  release notes
+      - name: Secret / infra ID scan
+        run: |
+          set -e
+          scan() {
+            git grep -IE "$1" -- . \
+              ':!*.md' \
+              ':!tests/**' \
+              ':!.env.example' \
+              ':!CHANGELOG.md' \
+              ':!package-lock.json'
+          }
+          if scan 'CLOUDFLARE_ACCOUNT_ID=[0-9a-f]{32}'; then
+            echo "found hardcoded CF account id"; exit 1
+          fi
+          if scan 'FORGE_SHARES_KV_ID=[0-9a-f]{32}'; then
+            echo "found hardcoded KV namespace id"; exit 1
+          fi
+          if git grep -E 'id = "[0-9a-f]{32}"' wrangler.toml 2>/dev/null; then
+            echo "found KV id in wrangler.toml"; exit 1
+          fi
+          # Bare id, no assignment shape. The rules above only match
+          # `KEY=<hex>` or `id = "<hex>"`, so a plain hex pasted into a script
+          # or a comment passed CI: that is exactly how the account and KV ids
+          # rode along on `main` inside scripts/purge-git-history.sh until
+          # 2026-09-08, in `literal:<hex>==>PLACEHOLDER` rules. Measured 0
+          # matches on the current tree under the same exclusions.
+          if scan '\b[0-9a-f]{32}\b'; then
+            echo "found a bare 32-hex infra id — resolve it from forge.env at run time"; exit 1
+          fi
+          token_prefix='cf''ut_'
+          key_prefix='cf''k_'
+          token_assignment='CLOUDFLARE_API_''TOKEN='
+          if scan "${token_prefix}[A-Za-z0-9_-]{20,}|${key_prefix}[A-Za-z0-9_-]{20,}|${token_assignment}[^[:space:]]{16,}"; then
+            echo "possible committed Cloudflare credential pattern"; exit 1
+          fi
+
+  test:
+    needs: [check]
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install JS test deps
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      # Steps live in scripts/test-all.sh — the same file lefthook pre-push and
+      # .dev/stack.yml commands.test call. Do not inline the suites here.
+      - name: Test suites (vitest + python/shell + release plugin)
+        run: bash scripts/test-all.sh
+
+      # The GIT_DIR-immunity regression lives in the suite itself
+      # (tests/shell/test_git_env_isolation.sh), so it also runs in test-os and
+      # test-bash32 and on a contributor's machine — no CI-only variant here.
+
+  # macOS stock bash is /bin/bash 3.2. GHA PATH often has brew bash 5 first —
+  # env bash would false-green. Windows native is not supported (python3);
+  # Windows = WSL, covered by `test` + `test-bash32`.
+  test-os:
+    name: test-os / macos-bash32
+    needs: [check]
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert stock /bin/bash is 3.2
+        run: /bin/bash --version | grep -q 'version 3\.2'
+      - name: Python + shell script tests under /bin/bash
+        env:
+          FORGE_REQUIRE_BASH32: "1"
+        run: /bin/bash tests/shell/run-os-script-tests.sh
+
+  # Same 3.2 contract on Linux CI (no macOS VM required for parse/lock).
+  test-bash32:
+    name: test-bash32
+    needs: [check]
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash 3.2 syntax + script tests
+        run: |
+          docker run --rm -v "$PWD":/w -w /w bash:3.2 sh -c '
+            apk add --no-cache python3 git
+            FORGE_REQUIRE_BASH32=1 bash tests/shell/run-os-script-tests.sh
+          '
+
+  # macOS ships Python 3.9 (Xcode CLT); every other job pins 3.12. Without this
+  # floor, a 3.11+ stdlib import (tomllib…) or newer syntax stays green in CI
+  # and breaks on a teammate's laptop — the exact failure mode this suite exists
+  # to prevent.
+  test-py39:
+    name: test-py39
+    needs: [check]
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Python unit tests on the oldest supported interpreter
+        run: python3 -m unittest discover -s tests/python -p 'test_*.py' -v
+
+  # Suite runs on every push; release is gated on its conclusion.
+  release:
+    needs: [check, test, test-os, test-bash32, test-py39]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tag vX.Y.Z and GitHub Release when plugin version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/release-plugin.sh

@@ -1,0 +1,9 @@
+# Pas de SPA fallback — 404.html structurel gère les chemins morts.
+# Racine = catalogue (shell public ; DATA via /api/catalogue).
+#
+# Pas de règle pour /login : Pages sert déjà site/login.html sur /login, et
+# renvoie /login.html vers /login. Une règle /login → /login.html refermait
+# la boucle (302 ↔ 308) et rendait la connexion impossible.
+#
+# Les pages gardent leur chemin d'arbre (/projet/section/page.html) ; aucun
+# alias de slug ici.

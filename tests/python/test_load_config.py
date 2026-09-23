@@ -1,0 +1,771 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import os
+import sys
+import tempfile
+import types
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+LIB = Path(__file__).resolve().parents[2] / "plugins" / "roxabi-forge" / "scripts" / "lib"
+sys.path.insert(0, str(LIB))
+
+from load_config import (  # noqa: E402
+    EXAMPLE_PATH,
+    PagesEnvFetchError,
+    COCKPIT_VAULT_MARKERS,
+    DEFAULT_VAULT_MARKERS,
+    _verify_api_token,
+    browser_run_probe,
+    doctor,
+    doctor_online,
+    fetch_pages_plain_var,
+    forge_env_permissions,
+    infer_hub_layout,
+    hub_root_candidates,
+    load_config,
+    main,
+    parse_forge_env,
+    pick_forge_repo,
+    resolve_hub_root,
+    resolve_vault_markers,
+    vault_ok,
+)
+
+PAGES_FIXTURE = {
+    "success": True,
+    "result": {
+        "deployment_configs": {
+            "production": {
+                "env_vars": {
+                    "SHLINK_API_URL": {
+                        "type": "plain_text",
+                        "value": "https://s.example.com/rest/v3/short-urls",
+                    },
+                    "FORGE_SHARE_SECRET": {"type": "secret_text"},
+                }
+            }
+        }
+    },
+}
+
+
+class LoadConfigTests(unittest.TestCase):
+    def test_example_config_loads(self) -> None:
+        cfg = load_config()
+        self.assertIn("version", cfg)
+        self.assertIn("public_host", cfg)
+
+    def test_doctor_never_returns_secret_values(self) -> None:
+        d = doctor()
+        blob = str(d)
+        self.assertNotIn("CLOUDFLARE_API_TOKEN=", blob)
+        self.assertNotIn("cfut_", blob)
+        self.assertNotIn("cfat_", blob)
+        self.assertNotIn("cfk_", blob)
+
+    def test_parse_forge_env_redacts_secrets(self) -> None:
+        public, has_token = parse_forge_env(Path("/nonexistent"))
+        self.assertFalse(has_token)
+        self.assertNotIn("CLOUDFLARE_API_TOKEN", public)
+
+    def test_forge_env_permissions_missing_file_ok(self) -> None:
+        perm = forge_env_permissions(Path("/nonexistent/forge.env"))
+        self.assertTrue(perm["ok"])
+
+    @unittest.skipIf(os.name == "nt", "forge.env mode bits are Unix-only")
+    def test_forge_env_permissions_rejects_world_readable(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            env_path = Path(td) / "forge.env"
+            env_path.write_text("CLOUDFLARE_API_TOKEN=x\n", encoding="utf-8")
+            env_path.chmod(0o644)
+            perm = forge_env_permissions(env_path)
+            self.assertFalse(perm["ok"])
+            self.assertIn("600", perm.get("issue") or "")
+
+    @patch("load_config._cf_api")
+    @patch("load_config.resolve_api_token", return_value="test-token")
+    @patch("load_config.resolved_account_id", return_value="acct123")
+    def test_fetch_pages_plain_var_returns_plain_text(
+        self, _acct: object, _token: object, mock_api: object
+    ) -> None:
+        mock_api.return_value = (200, PAGES_FIXTURE, "")
+        val = fetch_pages_plain_var("SHLINK_API_URL")
+        self.assertEqual(val, "https://s.example.com/rest/v3/short-urls")
+
+    @patch("load_config._cf_api")
+    @patch("load_config.resolve_api_token", return_value="test-token")
+    @patch("load_config.resolved_account_id", return_value="acct123")
+    def test_fetch_pages_plain_var_ignores_secret_text(
+        self, _acct: object, _token: object, mock_api: object
+    ) -> None:
+        mock_api.return_value = (200, PAGES_FIXTURE, "")
+        self.assertEqual(fetch_pages_plain_var("FORGE_SHARE_SECRET"), "")
+
+    @patch("load_config.resolve_api_token", return_value="")
+    def test_fetch_pages_plain_var_without_token_raises(self, _token: object) -> None:
+        with self.assertRaises(PagesEnvFetchError) as ctx:
+            fetch_pages_plain_var("SHLINK_API_URL")
+        self.assertEqual(ctx.exception.kind, "auth_missing")
+
+    @patch("load_config._cf_api")
+    def test_verify_user_token(self, mock_api: object) -> None:
+        mock_api.return_value = (200, {"success": True}, "")
+        kind, err = _verify_api_token("cfut_x", "acct123")
+        self.assertEqual(kind, "user")
+        self.assertEqual(err, "")
+        mock_api.assert_called_once_with("GET", "/user/tokens/verify", "cfut_x")
+
+    @patch("load_config._cf_api")
+    def test_verify_account_token_fallback(self, mock_api: object) -> None:
+        def side(method: str, path: str, token: str, **_kw: object) -> tuple:
+            if path == "/user/tokens/verify":
+                return (
+                    401,
+                    {"success": False, "errors": [{"message": "Invalid API Token"}]},
+                    "",
+                )
+            if path == "/accounts/acct123/tokens/verify":
+                return 200, {"success": True}, ""
+            raise AssertionError(path)
+
+        mock_api.side_effect = side
+        kind, err = _verify_api_token("cfat_x", "acct123")
+        self.assertEqual(kind, "account")
+        self.assertEqual(err, "")
+
+    @patch("load_config._cf_api")
+    def test_verify_token_both_endpoints_fail(self, mock_api: object) -> None:
+        mock_api.return_value = (
+            401,
+            {"success": False, "errors": [{"message": "Invalid API Token"}]},
+            "",
+        )
+        kind, err = _verify_api_token("bad", "acct123")
+        self.assertIsNone(kind)
+        self.assertIn("token verify failed", err)
+        self.assertIn("user 401", err)
+        self.assertIn("account 401", err)
+        self.assertEqual(mock_api.call_count, 2)
+
+
+    def _minimal_cfg(self, hub_root: str, **over: object) -> dict:
+        cfg: dict = {
+            "version": 1,
+            "hub_root": hub_root,
+            "artifacts_dir": "artifacts",
+            "public_host": "forge.example.com",
+            "forge_repo": "git@example.com:org/forge.git",
+            "site_dir": "site",
+            "registry_dir": "registry",
+            "internal_prefix": "a",
+        }
+        cfg.update(over)
+        return cfg
+
+    def test_vault_ok_absent_key_checks_existence_only(self) -> None:
+        # The default carries no vault layout: an absent key behaves like the
+        # shipped example's [] — any existing directory is accepted.
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            self.assertTrue(vault_ok(hub))
+            markers, err = resolve_vault_markers(self._minimal_cfg(str(hub)))
+            self.assertIsNone(err)
+            self.assertEqual(markers, ())
+            d = doctor(self._minimal_cfg(str(hub)))
+            self.assertFalse(any("vault" in i for i in d["issues"]))
+        self.assertFalse(vault_ok(Path("/nonexistent/roxabi-forge-hub-xyz")))
+
+    def test_vault_ok_custom_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            (hub / "client_docs").mkdir()
+            (hub / "client_data").mkdir()
+            custom = ["client_docs", "client_data"]
+            self.assertTrue(vault_ok(hub, custom))
+            self.assertFalse(vault_ok(hub, ["client_docs", "missing"]))
+            ok = doctor(self._minimal_cfg(str(hub), vault_markers=custom))
+            self.assertFalse(any("vault" in i for i in ok["issues"]))
+            missing = doctor(
+                self._minimal_cfg(str(hub), vault_markers=["client_docs", "missing"])
+            )
+            vault_issues = [i for i in missing["issues"] if "markers" in i]
+            self.assertEqual(len(vault_issues), 1)
+            self.assertIn("client_docs", vault_issues[0])
+            self.assertIn("missing", vault_issues[0])
+            self.assertNotIn("00_COCKPIT", vault_issues[0])
+            self.assertNotIn("01_COMPANY", vault_issues[0])
+
+    def test_vault_ok_empty_markers_any_existing_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            self.assertTrue(vault_ok(hub, []))
+            d = doctor(self._minimal_cfg(str(hub), vault_markers=[]))
+            self.assertFalse(any("vault" in i for i in d["issues"]))
+        missing = Path("/nonexistent/roxabi-forge-hub-xyz")
+        self.assertFalse(vault_ok(missing, []))
+        d_missing = doctor(self._minimal_cfg(str(missing), vault_markers=[]))
+        found = [i for i in d_missing["issues"] if "hub_root" in i]
+        self.assertTrue(found)
+        self.assertTrue(any("not found" in i for i in found))
+        self.assertFalse(any("vault" in i for i in d_missing["issues"]))
+
+    def test_resolve_vault_markers_null_is_default(self) -> None:
+        markers, err = resolve_vault_markers({"vault_markers": None})
+        self.assertIsNone(err)
+        self.assertEqual(markers, DEFAULT_VAULT_MARKERS)
+
+    def test_vault_markers_wrong_type_no_exception(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            for raw in ("00_COCKPIT", 1, {"a": 1}, ["ok", 2]):
+                cfg = self._minimal_cfg(str(hub), vault_markers=raw)
+                markers, err = resolve_vault_markers(cfg)
+                self.assertIsNone(markers)
+                self.assertIsNotNone(err)
+                self.assertIn("vault_markers", err)
+                d = doctor(cfg)
+                self.assertTrue(any("vault_markers" in i for i in d["issues"]))
+                self.assertFalse(any("expected vault" in i for i in d["issues"]))
+
+
+class HubRootCandidatesTests(unittest.TestCase):
+    """HOME / cwd / config isolated in tmpdir; no leak to the real machine."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.root = Path(self._td.name)
+        self.home = self.root / "home"
+        self.home.mkdir()
+        self.work = self.root / "work"
+        self.work.mkdir()
+        self._old_cwd = os.getcwd()
+        os.chdir(self.work)
+        self._envcm = patch.dict(os.environ, {"HOME": str(self.home)}, clear=False)
+        self._envcm.start()
+        os.environ.pop("HUB_ROOT", None)
+        self.cfg_file = self.home / "forge.config.json"
+        self.cfg_file.write_text('{"hub_root": ""}\n', encoding="utf-8")
+        os.environ["FORGE_CONFIG"] = str(self.cfg_file)
+
+    def tearDown(self) -> None:
+        os.chdir(self._old_cwd)
+        self._envcm.stop()
+        self._td.cleanup()
+
+    def _mkdir(self, path: Path) -> Path:
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _vault(self, path: Path, markers: tuple[str, ...] = ("00_COCKPIT", "01_COMPANY")) -> Path:
+        path.mkdir(parents=True, exist_ok=True)
+        for m in markers:
+            (path / m).mkdir(exist_ok=True)
+        return path
+
+    def test_precedence_when_every_origin_answers(self) -> None:
+        config_dir = self._mkdir(self.home / "from-config")
+        env_dir = self._mkdir(self.home / "from-env")
+        file_dir = self._mkdir(self.home / "from-file")
+        vault = self._vault(self.work / "vault")
+        known = self._mkdir(self.home / ".roxabi")
+        (self.home / ".config" / "roxabi" / "forge").mkdir(parents=True)
+        (self.home / ".config" / "roxabi" / "forge" / "hub-root").write_text(
+            str(file_dir) + "\n", encoding="utf-8"
+        )
+        os.environ["HUB_ROOT"] = str(env_dir)
+        os.chdir(vault / "00_COCKPIT")
+        cands = hub_root_candidates(
+            {"hub_root": str(config_dir), "vault_markers": list(COCKPIT_VAULT_MARKERS)},
+            include_search=True,
+        )
+        origins = [origin for _path, origin in cands]
+        self.assertEqual(origins[0], "config")
+        self.assertEqual(cands[0][0], str(config_dir.resolve()))
+        self.assertEqual(origins[1], "env")
+        self.assertEqual(cands[1][0], str(env_dir.resolve()))
+        self.assertEqual(origins[2], "hub-root-file")
+        self.assertEqual(cands[2][0], str(file_dir.resolve()))
+        self.assertEqual(origins[3], "walk-up")
+        self.assertEqual(cands[3][0], str(vault.resolve()))
+        self.assertEqual(origins[4], "known-path")
+        self.assertEqual(cands[4][0], str(known.resolve()))
+        self.assertEqual(len(cands), 5)
+
+    def test_walk_up_finds_parent_vault_with_resolved_markers(self) -> None:
+        vault = self._vault(
+            self.work / "client", markers=("client_docs", "client_data")
+        )
+        nested = vault / "client_docs" / "deep"
+        nested.mkdir(parents=True)
+        os.chdir(nested)
+        cfg = {"vault_markers": ["client_docs", "client_data"]}
+        cands = hub_root_candidates(cfg, include_search=True)
+        walk = [p for p, o in cands if o == "walk-up"]
+        self.assertEqual(walk, [str(vault.resolve())])
+
+    def test_walk_up_skips_when_markers_do_not_match(self) -> None:
+        vault = self._vault(self.work / "almost")
+        os.chdir(vault / "00_COCKPIT")
+        cfg = {"vault_markers": ["nope_a", "nope_b"]}
+        cands = hub_root_candidates(cfg, include_search=True)
+        self.assertFalse(any(o == "walk-up" for _p, o in cands))
+
+    def test_empty_markers_never_walk_up(self) -> None:
+        # vault_ok(dir, []) is vacuously true for every existing directory.
+        # Walk-up would therefore retain cwd (or /). Skip it: empty markers
+        # carry no structural identity, so discovery by parent is arbitrary.
+        os.chdir(self.work)
+        cands = hub_root_candidates(
+            {"vault_markers": []}, include_search=True
+        )
+        self.assertFalse(any(o == "walk-up" for _p, o in cands))
+
+    def test_nonexistent_path_never_proposed(self) -> None:
+        missing = self.home / "no-such-hub"
+        os.environ["HUB_ROOT"] = str(missing)
+        cands = hub_root_candidates(
+            {"hub_root": str(self.home / "also-missing")},
+            include_search=True,
+        )
+        for path, _origin in cands:
+            self.assertTrue(Path(path).exists(), path)
+        self.assertFalse(any(str(missing) in p for p, _o in cands))
+
+    def test_dedup_keeps_best_origin(self) -> None:
+        shared = self._mkdir(self.home / "same-hub")
+        os.environ["HUB_ROOT"] = str(shared)
+        (self.home / ".config" / "roxabi" / "forge").mkdir(parents=True)
+        (self.home / ".config" / "roxabi" / "forge" / "hub-root").write_text(
+            str(shared) + "\n", encoding="utf-8"
+        )
+        cands = hub_root_candidates(
+            {"hub_root": str(shared)}, include_search=False
+        )
+        paths = [p for p, _o in cands]
+        self.assertEqual(paths, [str(shared.resolve())])
+        self.assertEqual(cands[0][1], "config")
+
+    def test_no_candidate_is_none(self) -> None:
+        path, origin = resolve_hub_root({"hub_root": ""}, include_search=True)
+        self.assertEqual(path, "")
+        self.assertEqual(origin, "none")
+        self.assertEqual(hub_root_candidates({"hub_root": ""}, include_search=True), [])
+
+    def test_load_config_does_not_guess_walk_up(self) -> None:
+        vault = self._vault(self.work / "guessable")
+        os.chdir(vault / "00_COCKPIT")
+        cfg = load_config()
+        self.assertEqual(cfg["hub_root"], "")
+
+    def test_cli_prints_origin_tab_path_and_exits_zero(self) -> None:
+        import io
+
+        known = self._mkdir(self.home / ".roxabi")
+        buf = io.StringIO()
+        with unittest.mock.patch("sys.stdout", buf):
+            rc = main(["load_config.py", "--print-hub-candidates"])
+        self.assertEqual(rc, 0)
+        lines = [ln for ln in buf.getvalue().splitlines() if ln]
+        self.assertTrue(lines)
+        origin, path = lines[0].split("\t", 1)
+        self.assertEqual(origin, "known-path")
+        self.assertEqual(path, str(known.resolve()))
+
+    def test_cli_empty_candidates_exits_zero(self) -> None:
+        import io
+
+        buf = io.StringIO()
+        with unittest.mock.patch("sys.stdout", buf):
+            rc = main(["load_config.py", "--print-hub-candidates"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(buf.getvalue(), "")
+
+    def test_doctor_lists_candidates_only_when_hub_root_empty(self) -> None:
+        vault = self._vault(self.work / "doc-vault")
+        os.chdir(vault / "00_COCKPIT")
+        empty = {
+            "version": 1,
+            "hub_root": "",
+            "vault_markers": list(COCKPIT_VAULT_MARKERS),
+            "artifacts_dir": "artifacts",
+            "public_host": "forge.example.com",
+            "forge_repo": "git@example.com:org/forge.git",
+            "site_dir": "site",
+            "registry_dir": "registry",
+            "internal_prefix": "a",
+        }
+        d = doctor(empty)
+        self.assertFalse(d["ok"])
+        self.assertIn("hub_root_candidates", d)
+        self.assertTrue(
+            any(item[0] == "walk-up" for item in d["hub_root_candidates"])
+        )
+        filled = dict(empty)
+        filled["hub_root"] = str(vault)
+        d_ok_hub = doctor(filled)
+        self.assertNotIn("hub_root_candidates", d_ok_hub)
+
+
+class ForgeRepoTests(unittest.TestCase):
+    # The archived pre-tree engine. Any of these coming back out of setup
+    # would redeploy old code over production.
+    LEGACY = (
+        "https://github.com/Roxabi/roxabi-forge-legacy.git",
+        "https://github.com/Roxabi/roxabi-forge-legacy",
+        "git@github.com:Roxabi/roxabi-forge-legacy.git",
+    )
+    CANONICAL = "https://github.com/Roxabi/roxabi-forge.git"
+
+    def test_example_forge_repo_names_no_engine(self) -> None:
+        # Setup merges the example under the local config, so a value here
+        # would be carried into every fresh machine as if the operator chose
+        # it and would skip the detected checkout.
+        data = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(data["forge_repo"], "")
+
+    def test_empty_or_legacy_becomes_detected_checkout(self) -> None:
+        with patch("load_config.detect_engine_checkout", return_value="/srv/engine"):
+            for value in ("", "  ", *self.LEGACY):
+                with self.subTest(value=value):
+                    self.assertEqual(pick_forge_repo(value), "/srv/engine")
+
+    def test_nothing_detected_falls_back_to_the_canonical_url(self) -> None:
+        # A marketplace install caches only the plugin: no checkout to detect.
+        with patch("load_config.detect_engine_checkout", return_value=None):
+            for value in ("", *self.LEGACY):
+                with self.subTest(value=value):
+                    self.assertEqual(pick_forge_repo(value), self.CANONICAL)
+
+    def test_canonical_ssh_is_written_as_https(self) -> None:
+        with patch("load_config.detect_engine_checkout", return_value="/srv/engine"):
+            self.assertEqual(
+                pick_forge_repo("git@github.com:Roxabi/roxabi-forge.git"), self.CANONICAL
+            )
+            self.assertEqual(pick_forge_repo(self.CANONICAL), self.CANONICAL)
+
+    def test_legacy_is_never_returned_unpatched(self) -> None:
+        # Real detection on whatever checkout runs the suite.
+        for value in ("", *self.LEGACY):
+            with self.subTest(value=value):
+                self.assertNotIn(pick_forge_repo(value), self.LEGACY)
+
+    def test_explicit_value_wins_over_detection(self) -> None:
+        with patch("load_config.detect_engine_checkout", return_value="/srv/engine"):
+            for value in (
+                "/home/op/engine",
+                "git@github.com:acme/forge.git",
+                "https://github.com/acme/forge.git",
+            ):
+                with self.subTest(value=value):
+                    self.assertEqual(pick_forge_repo(value), value)
+
+
+class InferHubLayoutTests(unittest.TestCase):
+    """The Roxabi data root is `~/.roxabi` with the tree in `forge/`.
+
+    A notes vault carrying the cockpit layout is still recognised, so an
+    operator migrating one is not silently pointed at an empty tree.
+    """
+
+    def test_forge_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            page = hub / "forge" / "lyra"
+            page.mkdir(parents=True)
+            (page / "architecture.html").write_text("ok", encoding="utf-8")
+            self.assertEqual(infer_hub_layout(hub), ("forge", []))
+
+    def test_vault_markers_no_slugs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            (hub / "00_COCKPIT").mkdir()
+            (hub / "01_COMPANY").mkdir()
+            self.assertEqual(
+                infer_hub_layout(hub),
+                ("00_COCKPIT/Forge/artifacts", list(COCKPIT_VAULT_MARKERS)),
+            )
+
+    def test_vault_slugs_win_over_an_empty_forge_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            (hub / "00_COCKPIT").mkdir()
+            (hub / "01_COMPANY").mkdir()
+            slug = hub / "00_COCKPIT" / "Forge" / "artifacts" / "deck"
+            slug.mkdir(parents=True)
+            (slug / "index.html").write_text("ok", encoding="utf-8")
+            (hub / "forge").mkdir()
+            self.assertEqual(
+                infer_hub_layout(hub),
+                ("00_COCKPIT/Forge/artifacts", list(COCKPIT_VAULT_MARKERS)),
+            )
+
+    def test_a_populated_forge_tree_wins_over_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            (hub / "00_COCKPIT").mkdir()
+            (hub / "01_COMPANY").mkdir()
+            (hub / "00_COCKPIT" / "Forge" / "artifacts").mkdir(parents=True)
+            page = hub / "forge" / "lyra"
+            page.mkdir(parents=True)
+            (page / "architecture.html").write_text("ok", encoding="utf-8")
+            self.assertEqual(infer_hub_layout(hub), ("forge", []))
+
+    def test_empty_hub_no_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            hub = Path(td)
+            self.assertEqual(infer_hub_layout(hub), ("forge", []))
+
+
+class BrowserRunProbeTests(unittest.TestCase):
+    """browser_run_probe: advisory, offline-safe, and it never raises.
+
+    og_render is stubbed in sys.modules — the real one would POST to
+    Cloudflare. The stub also carries its own OgRenderError, which is what the
+    lazy import inside browser_run_probe has to resolve against.
+    """
+
+    CFG = {"cloudflare_account_id": "acct123"}
+
+    def _stub(self) -> types.ModuleType:
+        mod = types.ModuleType("og_render")
+
+        class OgRenderError(RuntimeError):
+            pass
+
+        def unexpected(*_a: object, **_k: object) -> None:
+            self.fail("og_render.probe ran without a usable credential")
+
+        mod.OgRenderError = OgRenderError
+        mod.probe = unexpected
+        return mod
+
+    @patch("load_config.resolved_account_id", return_value="acct123")
+    @patch("load_config.resolve_api_token", return_value="")
+    def test_missing_token_is_never_probed(self, _tok: object, _acct: object) -> None:
+        """No credential, no request: doctor already reports the absence."""
+        with patch.dict(sys.modules, {"og_render": self._stub()}):
+            res = browser_run_probe(self.CFG)
+        self.assertFalse(res["checked"])
+        self.assertFalse(res["ok"])
+        self.assertIn("already reported", res["reason"])
+
+    @patch("load_config.resolved_account_id", return_value="")
+    @patch("load_config.resolve_api_token", return_value="tok")
+    def test_missing_account_is_never_probed(self, _tok: object, _acct: object) -> None:
+        with patch.dict(sys.modules, {"og_render": self._stub()}):
+            res = browser_run_probe(self.CFG)
+        self.assertFalse(res["checked"])
+        self.assertFalse(res["ok"])
+
+    @patch("load_config.resolved_account_id", return_value="acct123")
+    @patch("load_config.resolve_api_token", return_value="tok")
+    def test_render_refusal_becomes_the_reason(self, _tok: object, _acct: object) -> None:
+        mod = self._stub()
+
+        def refuse(**_k: object) -> None:
+            raise mod.OgRenderError("browser run HTTP 403: Actor lacks permission")
+
+        mod.probe = refuse
+        with patch.dict(sys.modules, {"og_render": mod}):
+            res = browser_run_probe(self.CFG)
+        self.assertEqual(
+            {
+                "ok": False,
+                "checked": True,
+                "reason": "browser run HTTP 403: Actor lacks permission",
+            },
+            res,
+        )
+
+    @patch("load_config.resolved_account_id", return_value="acct123")
+    @patch("load_config.resolve_api_token", return_value="tok")
+    def test_unexpected_exception_is_swallowed_on_one_line(
+        self, _tok: object, _acct: object
+    ) -> None:
+        """forge-doctor.sh must report, never traceback."""
+        mod = self._stub()
+
+        def crash(**_k: object) -> None:
+            raise ValueError("kaboom\n  second line")
+
+        mod.probe = crash
+        with patch.dict(sys.modules, {"og_render": mod}):
+            res = browser_run_probe(self.CFG)
+        self.assertFalse(res["ok"])
+        self.assertTrue(res["checked"])
+        self.assertEqual("ValueError: kaboom second line", res["reason"])
+
+    @patch("load_config.resolved_account_id", return_value="acct123")
+    @patch("load_config.resolve_api_token", return_value="tok")
+    def test_successful_probe_reports_ok(self, _tok: object, _acct: object) -> None:
+        mod = self._stub()
+        mod.probe = lambda **_k: None
+        with patch.dict(sys.modules, {"og_render": mod}):
+            res = browser_run_probe(self.CFG)
+        self.assertEqual({"ok": True, "checked": True, "reason": None}, res)
+
+    def test_the_resolved_credential_travels_with_the_call(self) -> None:
+        """The account id may live in forge.config.json alone.
+
+        resolved_account_id() honours that fallback, og_render's own reader
+        sees only forge.env — so a probe left to re-resolve would refuse
+        "CLOUDFLARE_ACCOUNT_ID missing" for a value doctor had just resolved.
+        """
+        mod = self._stub()
+        seen: dict[str, object] = {}
+
+        def record(**kwargs: object) -> None:
+            seen.update(kwargs)
+
+        mod.probe = record
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(
+                os.environ,
+                {
+                    "CLOUDFLARE_API_TOKEN": "tok",
+                    "FORGE_ENV": str(Path(td) / "absent.env"),
+                },
+            ):
+                os.environ.pop("CLOUDFLARE_ACCOUNT_ID", None)
+                with patch.dict(sys.modules, {"og_render": mod}):
+                    res = browser_run_probe({"cloudflare_account_id": "acct-from-config"})
+        self.assertEqual({"ok": True, "checked": True, "reason": None}, res)
+        self.assertEqual({"token": "tok", "account": "acct-from-config"}, seen)
+
+
+class DoctorOnlineAdvisoryTests(unittest.TestCase):
+    """A failing Browser Run probe may only add a warning.
+
+    A token without the Browser Run · Edit permission still publishes — every
+    render fails per slug, the deploy does not — so the probe must not move
+    online_ok, deploy_ready or deploy_blockers, which is what forge-doctor.sh
+    turns into its exit code.
+    """
+
+    WARNING = (
+        "Browser Run unavailable — OG thumbnails will fail per slug "
+        "(publish still succeeds): browser run HTTP 403: Actor lacks permission"
+    )
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        root = Path(self._td.name)
+        hub = root / "hub"
+        hub.mkdir()
+        (hub / "artifacts").mkdir()
+        self.cfg = {
+            "version": 1,
+            "hub_root": str(hub),
+            "artifacts_dir": "artifacts",
+            "public_host": "forge.example.com",
+            "forge_repo": "https://example.invalid/forge.git",
+            "site_dir": "site",
+            "registry_dir": "registry",
+            "internal_prefix": "a",
+        }
+        # A deploy-ready fixture: only then can a regression on deploy_ready be
+        # observed. forge.env is absent, which forge_env_permissions accepts.
+        self._env = patch.dict(
+            os.environ,
+            {
+                "FORGE_ENV": str(root / "absent.env"),
+                "CLOUDFLARE_API_TOKEN": "tok",
+                "CLOUDFLARE_ACCOUNT_ID": "acct123",
+                "FORGE_SHARES_KV_ID": "kv123",
+                "CF_ACCESS_TEAM_DOMAIN": "team.cloudflareaccess.com",
+                "CF_ACCESS_AUD": "aud",
+            },
+            clear=False,
+        )
+        self._env.start()
+
+    def tearDown(self) -> None:
+        self._env.stop()
+        self._td.cleanup()
+
+    def _online(self, probe: dict, *, pf_ok: bool = True) -> tuple[dict, dict]:
+        """doctor_online with the network stubbed out. Returns (payload, preflight)."""
+        pf = {
+            "ok": pf_ok,
+            "errors": [] if pf_ok else ["token invalid (400): Invalid API Token"],
+            "warnings": [],
+            "checks": {"token": "user"},
+            "require_kv": True,
+        }
+        with patch("load_config.preflight_mutations", return_value=pf):
+            with patch("load_config.browser_run_probe", return_value=probe) as spy:
+                payload = doctor_online(self.cfg)
+        self.probe_calls = spy.call_count
+        return payload, pf
+
+    def test_failing_probe_adds_one_warning_and_moves_nothing(self) -> None:
+        ok, _ = self._online({"ok": True, "checked": True, "reason": None})
+        ko, _ = self._online(
+            {
+                "ok": False,
+                "checked": True,
+                "reason": "browser run HTTP 403: Actor lacks permission",
+            }
+        )
+        self.assertTrue(ok["deploy_ready"], ok["deploy_blockers"])
+        for key in (
+            "ok",
+            "online_ok",
+            "deploy_ready",
+            "deploy_blockers",
+            "issues",
+            "online_issues",
+            "warnings",
+        ):
+            self.assertEqual(ok[key], ko[key], key)
+        self.assertEqual([], ok["online_warnings"])
+        self.assertEqual([self.WARNING], ko["online_warnings"])
+        self.assertNotIn("browser_run", ko["online_checks"])
+
+    def test_passing_probe_reports_a_check_without_touching_preflight(self) -> None:
+        payload, pf = self._online({"ok": True, "checked": True, "reason": None})
+        # "permission ok", not "ok": one blank page is not 33 real payloads.
+        self.assertEqual("permission ok", payload["online_checks"]["browser_run"])
+        self.assertEqual({"token": "user"}, pf["checks"])
+
+    def test_a_failed_preflight_is_never_probed(self) -> None:
+        """The warning promises the publish still succeeds — only true alone.
+
+        A revoked token or a deleted Pages project fails the preflight, so the
+        publish does not succeed. Probing there would spend a second doomed
+        request and blame Browser Run for a credential already condemned in
+        online_issues.
+        """
+        payload, _ = self._online(
+            {"ok": False, "checked": True, "reason": "unreachable"}, pf_ok=False
+        )
+        self.assertEqual(0, self.probe_calls)
+        self.assertEqual([], payload["online_warnings"])
+        self.assertNotIn("browser_run", payload["online_checks"])
+        self.assertFalse(payload["browser_run"]["checked"])
+        self.assertIn("already reported", payload["browser_run"]["reason"])
+        self.assertFalse(payload["online_ok"])
+
+    def test_unchecked_probe_is_silent(self) -> None:
+        """Nothing to probe is not a finding: doctor already named the gap."""
+        payload, _ = self._online(
+            {
+                "ok": False,
+                "checked": False,
+                "reason": "token or account id missing — already reported",
+            }
+        )
+        self.assertEqual([], payload["online_warnings"])
+        self.assertNotIn("browser_run", payload["online_checks"])
+
+    def test_offline_doctor_carries_no_browser_run_key(self) -> None:
+        """doctor() is offline: the probe needs the network."""
+        self.assertNotIn("browser_run", doctor(self.cfg))
+
+
+if __name__ == "__main__":
+    unittest.main()

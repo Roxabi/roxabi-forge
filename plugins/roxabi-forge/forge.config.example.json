@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hub_root": "",
+  "vault_markers": [],
+  "artifacts_dir": "forge",
+  "layout": "tree",
+  "public_host": "forge.roxabi.dev",
+  "forge_repo": "",
+  "shlink_domain": "",
+  "site_dir": "site",
+  "registry_dir": "registry",
+  "internal_prefix": "a",
+  "pages_project": "forge",
+  "refused_targets": {
+    "hosts": ["other-forge.example.com"],
+    "pages_projects": []
+  },
+  "cloudflare_account_id": "",
+  "shares_kv_namespace_id": "",
+  "types": ["deck", "talk", "guide", "diagram", "gallery", "html", "other"]
+}

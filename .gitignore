@@ -1,0 +1,30 @@
+.DS_Store
+.claude/
+.omp/
+.cocoindex_code/
+node_modules/
+*.bak
+.env
+.env.*
+!.env.example
+.wrangler/
+# machine-local forge config (use ~/.config/roxabi/forge/forge.config.json)
+forge.config.json
+**/forge.config.json
+!**/forge.config.example.json
+
+__pycache__/
+*.pyc
+
+# HTML live = hub + wrangler Direct Upload — never commit artefacts.
+/site/a/
+/site/index.html
+/site/manifest.json
+/registry/*.json
+**/forge.env
+
+# repo-pinned tooling (scripts/secret-scan.sh)
+.cache/
+
+# editor hook session cache (absolute local paths)
+.impeccable/
