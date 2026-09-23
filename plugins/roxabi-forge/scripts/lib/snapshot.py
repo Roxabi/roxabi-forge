@@ -44,6 +44,11 @@ object, or carrying no slug map) and an empty deployment id.
 an unknown live deployment means. It claims `no_deployment` only for a project
 whose deployment list is confirmed empty; an unresolvable latest deployment is
 `live_unresolved`, which the caller must read as unknown, never as empty.
+
+`compare --removals-allowed / --unverified-allowed` carry publish.sh's
+--allow-removals / --allow-unverified so the stderr report says what the
+publish will actually do (delete on purpose, not "refusing"). They change
+neither the exit code nor the JSON: the shell still decides from those.
 """
 from __future__ import annotations
 
@@ -423,7 +428,26 @@ def compare_record(
     }
 
 
-def _narrate(result: dict[str, Any], root: Path | None) -> None:
+def deploy_proceeds(
+    result: dict[str, Any], removals_allowed: bool, unverified_allowed: bool
+) -> bool:
+    """Whether publish.sh deploys after this compare result.
+
+    The shell owns the decision (snapshot_guard in publish.sh:
+    `$ALLOW_REMOVALS && { verifiable || $ALLOW_UNVERIFIED; }` on exit 3, and
+    `$ALLOW_UNVERIFIED` on exit 4); this copy exists only so the narration
+    below never announces a refusal the shell then overrides. Change both
+    together.
+    """
+    if result["unexpected_removals"] and not removals_allowed:
+        return False
+    return bool(result["verifiable"]) or unverified_allowed
+
+
+def _narrate(result: dict[str, Any], root: Path | None, proceeds: bool) -> None:
+    # `proceeds` only drops the refusal lines and their remediation hints: the
+    # diagnostics stay, because an overridden guard is exactly when the
+    # operator most needs to see what the flag is accepting.
     verdict = result["verdict"]
     if verdict == "bootstrap":
         _say(
@@ -440,6 +464,7 @@ def _narrate(result: dict[str, Any], root: Path | None) -> None:
             "! a full-snapshot deploy from this machine could therefore "
             "delete artifacts a teammate published"
         )
+    if verdict == "unverified" and not proceeds:
         _say("  make sure this machine's hub copy is up to date, then re-run:")
         _say(
             "    1. refresh this machine's copy of the shared artifacts "
@@ -457,6 +482,7 @@ def _narrate(result: dict[str, Any], root: Path | None) -> None:
             "! a rollback or an out-of-band dashboard deploy happened: this "
             "record no longer describes the live site"
         )
+    if verdict == "untrusted" and not proceeds:
         _say(
             "! refusing to deploy until the live content can be verified "
             "(or you pass --allow-unverified)"
@@ -475,7 +501,14 @@ def _narrate(result: dict[str, Any], root: Path | None) -> None:
         _say("changed slug(s): " + " ".join(result["changed"]))
     if verdict == "match":
         _say("hub matches the record -- nothing added, changed or removed")
-    if result["unexpected_removals"]:
+    if result["unexpected_removals"] and proceeds:
+        _say(
+            "- deleting {} artifact(s) from the live site on purpose (--allow-removals): {}".format(
+                len(result["unexpected_removals"]),
+                " ".join(result["unexpected_removals"]),
+            )
+        )
+    elif result["unexpected_removals"]:
         _say(
             "✗ refusing to deploy: {} artifact(s) would be deleted from the live site: {}".format(
                 len(result["unexpected_removals"]),
@@ -511,7 +544,17 @@ def cmd_compare(args: argparse.Namespace) -> int:
         live_unknown=bool(args.live_unknown),
     )
     _emit(result)
-    _narrate(result, root)
+    # Narration only: the exit code and payload stay the verdict publish.sh
+    # acts on, whatever the flags say.
+    _narrate(
+        result,
+        root,
+        deploy_proceeds(
+            result,
+            removals_allowed=bool(args.removals_allowed),
+            unverified_allowed=bool(args.unverified_allowed),
+        ),
+    )
     if result["unexpected_removals"]:
         return EXIT_REMOVALS
     if not result["verifiable"]:
@@ -647,6 +690,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--expected-removals",
         default="",
         help="slugs the operator knowingly deletes, whitespace-separated",
+    )
+    # publish.sh forwards its --allow-removals / --allow-unverified here so the
+    # report matches what it will do next; they never change the exit code.
+    cmp_ap.add_argument(
+        "--removals-allowed",
+        action="store_true",
+        help="the caller will delete unexpected removals (narration only)",
+    )
+    cmp_ap.add_argument(
+        "--unverified-allowed",
+        action="store_true",
+        help="the caller will deploy over an unverifiable record (narration only)",
     )
     cmp_ap.set_defaults(func=cmd_compare)
 

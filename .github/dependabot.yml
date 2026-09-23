@@ -1,6 +1,6 @@
 # Dependency updates. Two ecosystems only: the JS test toolchain (vitest,
 # typescript, @cloudflare/workers-types) and the GitHub Actions in ci.yml.
-# Those actions are pinned to mutable major tags (`@v4`, `@v5`), not SHAs —
+# Those actions are pinned to mutable major tags (e.g. `@v7`), not SHAs —
 # this file tracks tag bumps, it does not create a SHA-pinning posture.
 # The Python side is stdlib-only (3.9 floor asserted in CI) — nothing to track.
 #

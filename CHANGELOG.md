@@ -7,6 +7,19 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [1.1.1] - 2026-09-23
+
+### Fixed
+
+- The hub drift report no longer says `✗ refusing to deploy` (with remediation hints) when `--allow-removals` lets the deploy proceed: it now says `- deleting N artifact(s) from the live site on purpose (--allow-removals): <slugs>`. The same holds for the untrusted-record refusal when `--allow-unverified` lets the deploy proceed. Exit codes and the `snapshot.py compare` JSON are unchanged.
+
+### Changed
+
+- TypeScript 5.9.3 → 7.0.2 (`baseUrl` removed from `tsconfig.json`; `paths` already resolved relative to it).
+- Vitest 3.2.7 → 5.0.1.
+- CI actions: `actions/checkout` v4 → v7, `actions/setup-node` v4 → v7, `actions/setup-python` v5 → v7.
+- Minor dev-dependency updates: `@types/node` 26.2.0 → 26.6.2, `lefthook` 2.1.12 → 2.1.14.
+
 ## [1.1.0] - 2026-09-23
 
 ### Added
