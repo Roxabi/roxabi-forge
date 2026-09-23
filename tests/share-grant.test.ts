@@ -165,6 +165,30 @@ describe("page share grant", () => {
     expect(html).toContain('<base href="https://forge.roxabi.dev/companyos-talk-solito/">')
   })
 
+  it("reads the directory URL when Pages does not serve index.html", async () => {
+    const store = { [`vis:${SOLITO}`]: "shared", [`share:${SOLITO}`]: KEY }
+    const res = await onShare(
+      shareCtx(`/s/${SOLITO}/${KEY}`, store, {
+        assets: async (input: RequestInfo | URL) => {
+          const url = String(input)
+          if (url.endsWith("/companyos-talk-solito/index.html")) {
+            return new Response("missing", { status: 404 })
+          }
+          if (url.endsWith("/companyos-talk-solito/") || url.endsWith("/companyos-talk-solito")) {
+            return new Response(DECK, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } })
+          }
+          if (url.endsWith("/companyos-talk-solito/og.jpg")) {
+            return new Response("jpeg", { status: 200, headers: { "content-type": "image/jpeg" } })
+          }
+          return new Response("missing", { status: 404 })
+        },
+      }) as never,
+    )
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain(`property="og:image" content="https://forge.roxabi.dev/s/companyos-talk-solito/og.jpg/${KEY}"`)
+  })
+
   it("serves the directory card without a cookie", async () => {
     const store = { [`vis:${SOLITO}`]: "shared", [`share:${SOLITO}`]: KEY }
     const fetch = vi.fn(files({

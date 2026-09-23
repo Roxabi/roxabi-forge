@@ -75,6 +75,21 @@ function unfurlHeaders(cookie: string): Headers {
   return headers
 }
 
+async function fetchPageHtml(
+  env: ForgeEnv,
+  origin: string,
+  page: string,
+  htmlPath: string,
+): Promise<Response | null> {
+  const direct = await fetchAsset(env, origin, htmlPath)
+  if (direct) return direct
+  // Pages does not serve `<dir>/index.html`. The document is the directory URL.
+  if (!page.endsWith(".html")) return null
+  const pretty = artefactPath(page)
+  if (pretty === htmlPath) return null
+  return fetchAsset(env, origin, pretty)
+}
+
 async function crawlerHtml(
   env: ForgeEnv,
   origin: string,
@@ -82,7 +97,7 @@ async function crawlerHtml(
   key: string,
   htmlPath: string,
 ): Promise<Response> {
-  const htmlRes = await fetchAsset(env, origin, htmlPath)
+  const htmlRes = await fetchPageHtml(env, origin, page, htmlPath)
   if (!htmlRes) return plain404()
   const card = await firstCard(env, origin, page)
   const body = rewriteShareOg(
