@@ -39,19 +39,27 @@ function plain404(): Response {
 /**
  * Same-origin path to return to after login, or "/".
  *
- * Only a single-slash absolute path is accepted: "//evil.tld" is a
- * protocol-relative URL a browser resolves to another origin, and an absolute
- * URL would turn the login page into an open redirect.
+ * Resolved with the URL parser, not prefix checks: browsers drop tab/newline
+ * and read "\" as "/" while resolving a Location, so "/\t/evil.tld" becomes
+ * the protocol-relative "//evil.tld" — an open redirect a string test lets
+ * through. The resolved path is what is returned, so the Location carries
+ * exactly what was checked. That path is normalised ("/.//evil.tld" →
+ * "//evil.tld"), hence the refusal of a pathname that starts with "//".
  */
-function safeNext(raw: string | null): string {
-  if (!raw) return "/"
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/"
-  if (raw.includes("\\") || raw.includes("..")) return "/"
-  return raw
+function safeNext(raw: string | null, origin: string): string {
+  if (!raw || !raw.startsWith("/") || raw.includes("..")) return "/"
+  let u: URL
+  try {
+    u = new URL(raw, origin)
+  } catch {
+    return "/"
+  }
+  if (u.origin !== origin || u.pathname.startsWith("//")) return "/"
+  return u.pathname + u.search + u.hash
 }
 
-function loginRedirect(next?: string): Response {
-  const target = safeNext(next ?? null)
+function loginRedirect(next: string, origin: string): Response {
+  const target = safeNext(next, origin)
   const location = target === "/" ? "/login" : `/login?next=${encodeURIComponent(target)}`
   return new Response(null, {
     status: 302,
@@ -273,7 +281,7 @@ export const onRequest: PagesFunction<ForgeEnv> = async (context) => {
     //   - Access not wired → serve the page, which says so. Bouncing anywhere
     //     else here is what made this an infinite loop.
     if (path === "/login" || path === "/login.html") {
-      const next = safeNext(url.searchParams.get("next"))
+      const next = safeNext(url.searchParams.get("next"), url.origin)
       if (await isTeamRequest(context.request, context.env)) {
         return new Response(null, {
           status: 302,
@@ -331,7 +339,7 @@ export const onRequest: PagesFunction<ForgeEnv> = async (context) => {
     const team = await isTeamRequest(context.request, context.env)
     if (!team) {
       const vis = await getVisibility(context.env.SHARES, id)
-      if (vis !== "public") return loginRedirect(path)
+      if (vis !== "public") return loginRedirect(path, url.origin)
     }
     const res = await context.next()
     if (team) return withAcl(await ensureShareBar(res, id))
@@ -359,7 +367,7 @@ export const onRequest: PagesFunction<ForgeEnv> = async (context) => {
       return withAcl(res)
     }
     if (vis === "shared") return plain404()
-    return loginRedirect(path)
+    return loginRedirect(path, url.origin)
   }
 
   // Other static (css leftover, random files): team or 404

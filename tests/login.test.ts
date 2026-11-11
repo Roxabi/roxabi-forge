@@ -78,13 +78,47 @@ describe("login", () => {
     expect(ctx.next).not.toHaveBeenCalled()
   })
 
+  // Off-origin targets, including the forms a string check lets through:
+  // browsers drop tab/newline and read "\" as "/" while resolving a Location,
+  // so "/\t/evil.tld/x" lands on "//evil.tld/x". "/.//evil.tld/x" is the
+  // parser's own trap: its normalised path is the protocol-relative one.
+  const OFF_ORIGIN = [
+    "//evil.tld/x",
+    "https://evil.tld/x",
+    "/../../etc/passwd",
+    "/\t/evil.tld/x",
+    "/\n/evil.tld/x",
+    "/\r/evil.tld/x",
+    "/\\evil.tld/x",
+    "/.//evil.tld/x",
+  ]
+
   it("never forwards to another origin", async () => {
-    for (const evil of ["//evil.tld/x", "https://evil.tld/x", "/../../etc/passwd"]) {
+    for (const evil of OFF_ORIGIN) {
       const ctx = ctxFor(`/login?next=${encodeURIComponent(evil)}`, {}, true)
       const res = await onRequest(ctx as never)
-      expect(res.status).toBe(302)
-      expect(res.headers.get("location")).toBe("/")
+      expect(res.status, JSON.stringify(evil)).toBe(302)
+      expect(res.headers.get("location"), JSON.stringify(evil)).toBe("/")
     }
+  })
+
+  it("never hands Cloudflare Access a return URL on another origin", async () => {
+    for (const evil of OFF_ORIGIN) {
+      const ctx = ctxFor(`/login?next=${encodeURIComponent(evil)}`)
+      const res = await onRequest(ctx as never)
+      expect(res.status, JSON.stringify(evil)).toBe(302)
+      expect(res.headers.get("location"), JSON.stringify(evil)).toBe(
+        "https://page-team.example.com/cdn-cgi/access/login/forge.roxabi.dev" +
+          "?redirect_url=https%3A%2F%2Fforge.roxabi.dev%2F",
+      )
+    }
+  })
+
+  it("redirects a return target carrying control characters instead of failing", async () => {
+    const ctx = ctxFor(`/login?next=${encodeURIComponent("/x?a=\r\nb")}`, {}, true)
+    const res = await onRequest(ctx as never)
+    expect(res.status).toBe(302)
+    expect(res.headers.get("location")).toBe("/x?a=b")
   })
 
   it("does not loop: the login target is never itself a redirect to login", async () => {

@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [1.1.5] - 2026-11-11
+
+### Security
+
+- `/login?next=` was an open redirect. The return target was checked as a string (leading `/`, no `//`, no `\`, no `..`), but browsers drop tab/newline while resolving a `Location`, so `next=/%09/evil.tld` passed the check and sent a signed-in team member to `https://evil.tld/` — and an anonymous visitor's Cloudflare Access `redirect_url` pointed there too. The target is now resolved with the URL parser, kept only when it stays on the forge's own origin and its normalised path is not protocol-relative, and that resolved path is what goes into the `Location`. For a signed-in visitor, targets carrying CR/LF or characters outside Latin-1 now redirect instead of causing an invalid-header 500.
+
 ## [1.1.4] - 2026-09-23
 
 ### Fixed
