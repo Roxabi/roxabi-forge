@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [Unreleased]
+
+### Added
+
+- A bounded historical owner-file availability probe with private evidence and a separately approved internal API operation; it does not recover bytes, deploy, or close G1b.
+
 ## [1.1.5] - 2026-11-11
 
 ### Security
