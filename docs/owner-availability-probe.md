@@ -4,7 +4,7 @@
 
 ## Authority and private inputs
 
-The default preflight performs live GETs and requires authorization for use of the existing administrative token. `--probe` additionally requests an upload JWT and performs the internal POST. It requires **separate explicit operator approval for this exact operation and source commit**; F02/nonproduction approval does not cover it. A field in a JSON file is not human authorization. The operator must also independently review the exact commit and its CI results before approval. No call is made by adding this tool.
+No probe is currently authorized. One `--probe` run requires **explicit operator approval for the exact five-call operation, private target profile, and reviewed source commit**; F02/nonproduction approval does not cover it. Its first two GETs verify the project and historical file map before any token is minted. A separate preflight run or second approval is not required. A JSON field is not human authorization. The operator must independently review the exact commit and its CI results before approval. No call is made by adding this tool.
 
 Prepare a private JSON target record from approved F01 evidence, not guessed values. Its keys are exactly the following, plus the optional keys shown; all are strings:
 
@@ -24,15 +24,7 @@ Do not put private values in Git, commands, tickets, logs, or this document. Inp
 
 Create an existing private evidence directory outside every Git worktree (mode `0700`). Choose a new absolute output path in that directory; it must not already exist or resolve into Git. Input files and existing configs are never modified.
 
-```bash
-python3 scripts/probe_owner_availability.py \
-  --target-record /private/path/target.json \
-  --config /private/path/forge.config.json \
-  --env /private/path/forge.env \
-  --output /private/path/preflight.json
-```
-
-This default preflight checks project identity and the historical file map, but does not request an upload JWT or POST. A successful preflight is not an availability result. For the separately approved probe, use the reviewed exact source SHA and a detached clean source worktree. For example, prepare the worktree before approval or execution:
+For the approved probe, use the reviewed exact source SHA and a detached clean source worktree. For example, prepare the worktree before approval or execution:
 
 ```bash
 git worktree add --detach /path/to/probe-worktree <approved-full-sha>
@@ -41,7 +33,20 @@ git rev-parse HEAD
 git status --porcelain=v1 --untracked-files=all
 ```
 
-The HEAD must equal the approved SHA and status must be empty. After explicit approval, run the same command from that worktree with a **new** output path and append `--probe`. The tool itself checks its source worktree is detached, clean, and at the full SHA in the private record; it cannot verify the human approval. Do not use a dirty worktree or an override. Git must be available.
+The HEAD must equal the approved SHA and status must be empty. After explicit approval, run:
+
+```bash
+python3 scripts/probe_owner_availability.py \
+  --target-record /private/path/target.json \
+  --config /private/path/forge.config.json \
+  --env /private/path/forge.env \
+  --output /private/path/probe.json \
+  --probe
+```
+
+The tool itself checks its source worktree is detached, clean, and at the full SHA in the private record; it cannot verify the human approval. Do not use a dirty worktree or an override. Git must be available.
+
+Omitting `--probe` is an optional GET-only diagnostic: it checks the same first two conditions without requesting an upload JWT or POSTing. It still makes live calls, so requires appropriate authorization; it is not required before the approved probe and does not establish availability.
 
 Stdout reports only the outcome, evidence path, and SHA-256 of the evidence file. The private evidence is written atomically without overwriting, mode `0600`; it contains the target, safe request status metadata and outcome, but no JWT, token, response bodies or environment dump. `preflight`, `available`, and `missing` are completed outcomes; `missing` means stop. Failures exit nonzero and, when the API sequence has started and output is writable, retain safe partial diagnostics. Never paste private evidence into Git or public logs.
 
