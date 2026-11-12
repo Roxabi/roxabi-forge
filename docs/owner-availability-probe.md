@@ -1,6 +1,6 @@
 # Historical owner-file availability probe
 
-**Status: prepared, not executed.** This prerequisite investigation does not close G1b, recover bytes, validate rights, import data, create a preview, or deploy. The `check-missing` POST is an internal Wrangler API; its side-effect freedom is **inference**, not proven. Do not describe the operation as strictly read-only.
+**Status: prepared, not executed.** This prerequisite investigation does not close G1b, recover bytes, validate rights, import data, create a preview, or deploy. The `check-missing` POST is documented; its side-effect freedom is **inference**, not proven. Do not describe the operation as strictly read-only.
 
 ## Authority and private inputs
 
@@ -61,4 +61,4 @@ Only these fixed HTTPS API calls are used, once each, with TLS verification, no 
 
 No KV calls, bytes retrieval, upload, upsert-hashes, deployment creation, deletion, or preview is implemented. Stop on mismatch, missing, malformed response, transport failure or drift; do not force a deployment. Availability is time-dependent and is not proof of recovered content or authorization. A subsequent preview/recovery operation, if still needed, is separately designed and separately approved; there is no one-shot retrieval URL here.
 
-Protocol evidence: Wrangler **4.159.0** `wrangler-dist/cli.js` lines 301556–301560 (upload token) and 301574–301585 (check-missing request). These endpoints are internal and unstable. The file-map decoding convention is F01's `forge-inventory.py` (`result.files`). Neither Wrangler nor the probe was executed against Cloudflare as part of this preparation.
+Protocol evidence: Wrangler **4.159.0** `wrangler-dist/cli.js` lines 301556–301560 (upload token) and 301574–301585 (check-missing request); [Cloudflare Pages assets API](https://developers.cloudflare.com/api/resources/pages/subresources/assets/). The file-map decoding convention is F01's `forge-inventory.py` (`result.files`). Neither Wrangler nor the probe was executed against Cloudflare as part of this preparation.

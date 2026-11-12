@@ -5,6 +5,8 @@
 #
 # This repo is a publishing engine: bash (scripts) + Python 3.9 stdlib (lib/ + unittest)
 # + a tiny TS surface (functions/ Cloudflare Pages, vitest).
+# Exception: scripts/recover_owner_bytes.py uses lazy blake3==1.0.11 via
+# a locked PEP 723 script environment; its injected unit-test path stays stdlib.
 #
 # WHAT COMMITTING THIS FILE TURNS ON. Its mere presence is the dev-core project
 # contract (omp/index.ts `hasProjectContract`), so for anyone working here with

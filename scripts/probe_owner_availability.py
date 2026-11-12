@@ -5,9 +5,9 @@ This is a prerequisite investigation, not a closure of the historical
 ownership gate. It does not recover bytes, validate rights, deploy, upload,
 roll back, or reanchor. Default execution is preflight only.
 
-The upload-token GET and the internal POST /pages/assets/check-missing are a
-separate operation. Side-effect freedom of that POST is an inference from
-Wrangler, not a proven property. Do not describe the probe as strictly
+The upload-token GET and POST /pages/assets/check-missing are a separate
+operation. Their endpoints are documented; side-effect freedom of the POST
+is an inference from Wrangler, not a proven property. Do not describe the probe as strictly
 read-only.
 
 Core:

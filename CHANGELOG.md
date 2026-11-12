@@ -11,7 +11,8 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 ### Added
 
-- A bounded historical owner-file availability probe with private evidence and a separately approved internal API operation; it does not recover bytes, deploy, or close G1b.
+- A bounded historical owner-file availability probe with private evidence and a separately approved documented API operation; it does not recover bytes, deploy, or close G1b.
+- An offline-by-default operator recovery helper with a pinned BLAKE3 dependency and a runtime-secret Worker template. Separately approved execution uses a disposable Pages project, saves hash-verified bytes before ownership-checked cleanup, and reports static-bypass and shared-store risks without changing the source deployment or claiming ACL fidelity.
 
 ## [1.1.5] - 2026-11-11
 
