@@ -83,7 +83,7 @@ describe("recovery gate", () => {
     ["POST", route, "POST", key],
   ])("denies %s without calling assets", async (_name, path, method, suppliedKey) => {
     const ctx = setup()
-    const headers = suppliedKey === undefined ? {} : { "x-recovery-key": suppliedKey }
+    const headers: HeadersInit = suppliedKey === undefined ? {} : { "x-recovery-key": suppliedKey }
     const response = await worker.fetch(request(path, { method, headers }), ctx.env)
     await expectDenied(response)
     expect(ctx.fetch).not.toHaveBeenCalled()

@@ -81,6 +81,7 @@ class Scenario:
         self.created = False
         self.deleted = False
         self.deployments = 0
+        self.manifests = []
         self.fixture = None
         self.page_counts = {}
         self.rng_counter = 0
@@ -154,6 +155,7 @@ class Scenario:
             return _envelope({})
         if method == "POST" and path == project + "/deployments":
             self.deployments += 1
+            self.manifests.append(dict(body["manifest"]))
             return _envelope({
                 "url": "https://d%d.disposable-fixture.pages.dev" % self.deployments,
                 "aliases": [],
@@ -177,11 +179,11 @@ class Scenario:
         self.saved[name] = data
         return {"name": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
-    def run(self, execute=True):
+    def run(self, execute=True, now=None):
         return recovery.recover_owner_bytes(
             self.record, template=TEMPLATE, source_request=self.source,
             admin_request=self.admin, pages_get=self.pages, persist=self.persist,
-            hasher=_hash, now=lambda: 1_700_000_000, rng=self.rng,
+            hasher=_hash, now=now or (lambda: 1_700_000_000), rng=self.rng,
             sleep=lambda _: None, execute=execute,
         )
 
@@ -228,6 +230,42 @@ class RecoveryPolicyTests(unittest.TestCase):
         self.assertEqual(len(pages), 1)
         self.assertTrue(pages[0][4], "the first observation must be authenticated")
         self.assertEqual(len(scenario.deletes()), 1)
+
+    def _assert_d1_only_cleaned(self, scenario, result):
+        self.assertFalse(result["bytes_recovered"])
+        self.assertEqual(scenario.deployments, 1)
+        self.assertEqual(len(scenario.manifests), 1)
+        for manifest in scenario.manifests:
+            self.assertNotIn(scenario.record["source"]["expected_file_hash"], manifest.values())
+        d1 = [event for event in scenario.events if event[:2] == ("pages", 1)]
+        hosts = {event[2] for event in d1}
+        self.assertEqual(len(hosts), 2)
+        for host in hosts:
+            observations = [event for event in d1 if event[2] == host]
+            self.assertEqual([event[4] for event in observations], [True, False, True, False])
+        self.assertEqual(len(scenario.deletes()), 1)
+        self.assertTrue(scenario.deleted)
+        self.assertEqual(scenario.saved, {})
+
+    def test_unaccepted_residual_blocks_historical_deployment(self):
+        scenario = Scenario()
+        scenario.record["bypass_residual_accepted"] = False
+        result = scenario.run()
+        self._assert_d1_only_cleaned(scenario, result)
+
+    def test_expired_deadline_after_d1_blocks_historical_deployment(self):
+        scenario = Scenario()
+
+        def clock():
+            d1 = [event for event in scenario.events if event[:2] == ("pages", 1)]
+            if len(d1) >= 8:
+                scenario.events.append(("clock_expired",))
+                return 1_700_000_000 + 24 * 60 * 60
+            return 1_700_000_000
+
+        result = scenario.run(now=clock)
+        self.assertIn(("clock_expired",), scenario.events)
+        self._assert_d1_only_cleaned(scenario, result)
 
     def test_verified_bytes_saved_before_deleting_owned_project(self):
         scenario = Scenario()
