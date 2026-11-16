@@ -136,7 +136,7 @@ class CompareTests(unittest.TestCase):
                 r = compare(_prod(prod), local)
                 self.assertEqual("newer_prod", r["verdict"])
                 self.assertEqual("refuse", r["level"])
-                self.assertEqual("update plugin", r["label"])
+                self.assertEqual("legacy engine older", r["label"])
 
     def test_older_production_is_an_upgrade(self) -> None:
         r = compare(_prod("roxabi-forge/v1.9.0"), "roxabi-forge/v1.10.0")
@@ -179,20 +179,14 @@ class GateTests(unittest.TestCase):
     NEWER = _prod("roxabi-forge/v1.2.0")
     LOCAL = "roxabi-forge/v1.1.0"
 
-    def test_newer_production_refuses_with_update_commands(self) -> None:
+    def test_newer_production_refuses_and_names_pin(self) -> None:
         v = gate(self.NEWER, self.LOCAL)
         self.assertEqual("refuse", v["action"])
-        self.assertIn("production runs roxabi-forge 1.2.0, this plugin is 1.1.0", v["message"])
-        self.assertIn("update the plugin", v["message"])
+        self.assertIn("production runs roxabi-forge 1.2.0, legacy engine is 1.1.0", v["message"])
+        self.assertIn("pinned", v["message"])
         for cmd in UPDATE_COMMANDS:
             self.assertIn(cmd, v["message"])
         self.assertIn("--allow-engine-downgrade", v["message"])
-
-    def test_update_commands_cover_both_harnesses(self) -> None:
-        self.assertIn("claude plugin marketplace update roxabi-forge", UPDATE_COMMANDS)
-        self.assertIn("claude plugin update roxabi-forge@roxabi-forge", UPDATE_COMMANDS)
-        self.assertIn("omp plugin marketplace update roxabi-forge", UPDATE_COMMANDS)
-        self.assertIn("omp plugin upgrade roxabi-forge@roxabi-forge", UPDATE_COMMANDS)
 
     def test_downgrade_refuses_in_a_dry_run_too(self) -> None:
         # A proven verdict: the dry run is a gate, like the hub guard's exit 3.
@@ -323,11 +317,13 @@ class ProductionStampTests(unittest.TestCase):
 
 
 class ResolveEngineTests(unittest.TestCase):
-    def test_plugin_version_is_the_manifest_version(self) -> None:
-        # The tag publish clones is derived from this; it must be the version
-        # check_plugin_versions.py keeps consistent across every manifest.
-        canon = json.loads((PLUGIN_ROOT / "plugin.json").read_text(encoding="utf-8"))["version"]
-        self.assertEqual(canon, read_plugin_version())
+    def test_legacy_pin_is_independent_of_skills_version(self) -> None:
+        self.assertEqual("2.0.0", json.loads((PLUGIN_ROOT / "plugin.json").read_text(encoding="utf-8"))["version"])
+        self.assertEqual("1.1.5", read_plugin_version())
+        for repo in ("", "https://example.invalid/forge.git"):
+            eng = resolve_engine(repo)
+            self.assertEqual("roxabi-forge/v1.1.5", eng["ref"])
+            self.assertEqual("roxabi-forge/v1.1.5", eng["stamp"])
 
     def test_empty_or_url_is_release_mode_on_the_plugin_tag(self) -> None:
         for repo, source in (("", CANONICAL), ("  ", CANONICAL),
@@ -375,13 +371,13 @@ class ResolveEngineTests(unittest.TestCase):
         self.assertIn("1.3.0", msg)
         self.assertIn("1.4.2", msg)
 
-    def test_mismatch_is_allowed_when_publish_runs_from_that_checkout(self) -> None:
+    def test_mismatch_is_refused_even_from_same_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / "engine"
             _checkout(root, "1.3.0")
             with patch("load_config.detect_engine_checkout", return_value=str(root.resolve())):
-                eng = resolve_engine(str(root), plugin_version="1.4.2")
-        self.assertEqual("roxabi-forge/v1.3.0", eng["stamp"].split("+")[0])
+                with self.assertRaises(EngineError):
+                    resolve_engine(str(root), plugin_version="1.4.2")
 
     def test_unusable_paths_are_refused_never_cloned(self) -> None:
         with tempfile.TemporaryDirectory() as td:

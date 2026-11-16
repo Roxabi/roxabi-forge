@@ -8,12 +8,11 @@ Cloning `main` tied neither to the other, and production recorded nothing
 about what it ran, so a machine with an old plugin could silently replace a
 newer engine. Three rules close that:
 
-  * release mode (default): the engine is the tag `roxabi-forge/v<P>`, where P
-    is the version of the plugin running publish.sh — scripts and engine are
-    the same release by construction;
+  * release mode (default): the engine is the independent legacy pin
+    `roxabi-forge/v1.1.5`, not the MCP skills package version;
   * dev mode (forge_repo names a local checkout): `git archive HEAD`, stamped
     `<version>+dev.<sha7>`, refused when the checkout's version differs from
-    P unless publish.sh itself runs from that checkout;
+    the legacy pin;
   * every deploy stamps `roxabi-forge/v<version>` as the Pages commit message,
     and the gate refuses a publish whose version is older than that stamp.
 
@@ -54,15 +53,10 @@ _SEMVER_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
 # check_plugin_versions.py keeps consistent with every harness manifest.
 ENGINE_PACKAGE_JSON = "plugins/roxabi-forge/package.json"
 
-# Printed with every "update the plugin" refusal. Verified against
-# `claude plugin --help` / `claude plugin marketplace --help` and
-# `omp plugin marketplace` (subcommands add, remove, update, list).
-UPDATE_COMMANDS = (
-    "claude plugin marketplace update roxabi-forge",
-    "claude plugin update roxabi-forge@roxabi-forge",
-    "omp plugin marketplace update roxabi-forge",
-    "omp plugin upgrade roxabi-forge@roxabi-forge",
-)
+# Legacy publisher and MCP skills have independent release lifecycles.
+LEGACY_ENGINE_VERSION = "1.1.5"
+
+UPDATE_COMMANDS = ("Contact the instance administrator; the legacy engine is pinned.",)
 
 
 class EngineError(Exception):
@@ -92,13 +86,8 @@ def _version_from_package(raw: str, where: str) -> str:
 
 
 def read_plugin_version(root: Path | None = None) -> str:
-    """Version of the plugin running this code (its package.json)."""
-    path = (root or _lc.PLUGIN_ROOT) / "package.json"
-    try:
-        raw = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise EngineError(f"plugin version unreadable: {path} ({exc})") from exc
-    return _version_from_package(raw, str(path))
+    """Legacy engine version, independent of the installed skills package."""
+    return LEGACY_ENGINE_VERSION
 
 
 def release_tag(version: str) -> str:
@@ -174,10 +163,10 @@ def compare(prod: dict[str, Any], local_stamp: str) -> dict[str, Any]:
             "verdict": "newer_prod",
             "level": "refuse",
             "message": (
-                f"production runs roxabi-forge {rv}, this plugin is {lv} — "
-                "update the plugin:"
+                f"production runs roxabi-forge {rv}, legacy engine is {lv} — "
+                "the pinned legacy engine cannot replace it:"
             ),
-            "label": "update plugin",
+            "label": "legacy engine older",
         }
     if remote["base"] < local["base"]:
         return {
@@ -286,8 +275,7 @@ def gate(
         lines = [result["message"]]
         lines += [f"    {cmd}" for cmd in UPDATE_COMMANDS]
         lines.append(
-            "  then re-run the publish (or pass --allow-engine-downgrade to "
-            "deploy the older engine on purpose)"
+            "  --allow-engine-downgrade would deploy the older engine on purpose"
         )
         return {
             "action": "refuse",
@@ -398,17 +386,13 @@ def resolve_engine(forge_repo: str, *, plugin_version: str | None = None) -> dic
     version = _version_from_package(raw, f"{source} HEAD:{ENGINE_PACKAGE_JSON}")
     top = _git_ok(root, "rev-parse", "--show-toplevel")
     top_path = str(Path(top.splitlines()[0]).resolve()) if top else str(root)
-    # The only way scripts and engine versions can legitimately differ is not
-    # at all: when publish.sh runs from this very checkout they are the same
-    # tree, so a mismatch there is just an uncommitted version bump.
+    # An explicitly selected checkout still must match the legacy engine pin.
     same_checkout = _lc.detect_engine_checkout() == top_path
-    if version != plugin_v and not same_checkout:
+    if version != plugin_v:
         raise EngineError(
             f"forge_repo checkout {source} is roxabi-forge {version} at HEAD, but "
-            f"this plugin is {plugin_v} — publish would run {plugin_v} scripts "
-            f"against a {version} engine. Check out the matching commit, run "
-            "publish.sh from that checkout, or clear forge_repo to deploy the "
-            f"{plugin_v} release"
+            f"the legacy engine pin is {plugin_v}. Check out a matching commit "
+            "or clear forge_repo to deploy the pinned release"
         )
     upstream = _git_ok(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
     if upstream:

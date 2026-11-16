@@ -58,9 +58,8 @@ def _git(repo: Path, *args: str) -> str:
     return proc.stdout.strip()
 
 
-# The version publish.sh derives the engine tag from. A dev-mode checkout must
-# carry the same one, or doctor (like publish) refuses it.
-PLUGIN_VERSION = json.loads((LIB.parents[1] / "package.json").read_text(encoding="utf-8"))["version"]
+# Legacy engine version is independent of the MCP skills package version.
+PLUGIN_VERSION = "1.1.5"
 
 
 def _init_engine(
@@ -352,7 +351,7 @@ class OnlineEngineLineTests(unittest.TestCase):
             ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{p}"},
              f"prod {p} · plugin {p} · aligned"),
             ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{newer}"},
-             f"prod {newer} · plugin {p} · update plugin"),
+             f"prod {newer} · plugin {p} · legacy engine older"),
             ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{older}"},
              f"prod {older} · plugin {p} · upgrade on next publish"),
             ({"ok": False, "error": "HTTP 403: denied"},
@@ -369,7 +368,7 @@ class OnlineEngineLineTests(unittest.TestCase):
         )
         self.assertTrue(d["online_ok"])
         self.assertTrue(
-            any("omp plugin upgrade roxabi-forge@roxabi-forge" in w for w in d["online_warnings"]),
+            any("Contact the instance administrator; the legacy engine is pinned" in w for w in d["online_warnings"]),
             d["online_warnings"],
         )
 

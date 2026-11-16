@@ -250,11 +250,11 @@ differently flip the hash of the whole catalogue.
 
 ## Engine drift gate
 
-A deploy replaces the whole engine, so scripts and engine must be one release:
-`forge_repo` empty (or a URL) clones the tag `roxabi-forge/v<plugin version>`
-(no fallback to `main`); a local checkout is explicit dev mode (`git archive
-HEAD`, refused when its version differs from the plugin's unless `publish.sh`
-runs from it). Every deploy stamps `--commit-message=roxabi-forge/v<version>`
+Legacy `forge_repo` empty (or a URL) clones the independent engine pin
+`roxabi-forge/v1.1.5` (no fallback to `main`); a local checkout is explicit
+dev mode (`git archive HEAD`, refused unless its version matches the pin).
+Skills version 2.0.0 does not select the legacy engine. Every deploy stamps
+`--commit-message=roxabi-forge/v<version>`
 (`+dev.<sha7>` in dev mode) and `--commit-hash=<engine commit>`;
 `deploy_pages` refuses to reach `wrangler` without the stamp or without
 `ENGINE_DRIFT_PASSED`.
@@ -264,7 +264,7 @@ runs from it). Every deploy stamps `--commit-message=roxabi-forge/v<version>`
 
 |Case|Behaviour|
 |---|---|
-|Production newer than the plugin|**refuses** with the update commands — unless `--allow-engine-downgrade`; fatal in `--dry-run` too|
+|Production newer than the legacy pin|**refuses** and asks the instance administrator — unless `--allow-engine-downgrade`; fatal in `--dry-run` too|
 |Pages API unreachable / error|**refuses** — unless `--allow-unverified` (`--allow-engine-downgrade` does not lift it); `--dry-run` warns `would refuse`|
 |No / unparseable stamp (pre-1.1.0 production)|warns `production engine version unknown`, proceeds, the deploy stamps it|
 |Older production / same version|proceeds (`engine upgrade`, `aligned`, release-replaces-dev info, dev-replaces-release warning)|

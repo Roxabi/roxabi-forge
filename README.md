@@ -27,6 +27,13 @@ that an MCP management endpoint is available.
 > an MCP fallback. No instance or data migration is implied. A local hub,
 > including `~/.roxabi/forge`, is not an inventory of live artifacts.
 
+The separate publisher source is
+[`go-silex/unkillable-forge` at reviewed revision `4db8a1f0d28515c67875ff2bd0d662d730c7156b`](https://github.com/go-silex/unkillable-forge/tree/4db8a1f0d28515c67875ff2bd0d662d730c7156b):
+marketplace `unkillable-forge`, plugin `unkillable-forge`, source
+`./plugins/unkillable-forge`. Follow its [package README](https://github.com/go-silex/unkillable-forge/blob/4db8a1f0d28515c67875ff2bd0d662d730c7156b/plugins/unkillable-forge/README.md)
+for the complete `dist/` and `LICENSE` distribution and Claude Code, Codex or
+OMP setup. This source revision is not itself an installation pin.
+
 ## Why this exists
 
 ```

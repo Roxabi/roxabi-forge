@@ -2,7 +2,7 @@
 # Behavioral tests for the engine publish.sh deploys and the engine drift gate.
 #
 # What is locked here:
-#   1. release mode clones the tag roxabi-forge/v<plugin version> — never main
+#   1. release mode clones the pinned legacy tag — never main
 #   2. a missing tag dies with a clear message, before any clone
 #   3. an empty forge_repo is release mode on the public engine
 #   4. a dev checkout on another version is refused before anything is archived
@@ -35,8 +35,7 @@ echo "engine source + drift gate tests ($PUBLISH)"
 
 PY_REAL="$(command -v python3)"
 GIT_REAL="$(command -v git)"
-P="$("$PY_REAL" -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' \
-  "$ROOT/plugins/roxabi-forge/package.json")"
+P="1.1.5"
 TAG="roxabi-forge/v$P"
 
 TD="$(mktemp -d)"
@@ -242,15 +241,13 @@ if cli "$TD/newer.log" --tree; then
   cat "$TD/newer.log" >&2
   fail "publish proceeded although production runs a newer engine"
 fi
-grep -q "production runs roxabi-forge 99.0.0, this plugin is $P" "$TD/newer.log" \
+grep -q "production runs roxabi-forge 99.0.0, legacy engine is $P" "$TD/newer.log" \
   || { cat "$TD/newer.log" >&2; fail "the refusal must name both versions"; }
-grep -q 'claude plugin marketplace update roxabi-forge' "$TD/newer.log" \
-  || fail "the refusal must print the marketplace update command"
-grep -q 'omp plugin upgrade roxabi-forge@roxabi-forge' "$TD/newer.log" \
-  || fail "the refusal must print the OMP upgrade command"
+grep -q 'Contact the instance administrator; the legacy engine is pinned' "$TD/newer.log" \
+  || fail "the refusal must identify the pinned legacy engine"
 [ ! -s "$WR_LOG" ] || { cat "$WR_LOG" >&2; fail "wrangler ran although the engine drift gate refused"; }
 if grep -Eq '(^| )clone ' "$GIT_LOG"; then fail "the engine was cloned although the gate refused"; fi
-pass "production newer than the plugin: refused with the update commands, before any wrangler call or clone"
+pass "production newer than the legacy pin: refused before any wrangler call or clone"
 
 if ! cli "$TD/downgrade.log" --tree --allow-engine-downgrade; then
   cat "$TD/downgrade.log" >&2

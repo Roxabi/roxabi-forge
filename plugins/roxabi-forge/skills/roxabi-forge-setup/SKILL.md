@@ -16,11 +16,16 @@ entry; it does not migrate an instance, source data, credentials or access.
    Roxabi management endpoint or other required values are absent or not
    approved, stop and ask the instance administrator; do not invent them.
    `~/.roxabi/forge` is local source, not evidence of live contents.
-2. Use the separately installed Unkillable Forge publisher's complete `dist/`
-   and `LICENSE`, not this plugin's root. It requires Node 22+ and the matching
-   native payload on Linux glibc 2.28+ or macOS 11+, x64 or arm64. Consult its
-   README for the profile schema and current installation details. Select
-   `claude-code`, `codex` or `omp` explicitly.
+2. The public source is [go-silex/unkillable-forge at the reviewed
+   revision](https://github.com/go-silex/unkillable-forge/tree/4db8a1f0d28515c67875ff2bd0d662d730c7156b):
+   marketplace `unkillable-forge`, plugin `unkillable-forge`, source
+   `./plugins/unkillable-forge`. Follow its
+   [package README](https://github.com/go-silex/unkillable-forge/blob/4db8a1f0d28515c67875ff2bd0d662d730c7156b/plugins/unkillable-forge/README.md)
+   for distribution and setup. The reviewed revision identifies the source;
+   it does not by itself pin an installation. Use the complete installed
+   `dist/` and `LICENSE`, not this plugin's root. Node 22+ and the matching
+   native payload are required on Linux glibc 2.28+ or macOS 11+, x64 or arm64.
+   Select `claude-code`, `codex` or `omp` explicitly.
 3. Propose an operator-controlled profile outside the release with
    `schemaVersion`, `profileId`, `instanceId`, `readOrigin`, `manageOrigin`,
    `mcpResource`, `approvedAuthorizationIssuer`, `approvedEndpointOrigin`,
