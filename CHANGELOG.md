@@ -7,6 +7,13 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [2.0.0] - 2026-11-16
+
+### Changed
+
+- **Breaking:** the Roxabi publish and setup skills now use the separately installed Unkillable Forge MCP publisher and an explicitly approved instance profile. The management endpoint must be approved by the instance administrator; tool discovery does not prove a live publication.
+- The legacy Cloudflare publisher remains a separate pinned path, not a fallback. This release neither migrates an instance nor changes existing access, destinations, source data or credentials.
+
 ## [1.1.5] - 2026-11-11
 
 ### Security

@@ -1,9 +1,9 @@
 {
   "name": "roxabi-forge",
-  "description": "Cloudflare Pages upload for team artifact hosts — roxabi-forge-publish + roxabi-forge-setup. Upload only; bring your own HTML.",
+  "description": "Roxabi Forge publish and setup skills for the separately installed MCP publisher.",
   "author": {
     "name": "Roxabi",
     "url": "https://github.com/Roxabi"
   },
-  "version": "1.1.5"
+  "version": "2.0.0"
 }

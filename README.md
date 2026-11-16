@@ -5,16 +5,27 @@
 
 **Team HTML artifact host** — [forge.roxabi.dev](https://forge.roxabi.dev)
 
-Publish decks, talks, and guides behind Cloudflare Access. Share unlisted links with a path key. Optional shortlinks via Shlink. Engine in git; HTML stays in the shared hub.
+The Roxabi skills use the separately installed Unkillable Forge MCP publisher
+with an explicitly approved instance profile. Existing Cloudflare Access,
+share links and shortlinks are unchanged; this repository does not establish
+that an MCP management endpoint is available.
 
 | | |
 |---|---|
 | **Live** | `https://forge.roxabi.dev` |
 | **Audience** | Roxabi team (Access) · external = secret `/s/…` links |
-| **Deploy** | Cloudflare Pages Direct Upload (`wrangler`) from your laptop |
+| **Publisher** | Separately installed Unkillable Forge MCP runtime; approved Roxabi profile required |
 | **Plugin** | `roxabi-forge` — `roxabi-forge-publish` · `roxabi-forge-setup` |
 
 ---
+
+> **Routing:** For current setup and publishing, follow
+> `roxabi-forge-setup` and `roxabi-forge-publish`. If the Roxabi management
+> endpoint is absent or unapproved, stop and ask the instance administrator.
+> The Direct Upload diagrams, runtime requirements and commands below document
+> the separate legacy path only, pinned to `roxabi-forge/v1.1.5`; they are not
+> an MCP fallback. No instance or data migration is implied. A local hub,
+> including `~/.roxabi/forge`, is not an inventory of live artifacts.
 
 ## Why this exists
 
