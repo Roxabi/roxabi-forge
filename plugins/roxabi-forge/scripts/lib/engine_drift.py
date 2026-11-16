@@ -21,7 +21,7 @@ Subcommands (all read-only):
   resolve     shell assignments ENGINE_* describing the engine to deploy
   prod-stamp  JSON: the version stamp of the production deployment
   gate        shell assignments DRIFT_*: the verdict for prod JSON on stdin
-  summary     one doctor line: prod <L> · plugin <P> · <state>
+  summary     one doctor line: prod <L> · legacy engine pin <P> · <state>
 
 Python 3.9 stdlib only.
 """
@@ -449,14 +449,14 @@ def dev_warnings(engine: dict[str, Any]) -> list[str]:
 
 
 def summary_line(cfg: dict[str, Any] | None = None, *, fetch: bool = True) -> dict[str, Any]:
-    """Doctor --online line: `prod <L|unknown> · plugin <P> · <state>`.
+    """Doctor --online line: `prod <L|unknown> · legacy engine pin <P> · <state>`.
 
     Never raises: the doctor must degrade to a report.
     """
     try:
         plugin_v = read_plugin_version()
     except EngineError as exc:
-        return {"line": f"prod ? · plugin ? · {exc}", "verdict": "error"}
+        return {"line": f"prod ? · legacy engine pin ? · {exc}", "verdict": "error"}
     cfg = cfg or _lc.load_config()
     try:
         local_stamp = resolve_engine(str(cfg.get("forge_repo") or ""), plugin_version=plugin_v)["stamp"]
@@ -466,13 +466,13 @@ def summary_line(cfg: dict[str, Any] | None = None, *, fetch: bool = True) -> di
         local_stamp = format_stamp(plugin_v)
     if not fetch:
         return {
-            "line": f"prod unverified · plugin {plugin_v} · online preflight failed",
+            "line": f"prod unverified · legacy engine pin {plugin_v} · online preflight failed",
             "verdict": "unverified",
         }
     prod = production_stamp(cfg)
     if not prod.get("ok"):
         return {
-            "line": f"prod unverified · plugin {plugin_v} · {prod.get('error') or 'Pages API error'}",
+            "line": f"prod unverified · legacy engine pin {plugin_v} · {prod.get('error') or 'Pages API error'}",
             "verdict": "unverified",
         }
     result = compare(prod, local_stamp)
@@ -480,7 +480,7 @@ def summary_line(cfg: dict[str, Any] | None = None, *, fetch: bool = True) -> di
     if shown.startswith(STAMP_PREFIX):
         shown = shown[len(STAMP_PREFIX):]
     return {
-        "line": f"prod {shown} · plugin {plugin_v} · {result['label']}",
+        "line": f"prod {shown} · legacy engine pin {plugin_v} · {result['label']}",
         "verdict": result["verdict"],
         "message": result["message"],
     }

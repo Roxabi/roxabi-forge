@@ -81,42 +81,43 @@ plugins/roxabi-forge/scripts/forge-discover.sh --write   # existing forge
 plugins/roxabi-forge/scripts/forge-provision.sh          # your own account, no forge yet
 ```
 
-Doctor: `plugins/roxabi-forge/scripts/forge-doctor.sh`  
-Setup: `/roxabi-forge-setup` (user-invoked; owns creating `forge.config.json`).
+Legacy doctor: `plugins/roxabi-forge/scripts/forge-doctor.sh`.
+`/roxabi-forge-setup` configures the separate MCP publisher, not legacy config.
 
 | Doctor exit | Meaning | Next |
 |---|---|---|
 | `0` | ready | publish |
-| `1` | hub / local config KO | `/roxabi-forge-setup` |
+| `1` | hub / local config KO | stop and request explicit legacy operator action |
 | `2` | hub OK, deploy blocked | fix the named blockers |
 
 A missing `CLOUDFLARE_API_TOKEN` is still not a *hub* problem — generating an
 artifact works, deploying does not. It is now exit `2` with an explicit blocker
 line, instead of the silent `0` that let a token-less laptop look healthy.
-`publish.sh` hard-stops on exit `1` and names `/roxabi-forge-setup`; it no longer falls
-back to the example config.
+`publish.sh` hard-stops on exit `1`; its historical setup-skill message does
+not configure legacy anymore. It does not fall back to the example config.
 
 ### Engine source — `forge_repo`
 
-A deploy is the hub snapshot built by **this plugin's scripts** plus an engine
-(`functions/`, `site/`, `wrangler.toml`). The two must be the same release, so
-`forge_repo` only chooses where that release comes from:
+A legacy deploy is the hub snapshot built by the legacy publisher plus an
+engine (`functions/`, `site/`, `wrangler.toml`). Its independent engine pin
+`P = 1.1.5` is not the MCP skills package version. `forge_repo` chooses where
+that pinned engine comes from:
 
 | `forge_repo` | Mode | Engine deployed | Pages stamp (`--commit-message`) |
 |---|---|---|---|
-| empty (default) | release | tag `roxabi-forge/v<P>` of `https://github.com/Roxabi/roxabi-forge.git`, P = the plugin's `package.json` version | `roxabi-forge/v<P>` |
+| empty (default) | release | tag `roxabi-forge/v<P>` of `https://github.com/Roxabi/roxabi-forge.git` | `roxabi-forge/v<P>` |
 | a URL | release | tag `roxabi-forge/v<P>` of that remote | `roxabi-forge/v<P>` |
-| a local checkout path | dev (explicit) | `git archive HEAD` — uncommitted changes are not deployed | `roxabi-forge/v<V>+dev.<sha7>`, `--commit-dirty=true` |
+| a local checkout path | dev (explicit) | `git archive HEAD` — uncommitted changes are not deployed | `roxabi-forge/v<P>+dev.<sha7>`, `--commit-dirty=true` |
 
 - A missing tag stops the publish (`engine release … not found`); it never
   falls back to `main`.
-- Dev mode refuses when the checkout's version `V` (its
-  `plugins/roxabi-forge/package.json` at `HEAD`) differs from `P`, unless
-  `publish.sh` runs from that very checkout. Doctor warns which commit will
+- Dev mode refuses when the checkout's version (its
+  `plugins/roxabi-forge/package.json` at `HEAD`) differs from `P`, including
+  when `publish.sh` runs from that checkout. Doctor warns which commit will
   deploy, whether `HEAD` is on its upstream, and how many uncommitted changes
   stay behind.
-- Setup and `forge-provision.sh` never pick a checkout on the operator's
-  behalf; `load_config.py --print-engine-root` only *suggests* one.
+- A checkout must be selected explicitly; `load_config.py --print-engine-root`
+  only suggests one.
 
 ### Engine drift gate
 
@@ -126,16 +127,16 @@ mutation — and in `--dry-run` — `publish.sh` reads the stamp of the project'
 `canonical_deployment` (Pages API) and compares it with the stamp it would
 write:
 
-| Production `L` vs plugin `P` | Result |
+| Production `L` vs legacy engine pin `P` | Result |
 |---|---|
-| `L > P` | **refuses**: `production runs roxabi-forge L, this plugin is P — update the plugin`, followed by the Claude Code / OMP update commands. `--allow-engine-downgrade` deploys anyway. |
+| `L > P` | **refuses** and directs the operator to the instance administrator. `--allow-engine-downgrade` deploys anyway. |
 | `L < P` | `engine upgrade L → P`, proceeds |
 | `L = P` | proceeds; a release replacing a dev build is info, a dev build replacing the release is a warning |
 | no / unparseable stamp | warning `production engine version unknown`, proceeds — this publish stamps it |
 | Pages API unreachable / error | **refuses**, unless `--allow-unverified` (the flag that already means "the live state cannot be read"). `--allow-engine-downgrade` does not lift it. Under `--dry-run` it is a `would refuse` warning. |
 
 `forge-doctor.sh --online` reports the same comparison as one line:
-`engine   : prod <L|unknown> · plugin <P> · <state>`.
+`engine   : prod <L|unknown> · legacy engine pin <P> · <state>`.
 
 ### `hub_root` validation — `vault_markers`
 

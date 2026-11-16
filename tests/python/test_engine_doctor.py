@@ -326,7 +326,7 @@ class EngineDoctorTests(unittest.TestCase):
 
 
 class OnlineEngineLineTests(unittest.TestCase):
-    """forge-doctor.sh --online prints `prod <L|unknown> · plugin <P> · <state>`."""
+    """Doctor reports production state against the independent legacy engine pin."""
 
     PF_OK = {"ok": True, "errors": [], "warnings": [], "checks": {}, "require_kv": True}
 
@@ -346,20 +346,17 @@ class OnlineEngineLineTests(unittest.TestCase):
         newer = f"{major}.{minor}.{patch_ + 1}"
         older = f"{major}.{minor}.{patch_ - 1}" if patch_ else f"{major - 1}.0.0"
         cases = (
-            ({"ok": True, "has_deployment": True, "stamp": ""},
-             f"prod unknown · plugin {p} · stamped on next publish"),
-            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{p}"},
-             f"prod {p} · plugin {p} · aligned"),
-            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{newer}"},
-             f"prod {newer} · plugin {p} · legacy engine older"),
-            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{older}"},
-             f"prod {older} · plugin {p} · upgrade on next publish"),
-            ({"ok": False, "error": "HTTP 403: denied"},
-             f"prod unverified · plugin {p} · HTTP 403: denied"),
+            ({"ok": True, "has_deployment": True, "stamp": ""}, "unknown"),
+            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{p}"}, "aligned"),
+            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{newer}"}, "newer_prod"),
+            ({"ok": True, "has_deployment": True, "stamp": f"roxabi-forge/v{older}"}, "upgrade"),
+            ({"ok": False, "error": "HTTP 403: denied"}, "unverified"),
         )
-        for prod, line in cases:
-            with self.subTest(line=line):
-                self.assertEqual(line, self._online(prod)["engine_drift"]["line"])
+        for prod, verdict in cases:
+            with self.subTest(verdict=verdict):
+                summary = self._online(prod)["engine_drift"]
+                self.assertEqual(verdict, summary["verdict"])
+                self.assertIn(f"legacy engine pin {p}", summary["line"])
 
     def test_newer_production_is_an_advisory_warning_not_an_exit_code(self) -> None:
         major, minor, patch_ = (int(x) for x in PLUGIN_VERSION.split("."))
