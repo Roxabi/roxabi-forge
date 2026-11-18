@@ -1079,11 +1079,11 @@ def resolved_og_renderer(cfg: dict[str, Any]) -> str:
 def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
     """Inspect forge_repo without cloning.
 
-    Empty or a URL is release mode: publish.sh clones the tag
-    roxabi-forge/v<plugin version>, so the engine matches the plugin's
-    scripts. A local checkout is dev mode: publish.sh archives HEAD (no
-    commit means that archive dies) and stamps it <version>+dev.<sha7>. A
-    non-canonical URL cannot be checked offline; with layout tree that is the
+    Empty or a URL is release mode: publish.sh clones the independent legacy
+    engine pin roxabi-forge/v1.1.5. A local checkout is dev mode: publish.sh
+    archives HEAD only if its engine version matches the pin and stamps it
+    <version>+dev.<sha7>.
+    A non-canonical URL cannot be checked offline; with layout tree that is the
     incident where the configured remote was still the pre-tree engine and a
     publish would have overwritten production.
 
@@ -1123,8 +1123,7 @@ def engine_status(cfg: dict[str, Any]) -> dict[str, Any]:
             version = engine_drift.read_plugin_version()
         except engine_drift.EngineError as exc:
             status["issues"].append(
-                f"{exc} — release mode clones the tag of the plugin version; "
-                "reinstall the roxabi-forge plugin"
+                f"{exc} — legacy engine pin could not be resolved"
             )
             status["path_failed"] = True
             return status

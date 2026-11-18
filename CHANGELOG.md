@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [2.0.0] - 2026-11-16
+
+### Changed
+
+- **Breaking:** the Roxabi publish and setup skills now use the separately installed Unkillable Forge MCP publisher and an explicitly approved instance profile. The management endpoint must be approved by the instance administrator; tool discovery does not prove a live publication.
+- The legacy Cloudflare publisher remains a separate pinned path, not a fallback. This release neither migrates an instance nor changes existing access, destinations, source data or credentials.
+- Legacy Direct Upload resolves and stamps the independent `roxabi-forge/v1.1.5` engine pin regardless of the skills package version. Explicit dev checkouts must match that legacy engine version; newer production still refuses by default.
+- The separately installed publisher source is `go-silex/unkillable-forge` at reviewed revision `4db8a1f0d28515c67875ff2bd0d662d730c7156b`; this identifies the source and does not pin an installation.
+- CI keeps the Python 3.9 gate on `ubuntu-22.04`, a supported image, after `ubuntu-latest` moved to Ubuntu 26.04 without a matching Python 3.9 build.
+
 ## [1.1.5] - 2026-11-11
 
 ### Security

@@ -84,10 +84,10 @@ cp -a "$ROOT/plugins/roxabi-forge/scripts" "$TD/engine/plugins/roxabi-forge/scri
 cp "$ROOT/plugins/roxabi-forge/forge.config.example.json" \
   "$TD/engine/plugins/roxabi-forge/forge.config.example.json" \
   || fail "engine fixture: cannot copy forge.config.example.json"
-# Dev mode (forge_repo is a checkout) refuses an engine whose version differs
-# from the running plugin's, so the fixture carries the plugin's own.
-cp "$ROOT/plugins/roxabi-forge/package.json" "$TD/engine/plugins/roxabi-forge/package.json" \
-  || fail "engine fixture: cannot copy package.json"
+# Dev mode checks the independent legacy engine pin, not the MCP skills version.
+printf '{"name":"roxabi-forge","version":"1.1.5"}\n' \
+  > "$TD/engine/plugins/roxabi-forge/package.json" \
+  || fail "engine fixture: cannot write package.json"
 OG_RENDER_COPY="$TD/engine/plugins/roxabi-forge/scripts/lib/og_render.py"
 [ -f "$OG_RENDER_COPY" ] || fail "engine fixture: og_render.py missing"
 mv "$OG_RENDER_COPY" "$OG_RENDER_COPY.real"
@@ -518,16 +518,14 @@ if (
   cat "$newer_out" >&2
   fail "dry run proceeded although production runs a newer engine"
 fi
-grep -q 'production runs roxabi-forge 99.0.0, this plugin is' "$newer_out" \
+grep -q 'production runs roxabi-forge 99.0.0, legacy engine is 1.1.5' "$newer_out" \
   || { cat "$newer_out" >&2; fail "the refusal must name both engine versions"; }
-grep -q 'claude plugin update roxabi-forge@roxabi-forge' "$newer_out" \
-  || fail "the refusal must print the Claude Code update command"
-grep -q 'omp plugin upgrade roxabi-forge@roxabi-forge' "$newer_out" \
-  || fail "the refusal must print the OMP update command"
+grep -q 'Contact the instance administrator; the legacy engine is pinned' "$newer_out" \
+  || fail "the refusal must identify the pinned legacy engine"
 refute 'hub sandboxed' "$newer_out" "the engine drift gate ran after the build started"
 [ ! -s "$REC" ] || fail "a mutating CLI ran on the engine-drift refusal: $(tr '\n' ';' < "$REC")"
 assert_hub_untouched "engine drift refusal"
-pass "dry run refuses a production engine newer than the plugin, with the update commands"
+pass "dry run refuses a production engine newer than the legacy pin"
 
 reset_fixture_env
 downgrade_out="$TD/downgrade.out"

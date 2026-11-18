@@ -8,7 +8,7 @@
 #
 # Architecture (roxabi-forge shape):
 #   SSOT     = $hub/$artifacts_dir/<slug>/  (shared hub, outside git)
-#   engine   = release tag roxabi-forge/v<plugin version> (default), or git
+#   engine   = release tag roxabi-forge/v1.1.5 (legacy pin), or git
 #              archive HEAD of a local checkout (dev mode) — never the HTML
 #   deploy   = wrangler pages deploy site  (token ~/.config/roxabi/forge/forge.env)
 #
@@ -184,9 +184,8 @@ Usage:
               cannot tell which engine production runs.
 
   --allow-engine-downgrade : deploy even when production runs a newer
-              roxabi-forge engine than this plugin. Without it, that case
-              refuses and prints the plugin update commands — an old plugin
-              would otherwise replace the newer engine everyone else relies on.
+              roxabi-forge engine than the pinned legacy engine. Without it,
+              that case refuses and asks the instance administrator.
 
   --reanchor-snapshot : re-point the KV snapshot record at the deployment the
               live site is serving, keeping its slug set verbatim. The
@@ -198,9 +197,9 @@ Usage:
 
   SSOT   : \$ARTIFACTS_ROOT/<slug>/  (hub, forge.config)
   Deploy : wrangler pages deploy (token ~/.config/roxabi/forge/forge.env)
-  Engine : tag roxabi-forge/v<plugin version> of forge_repo (empty = the
+  Engine : tag roxabi-forge/v1.1.5 of forge_repo (empty = the
            public engine), or git archive HEAD when forge_repo is a local
-           checkout (dev mode, stamped <version>+dev.<sha7>). Every deploy
+           checkout on the pinned version (dev mode, stamped <version>+dev.<sha7>). Every deploy
            stamps that version on the Pages deployment.
 
   Team    : https://${PUBLIC_HOST}/${INTERNAL_PREFIX}/<slug>/
@@ -224,11 +223,9 @@ whoami_id() { git config user.email 2>/dev/null || echo "${USER:-unknown}@$(host
 
 # Which engine this publish deploys, from forge_repo alone (no clone, no
 # network). engine_drift.py owns the rules; this only loads its verdict:
-#   release (empty / URL) : tag roxabi-forge/v<this plugin's version>
+#   release (empty / URL) : pinned tag roxabi-forge/v1.1.5
 #   dev (local checkout)  : git archive HEAD, stamped <version>+dev.<sha7>,
-#                           refused when its version differs from the plugin's
-#                           (scripts and engine would be two releases) unless
-#                           this publish.sh runs from that very checkout.
+#                           refused when its version differs from the pin.
 resolve_engine_source() {
   $ENGINE_RESOLVED && return 0
   local assignments
@@ -271,7 +268,7 @@ materialize_engine() {
       || probe_rc=$?
     case "$probe_rc" in
       0) ;;
-      2) die "engine release $ENGINE_REF not found on $ENGINE_SOURCE — this plugin ($ENGINE_VERSION) has no published engine; publish never falls back to main. Install a released plugin version, or set forge_repo to an engine checkout (dev mode)" ;;
+      2) die "engine release $ENGINE_REF not found on $ENGINE_SOURCE — the pinned legacy engine ($ENGINE_VERSION) is unavailable; publish never falls back to main. Contact the instance administrator" ;;
       *) die "cannot reach $ENGINE_SOURCE (git ls-remote exit $probe_rc) — check network / GitHub access, then retry" ;;
     esac
     info "clone engine $ENGINE_SOURCE ($ENGINE_REF)"

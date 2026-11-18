@@ -202,7 +202,7 @@ jobs:
     name: test-py39
     needs: [check]
     if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

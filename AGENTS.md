@@ -4,6 +4,22 @@
 
 **forge.roxabi.dev** = team HTML artifact host (decks, talks, guides).
 
+## Publisher routing
+
+For `roxabi-forge-publish` and `roxabi-forge-setup`, follow their MCP skills:
+the separately installed Unkillable Forge runtime, an explicitly approved
+Roxabi profile and the advertised `forge_*` tools. An unknown or unapproved
+management endpoint blocks setup; ask the instance administrator. No legacy
+fallback, Cloudflare provisioning or token request follows from MCP failure.
+Local `~/.roxabi/forge` is source, not live inventory.
+
+The Direct Upload commands, machine setup, drift guards, Cloudflare credentials,
+and OG instructions below describe **only** the distinct legacy publisher and
+its pinned `roxabi-forge/v1.1.5` release. They are not MCP instructions.
+Retain all legacy safeguards for explicitly authorized legacy operations;
+do not rebuild, deploy, migrate or retire credentials as part of MCP setup.
+
+
 | Host | Job |
 |---|---|
 | `forge.roxabi.dev` | Internal artifacts + keyed share links |
@@ -234,11 +250,11 @@ differently flip the hash of the whole catalogue.
 
 ## Engine drift gate
 
-A deploy replaces the whole engine, so scripts and engine must be one release:
-`forge_repo` empty (or a URL) clones the tag `roxabi-forge/v<plugin version>`
-(no fallback to `main`); a local checkout is explicit dev mode (`git archive
-HEAD`, refused when its version differs from the plugin's unless `publish.sh`
-runs from it). Every deploy stamps `--commit-message=roxabi-forge/v<version>`
+Legacy `forge_repo` empty (or a URL) clones the independent engine pin
+`roxabi-forge/v1.1.5` (no fallback to `main`); a local checkout is explicit
+dev mode (`git archive HEAD`, refused unless its version matches the pin).
+Skills version 2.0.0 does not select the legacy engine. Every deploy stamps
+`--commit-message=roxabi-forge/v<version>`
 (`+dev.<sha7>` in dev mode) and `--commit-hash=<engine commit>`;
 `deploy_pages` refuses to reach `wrangler` without the stamp or without
 `ENGINE_DRIFT_PASSED`.
@@ -248,7 +264,7 @@ runs from it). Every deploy stamps `--commit-message=roxabi-forge/v<version>`
 
 |Case|Behaviour|
 |---|---|
-|Production newer than the plugin|**refuses** with the update commands — unless `--allow-engine-downgrade`; fatal in `--dry-run` too|
+|Production newer than the legacy pin|**refuses** and asks the instance administrator — unless `--allow-engine-downgrade`; fatal in `--dry-run` too|
 |Pages API unreachable / error|**refuses** — unless `--allow-unverified` (`--allow-engine-downgrade` does not lift it); `--dry-run` warns `would refuse`|
 |No / unparseable stamp (pre-1.1.0 production)|warns `production engine version unknown`, proceeds, the deploy stamps it|
 |Older production / same version|proceeds (`engine upgrade`, `aligned`, release-replaces-dev info, dev-replaces-release warning)|
@@ -300,7 +316,7 @@ plugins/roxabi-forge/scripts/forge-doctor.sh
 plugins/roxabi-forge/scripts/publish.sh --rebuild-index  # hub → wrangler Pages
 ```
 
-`--write` merges the discovered keys into `forge.env` (prints **key names only**) and persists the confirmed `pages_project` into an **existing** `forge.config.json` — it never creates that file. Never discoverable: `CLOUDFLARE_API_TOKEN` (API token permissions: Pages Edit · Workers KV Storage Edit · Account Settings Read · **Browser Run · Edit** — the dashboard group name, not the OAuth scopes above) and `hub_root` (local vault path). Both come from the operator via **`/roxabi-forge-setup`**.
+`--write` merges the discovered keys into `forge.env` (prints **key names only**) and persists the confirmed `pages_project` into an **existing** `forge.config.json` — it never creates that file. Never discoverable: `CLOUDFLARE_API_TOKEN` (legacy API token permissions: Pages Edit · Workers KV Storage Edit · Account Settings Read · **Browser Run · Edit**) and `hub_root` (local vault path). These are legacy-only operator inputs, not MCP setup inputs.
 
 | `forge-discover.sh` exit | Meaning | Next |
 |---|---|---|
@@ -313,7 +329,7 @@ Project-name defaults are two, on purpose: `forge-discover.sh` → `roxabi-forge
 | `forge-doctor.sh` exit | Meaning | Next |
 |---|---|---|
 | `0` | ready — **offline**: every value is present, none is proven to work. `--online` is the live check (a revoked token or a deleted Pages project still exits 0 offline); doctor's last line points there | `--online`, then publish |
-| `1` | hub/config KO (or missing `lib/` / `python3`) | operator runs **`/roxabi-forge-setup`** |
+| `1` | hub/config KO (or missing `lib/` / `python3`) | stop and request explicit legacy operator action |
 | `2` | hub OK, **deploy blocked** (token · account · KV id · Access vars · `forge.env` perms) | run the command doctor names per blocker |
 
 `--json` (payload) and `--quiet` (one stderr line on any non-zero exit) follow the same codes, including a `load_config` crash: `--json` still emits a JSON document (`ok: false` + one `issues[]` line naming `lib/load_config.py`), `--quiet` still one stderr line, both exit `1`. A missing token is exit `2`, not a hub problem — and never a silent `0`. An empty `public_host` is a config **issue** (exit 1), never an exit-2 blocker. So is a `public_host` / `pages_project` listed in the optional `refused_targets` key (or a malformed `refused_targets`): exit 1, plus a `refused_target` code in `deploy_blockers` — see `docs/artifacts-config.md`.
@@ -326,15 +342,15 @@ so on the doctor path that list was permanently empty. The Browser Run advisory
 is the first value it can carry — which is what made the gap worth closing.
 `online_checks` and `online_issues` were printed all along.
 
-`publish.sh` refuses to deploy while doctor reports `ok: false`: it dies naming `/roxabi-forge-setup` instead of falling back to the example config. `--share <slug>` verifies the hub artifact exists before any clone or deploy.
+`publish.sh` refuses to deploy while doctor reports `ok: false`: its historical message names `/roxabi-forge-setup`, but that skill now configures MCP, not legacy. Stop and request explicit legacy operator action. `--share <slug>` verifies the hub artifact exists before any clone or deploy.
 
 ## Plugin in this repo
 
 | Plugin | Contents |
 |---|---|
-| **`roxabi-forge`** | `roxabi-forge-publish` · `roxabi-forge-setup` — **Cloudflare upload only** |
+| **`roxabi-forge`** | `roxabi-forge-publish` · `roxabi-forge-setup` — separately installed MCP publisher |
 
-Slide engine + diagrams → external plugins (see **roxabi-forge-setup**).  
+Slide engine + diagrams → external plugins.
 **Rocky**: `rocky@rocky` (`Roxabi/rocky`) — outside this repo.
 
 Harness-specific plugin install and validation: README → Install the plugin.
@@ -472,12 +488,12 @@ discussion and measurements: PR #55.
 1. Never deploy forge on Vercel
 2. Never put secrets in `site/`
 3. Never list share keys in the catalogue
-4. Publish = hub SSOT + `wrangler pages deploy`; CF token = `~/.config/roxabi/forge/forge.env` — never in git / GH
+4. Legacy publish only = hub SSOT + `wrangler pages deploy`; its CF token stays in `~/.config/roxabi/forge/forge.env`, never in git / GH. MCP publish follows the publisher skills above.
 5. **main** does not hold HTML (`site/a`, `registry/*.json`) — engine only
 6. After a large publish: verify Access (302 without cookie) and share (200 without cookie on `/s/.../key/`)
 7. **pages.dev** under Access (+ middleware 403 on every path) — never use it as an alternate share origin
 8. Share secrets = **KV only** — never `share_key` in meta/registry/HTML
-9. Missing forge config → tell the operator to run `/roxabi-forge-setup` (do not invent hub_root; do not auto-invoke roxabi-forge-setup)
-10. Artifacts → hub `$artifacts_dir/<slug>/`; live CF ← Direct Upload (not git)
+9. Missing MCP profile or endpoint → stop and direct the operator to `/roxabi-forge-setup`; missing legacy forge config → stop and request explicit legacy operator action.
+10. Legacy artifacts → hub `$artifacts_dir/<slug>/`; legacy live CF ← Direct Upload (not git). MCP source roots are not live inventory.
 11. No Cloudflare account / Access AUD / KV namespace IDs in git — `.env.example` placeholders only
 12. `plugins/roxabi-forge/scripts/` is **English-only** (CLI output, `die`/`info`/`warn`, doctor lines, comments, docstrings); French-by-design allowlist = `gen-index.py` (site UI), `hub-index.py` (vault note), `share-bar.js` (team toolbar) — enforced by `tests/python/test_lang_boundary.py`, so a French string outside the allowlist fails CI
