@@ -405,6 +405,22 @@ class _SocketResponse:
         return False
 
 
+class _UnreadBody:
+    def __init__(self, status, headers):
+        self.status = status
+        self.headers = _Headers(headers)
+        self._held = CANARY_NOTE.encode("ascii")
+
+    def read(self, _n):
+        raise OSError("body unavailable")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+
 class _ScriptedOpener:
     """Local socket stand-in. Snapshots the private dir at the next admin call."""
 
@@ -417,6 +433,7 @@ class _ScriptedOpener:
         self.deleted = False
         self.fixture_hash = None
         self.at_cleanup = None
+        self.snapshot_rows = None
 
     def open(self, req, timeout=None):
         method = req.get_method()
@@ -435,6 +452,7 @@ class _ScriptedOpener:
             if self.deleted:
                 return _SocketResponse(404, b"", {})
             if self.created and any(item[1] == "/pages/assets/check-missing" for item in self.calls[:-1]):
+                self.snapshot_rows = _checkpoint_rows(self.directory)
                 self.at_cleanup = _joined(self.directory)
             if not self.created:
                 return _SocketResponse(404, b"", {})
@@ -474,6 +492,8 @@ class _ScriptedOpener:
             return _SocketResponse(200, b"{not-json " + CANARY_NOTE.encode("ascii") + b"}", header)
         elif self.kind == "http_status":
             raise urllib.error.HTTPError(req.full_url, 500, "synthetic", {"Content-Type": "text/plain"}, io.BytesIO(CANARY_NOTE.encode("ascii")))
+        elif self.kind == "body_read_failed":
+            return _UnreadBody(200, header)
         else:
             raise AssertionError("unknown class")
         return _SocketResponse(200, json.dumps(body).encode("utf-8"), header)
@@ -546,10 +566,11 @@ class RecoveryEvidenceTests(unittest.TestCase):
                     ])
                     self.assertIsNotNone(opener.at_cleanup)
                     self._assert_quiet(opener.at_cleanup, scenario.record)
-                    rows = [row for row in _checkpoint_rows(directory) if row.get("phase") == "classification"]
+                    self.assertIsNotNone(opener.snapshot_rows)
+                    rows = [row for row in opener.snapshot_rows if row.get("phase") == "classification"]
                     self.assertEqual([row["classification"] for row in rows], [kind])
-                    self.assertEqual(rows[0]["fixture_hash"], result["fixture_hash"])
                     self.assertEqual(rows[0]["fixture_hash"], opener.fixture_hash)
+                    self.assertEqual(rows[0]["slot"], "cross_project")
                     self.assertEqual(rows[0]["phase_failure"], "parse" if kind in ("duplicate_key", "unreadable_json", "envelope_not_object") else "guard")
                     if kind == "http_status":
                         self.assertEqual(rows[0]["status"], 500)
@@ -711,6 +732,173 @@ class RecoveryEvidenceTests(unittest.TestCase):
             self._assert_quiet(_joined(directory), scenario.record)
         finally:
             shutil.rmtree(directory)
+
+    def test_cleanup_journal_fault_does_not_resume_source_probe(self):
+        scenario = Scenario()
+        later = {"n": None}
+
+        def checkpoint(_name, data):
+            if b'"slot":"cleanup_' in data:
+                later["n"] = len([event for event in scenario.events if event[0] == "source"])
+                raise OSError("cleanup journal")
+
+        result = scenario.run(checkpoint=checkpoint)
+        self.assertIsNotNone(later["n"])
+        self.assertGreater(later["n"], 0)
+        self.assertTrue(result["bytes_recovered"])
+        self.assertIsNotNone(result.get("file"))
+        self.assertNotEqual(result["outcome"], "recovered")
+        self.assertFalse(result["evidence_complete"])
+        self.assertIsNone(result["source_after"])
+        self.assertEqual(len([event for event in scenario.events if event[0] == "source"]), later["n"])
+        self.assertEqual(len(scenario.deletes()), 1)
+
+    def test_d2_reserve_is_rechecked_after_intent_write(self):
+        scenario = Scenario()
+        advanced = {"on": False}
+
+        def checkpoint(_name, data):
+            if b'"slot":"d2"' in data and b'"phase":"intent"' in data:
+                advanced["on"] = True
+
+        def now():
+            if advanced["on"]:
+                return 1_700_000_000 + 24 * 60 * 60
+            return 1_700_000_000
+
+        result = scenario.run(now=now, checkpoint=checkpoint)
+        self.assertTrue(advanced["on"])
+        self.assertEqual(scenario.deployments, 1)
+        self.assertFalse(result["bytes_recovered"])
+        self.assertEqual(result["failure"], "deadline")
+        self.assertEqual(len(scenario.deletes()), 1)
+
+    def test_create_observed_write_failure_keeps_may_exist_without_delete(self):
+        scenario = Scenario()
+
+        def checkpoint(_name, data):
+            if b'"slot":"create"' in data and b'"phase":"observed"' in data:
+                raise OSError("observed create")
+
+        result = scenario.run(checkpoint=checkpoint)
+        self.assertTrue(result["create_may_exist"])
+        self.assertTrue(result["manual_intervention"])
+        self.assertEqual(scenario.deletes(), [])
+        self.assertIsNone(result["source_after"])
+        create = [row for row in result["calls"] if row["stage"] == "create"]
+        self.assertEqual(create[0]["status"], 201)
+        self.assertNotIn("observed create", json.dumps(result))
+
+    def test_classification_is_in_receipt_when_class_write_fails(self):
+        scenario = Scenario(missing_historical=True)
+
+        def checkpoint(_name, data):
+            if b'"phase":"classification"' in data:
+                raise OSError("class copy")
+
+        result = scenario.run(checkpoint=checkpoint)
+        self.assertEqual(result["classification"], "historical_listed")
+        self.assertEqual(len(scenario.deletes()), 1)
+        self.assertFalse(result["evidence_complete"])
+        self.assertNotIn("class copy", json.dumps(result))
+
+    def test_body_read_failure_keeps_observed_status(self):
+        directory = _private_dir()
+        try:
+            scenario = Scenario()
+            opener = _ScriptedOpener(scenario.record, "body_read_failed", directory)
+            transport = recovery.disposable_transport(
+                "synthetic-admin-token",
+                scenario.record["source"]["account_id"],
+                scenario.record["disposable_project"],
+                scenario.record["source"]["project"],
+                opener=opener,
+            )
+            checkpoint, receipt = _writers(directory)
+            result = recovery.recover_owner_bytes(
+                scenario.record, template=TEMPLATE, source_request=scenario.source,
+                admin_request=transport, pages_get=scenario.pages, persist=scenario.persist,
+                hasher=_hash, now=lambda: 1_700_000_000, rng=scenario.rng,
+                sleep=lambda _n: None, execute=True, checkpoint=checkpoint, receipt=receipt,
+            )
+            self.assertEqual(result["classification"], "body_read_failed")
+            self.assertNotEqual(result["classification"], "not_observed")
+            rows = [row for row in opener.snapshot_rows if row.get("phase") == "classification"]
+            self.assertEqual(rows[0]["status"], 200)
+            self.assertEqual(rows[0]["content_type"], "json")
+            self.assertEqual(rows[0]["body_state"], "read_failed")
+            self.assertEqual(rows[0]["fixture_hash"], opener.fixture_hash)
+            self._assert_quiet(opener.at_cleanup, scenario.record)
+            disposable = "/accounts/%s/pages/projects/%s" % (scenario.record["source"]["account_id"], scenario.record["disposable_project"])
+            self.assertEqual([item for item in opener.calls if item[0] == "DELETE"], [("DELETE", disposable)])
+        finally:
+            shutil.rmtree(directory)
+
+    def test_decoder_depth_on_cleanup_writes_receipt_without_delete(self):
+        scenario = Scenario()
+        original = scenario.admin
+        nested = "[" * 10000 + "0" + "]" * 10000
+        deep = ('{"success":true,"result":%s}' % nested).encode("ascii")
+
+        def admin(method, path, body=None, *, bearer=None):
+            project = "/accounts/%s/pages/projects/%s" % (
+                scenario.record["source"]["account_id"], scenario.record["disposable_project"]
+            )
+            if method == "GET" and path == project and scenario.created and not scenario.deleted:
+                scenario.events.append(("admin", method, path))
+                return recovery.AdminObservation(True, 200, "json", deep)
+            return original(method, path, body, bearer=bearer)
+
+        scenario.admin = admin
+        result = scenario.run()
+        self.assertEqual(result["classification"], "decoder_depth")
+        self.assertEqual(scenario.deletes(), [])
+        self.assertTrue(result["manual_intervention"])
+        self.assertFalse(result["cleanup"]["pre_get_id_match"])
+        self.assertNotIn("delete_status", result["cleanup"])
+        self.assertEqual(len(scenario.receipts), 1)
+        receipt = json.loads(scenario.receipts[0][1].decode("utf-8"))
+        self.assertEqual(receipt["classification"], "decoder_depth")
+        self.assertIs(receipt["manual_intervention"], True)
+        self.assertIs(receipt["cleanup"]["pre_get_id_match"], False)
+        self.assertNotIn("delete_status", receipt["cleanup"])
+
+    def test_explicit_upload_rejection_stops_before_d1(self):
+        scenario = Scenario()
+        original = scenario.admin
+
+        def admin(method, path, body=None, *, bearer=None):
+            if method == "POST" and path == "/pages/assets/upload":
+                scenario.events.append(("admin", method, path))
+                return _admin(200, b'{"success":false,"result":null}')
+            return original(method, path, body, bearer=bearer)
+
+        scenario.admin = admin
+        result = scenario.run()
+        self.assertEqual(scenario.deployments, 0)
+        self.assertEqual(result["classification"], "envelope_rejected")
+        self.assertEqual(len(scenario.deletes()), 1)
+        self.assertFalse(result["bytes_recovered"])
+
+    def test_null_upload_result_is_not_treated_as_rejection(self):
+        scenario = Scenario()
+        original = scenario.admin
+
+        def admin(method, path, body=None, *, bearer=None):
+            if method == "POST" and path == "/pages/assets/upload":
+                scenario.events.append(("admin", method, path))
+                return _admin(200, b'{"success":true,"result":null}')
+            if method == "POST" and path.endswith("/deployments"):
+                scenario.events.append(("admin", method, path))
+                scenario.deployments += 1
+                return _admin(500, b"")
+            return original(method, path, body, bearer=bearer)
+
+        scenario.admin = admin
+        result = scenario.run()
+        self.assertEqual(scenario.deployments, 1)
+        self.assertNotEqual(result["classification"], "envelope_rejected")
+        self.assertEqual(len(scenario.deletes()), 1)
 
 
 if __name__ == "__main__":

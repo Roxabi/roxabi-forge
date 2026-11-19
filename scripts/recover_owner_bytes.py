@@ -34,8 +34,8 @@ MARKERS = (b"__G1B_ROUTE__", b"__G1B_INTERNAL__", b"__G1B_TOKEN_SHA256__", b"__G
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 RECORD_KEYS = {"source", "approved_source_sha", "disposable_project", "worker_template_sha256", "compatibility_date", "hash_calibration", "bypass_residual_accepted", "provenance"}
 CONTINUE_CLASS = "exact_fixture"
-PARSE_CLASSES = {"duplicate_key", "unreadable_json", "envelope_not_object"}
-CHECKPOINT_KEYS = {"phase", "slot", "method", "dispatched", "status", "content_type", "classification", "fixture_hash", "count", "historical_present", "fixture_missing", "phase_failure"}
+PARSE_CLASSES = {"duplicate_key", "unreadable_json", "envelope_not_object", "decoder_depth"}
+CHECKPOINT_KEYS = {"phase", "slot", "method", "dispatched", "status", "content_type", "classification", "fixture_hash", "count", "historical_present", "fixture_missing", "phase_failure", "body_state"}
 
 
 class RecoveryError(Exception):
@@ -111,19 +111,26 @@ class _CheckpointFailed(Exception):
 class AdminObservation:
     """Admin transport result. ``status`` is an HTTP status, or None if none was observed."""
 
-    __slots__ = ("dispatched", "status", "content_type", "body")
+    __slots__ = ("dispatched", "status", "content_type", "body", "body_state")
 
-    def __init__(self, dispatched, status, content_type, body):
+    def __init__(self, dispatched, status, content_type, body, body_state="present"):
         if not isinstance(dispatched, bool) or content_type not in ("json", "other", "absent") or not isinstance(body, bytes):
+            raise RecoveryError("transport")
+        if body_state not in ("present", "read_failed", "absent"):
             raise RecoveryError("transport")
         if isinstance(status, bool) or status is None or not isinstance(status, int) or status <= 0 or status > 599:
             status = None
         elif not dispatched:
             status = None
+        if not dispatched or body_state == "read_failed":
+            body = b""
+        if not dispatched:
+            body_state = "absent"
         self.dispatched = dispatched
         self.status = status
         self.content_type = content_type
         self.body = body
+        self.body_state = body_state
 
 
 def _content_type_enum(headers):
@@ -163,16 +170,20 @@ def _observe(request, method, path, body=None, *, bearer=None):
 
 
 def _envelope_class(obs):
-    body = obs.body
+    body = obs.body if obs.body_state != "read_failed" else b""
     obs.body = b""
     if not obs.dispatched or obs.status is None:
         return "not_observed", None
+    if obs.body_state == "read_failed":
+        return "body_read_failed", None
     if not 200 <= obs.status < 300:
         return "http_status", None
     try:
         doc = stage1._loads(body)
     except stage1._DuplicateKey:
         return "duplicate_key", None
+    except RecursionError:
+        return "decoder_depth", None
     except (ValueError, UnicodeError):
         return "unreadable_json", None
     if not isinstance(doc, dict):
@@ -199,6 +210,8 @@ def _missing_class(result, fixture_hash, historical_hash):
 def _phase_failure_for(klass):
     if klass == CONTINUE_CLASS:
         return None
+    if klass == "body_read_failed":
+        return "read"
     if klass in PARSE_CLASSES:
         return "parse"
     return "guard"
@@ -208,7 +221,7 @@ def _checkpoint_bytes(fields, forbidden):
     if not isinstance(fields, dict) or set(fields) - CHECKPOINT_KEYS:
         raise RecoveryError("evidence")
     payload = {}
-    for key in ("phase", "slot", "method", "dispatched", "status", "content_type", "classification", "fixture_hash", "count", "historical_present", "fixture_missing", "phase_failure"):
+    for key in ("phase", "slot", "method", "dispatched", "status", "content_type", "classification", "fixture_hash", "count", "historical_present", "fixture_missing", "phase_failure", "body_state"):
         if key not in fields:
             continue
         value = fields[key]
@@ -227,7 +240,7 @@ def _evidence_bytes(evidence):
 
 
 def _local_refuse():
-    return AdminObservation(False, None, "absent", b"")
+    return AdminObservation(False, None, "absent", b"", "absent")
 
 def _url_host(value, subdomain):
     if not isinstance(value, str):
@@ -310,6 +323,7 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
     if not isinstance(fixture_hash, str) or not stage1._HEX32.fullmatch(fixture_hash) or fixture_hash == source["expected_file_hash"]:
         raise RecoveryError("fixture_hash")
     evidence["fixture_hash"] = fixture_hash
+    evidence["evidence_complete"] = True
     forbidden = (
         source["expected_file_hash"].encode("ascii"),
         source["account_id"].encode("ascii"),
@@ -321,31 +335,47 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
     )
     seq = [0]
 
+    def _mark_incomplete():
+        evidence["evidence_complete"] = False
+        evidence["phase_failure"] = "persist"
+        evidence["failure"] = "operation_failed"
+
     def _save(fields, *, required):
         try:
             raw = _checkpoint_bytes(fields, forbidden)
             checkpoint("checkpoint-%03d.json" % (seq[0] + 1), raw)
             seq[0] += 1
-        except _CheckpointFailed:
-            if required:
-                raise
         except Exception:
+            _mark_incomplete()
             if required:
                 raise _CheckpointFailed()
 
-    def api(slot, method, path, body=None, bearer=None, *, progress=True):
+    def _note_uncertainty(slot, obs):
+        observed_2xx = obs.dispatched and obs.status is not None and 200 <= obs.status < 300
+        if slot == "create" and observed_2xx:
+            evidence["create_may_exist"] = True
+            evidence["manual_intervention"] = True
+        if slot == "d2" and observed_2xx:
+            evidence["d2_may_exist"] = True
+            evidence["source_impact_unassessed"] = True
+            evidence["manual_intervention"] = True
+
+    def api(slot, method, path, body=None, bearer=None, *, progress=True, before_dispatch=None):
         _save({"phase": "intent", "slot": slot, "method": method, "fixture_hash": fixture_hash, "count": seq[0] + 1}, required=progress)
+        if before_dispatch is not None:
+            before_dispatch()
         obs = _observe(admin_request, method, path, body, bearer=bearer)
         evidence["calls"].append({"stage": slot, "method": method, "dispatched": obs.dispatched, "status": _status_field(obs.status), "content_type": obs.content_type})
-        _save({"phase": "observed", "slot": slot, "method": method, "dispatched": obs.dispatched, "status": _status_field(obs.status), "content_type": obs.content_type, "fixture_hash": fixture_hash, "count": seq[0] + 1}, required=progress)
+        _note_uncertainty(slot, obs)
+        _save({"phase": "observed", "slot": slot, "method": method, "dispatched": obs.dispatched, "status": _status_field(obs.status), "content_type": obs.content_type, "body_state": obs.body_state, "fixture_hash": fixture_hash, "count": seq[0] + 1}, required=progress)
         return obs
 
     def note_class(obs, slot, method, klass, historical_present, fixture_missing, count, *, required=True):
         failure = _phase_failure_for(klass)
-        _save({"phase": "classification", "slot": slot, "method": method, "dispatched": obs.dispatched, "status": _status_field(obs.status), "content_type": obs.content_type, "classification": klass, "fixture_hash": fixture_hash, "count": count, "historical_present": historical_present, "fixture_missing": fixture_missing, "phase_failure": failure}, required=required)
         evidence["classification"] = klass
-        if failure is not None:
+        if failure is not None and evidence.get("evidence_complete") is not False:
             evidence["phase_failure"] = failure
+        _save({"phase": "classification", "slot": slot, "method": method, "dispatched": obs.dispatched, "status": _status_field(obs.status), "content_type": obs.content_type, "body_state": obs.body_state, "classification": klass, "fixture_hash": fixture_hash, "count": count, "historical_present": historical_present, "fixture_missing": fixture_missing, "phase_failure": failure}, required=required)
 
     def source_probe(slot):
         try:
@@ -412,6 +442,7 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
                 note_class(obs, "create", "POST", klass, None, None, None)
             raise RecoveryError("create_receipt")
         owned_id = parsed["id"]
+        evidence["create_may_exist"] = False
         subdomain = _project_subdomain(parsed.get("subdomain"))
         configs = parsed.get("deployment_configs")
         if not isinstance(configs, dict) or any(not isinstance(configs.get(k), dict) or configs[k].get("fail_open") is not False for k in ("production", "preview")):
@@ -437,8 +468,8 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
             raise RecoveryError("cross_project")
         upload = [{"key": fixture_hash, "value": base64.b64encode(fixture).decode("ascii"), "metadata": {"contentType": "application/json"}, "base64": True}]
         obs = api("fixture_upload", "POST", "/pages/assets/upload", upload, bearer=jwt)
-        if obs.status is None or not 200 <= obs.status < 300:
-            env_class, _parsed = _envelope_class(obs)
+        env_class, _parsed = _envelope_class(obs)
+        if env_class != "ok":
             note_class(obs, "fixture_upload", "POST", env_class, None, None, None)
             raise RecoveryError("fixture_upload")
         d1 = {"manifest": {internal: fixture_hash}, "_worker.js": worker, "_routes.json": ROUTES}
@@ -464,7 +495,10 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
         evidence["rendered_identical_d1_d2"] = d1["_worker.js"] == d2["_worker.js"] and d1["_routes.json"] == d2["_routes.json"]
         if not evidence["rendered_identical_d1_d2"]:
             raise RecoveryError("worker_drift")
-        obs = api("d2", "POST", base + "/deployments", d2)
+        def _d2_reserve():
+            if deadline - int(now() * 1000) < 20 * 60 * 1000:
+                raise RecoveryError("deadline")
+        obs = api("d2", "POST", base + "/deployments", d2, before_dispatch=_d2_reserve)
         d2_created = obs.status is not None and 200 <= obs.status < 300
         env_class, parsed = _envelope_class(obs)
         if env_class != "ok":
@@ -498,8 +532,17 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
         evidence["failure"] = str(exc) if isinstance(exc, RecoveryError) and str(exc) in safe_failures else "operation_failed"
     finally:
         if owned_id is not None:
-            obs = api("cleanup_pre_get", "GET", base, progress=False)
-            env_class, current = _envelope_class(obs)
+            env_class, current = None, None
+            try:
+                obs = api("cleanup_pre_get", "GET", base, progress=False)
+                env_class, current = _envelope_class(obs)
+            except Exception:
+                evidence["manual_intervention"] = True
+                evidence["failure"] = "operation_failed"
+            else:
+                if env_class != "ok":
+                    note_class(obs, "cleanup_pre_get", "GET", env_class, None, None, None, required=False)
+                    evidence["manual_intervention"] = True
             match = env_class == "ok" and isinstance(current, dict) and current.get("id") == owned_id and current.get("name") == project and project != source["project"]
             evidence["cleanup"]["pre_get_id_match"] = match
             if match:
@@ -515,18 +558,25 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
                     outcome += "_cleanup_failed"
             else:
                 outcome += "_cleanup_failed"
-        if d2_created and delete_success:
+        if evidence.get("evidence_complete") is False:
+            if evidence.get("d2_may_exist") is True or d2_created:
+                evidence["source_impact_unassessed"] = True
+            if outcome == "recovered":
+                outcome = "recovered_evidence_incomplete"
+        elif d2_created and delete_success:
             try:
                 _save({"phase": "intent", "slot": "source_after", "method": "GET", "fixture_hash": fixture_hash, "count": seq[0] + 1}, required=True)
             except _CheckpointFailed:
-                evidence["phase_failure"] = "persist"
-                evidence["failure"] = "operation_failed"
+                evidence["source_impact_unassessed"] = True
                 if outcome == "recovered":
-                    outcome = "stopped"
+                    outcome = "recovered_evidence_incomplete"
             else:
                 evidence["source_after"] = source_probe("source_after")
+                evidence["source_impact_unassessed"] = False
                 if evidence["source_after"] != {"availability": "available", "drift": False}:
                     outcome += "_source_indicator_failed"
+    if evidence.get("evidence_complete") is False and outcome == "recovered":
+        outcome = "recovered_evidence_incomplete"
     evidence["outcome"] = outcome
     if receipt is not None:
         payload = _evidence_bytes(evidence)
@@ -602,15 +652,20 @@ def disposable_transport(token, account, name, source_project, *, opener=None):
                 status = response.status
                 if isinstance(status, bool) or not isinstance(status, int) or status <= 0 or status > 599:
                     status = None
-                return AdminObservation(True, status, _content_type_enum(response.headers), _read_response(response, stage1.MAX_BODY))
+                content_type = _content_type_enum(response.headers)
+                try:
+                    payload = _read_response(response, stage1.MAX_BODY)
+                except Exception:
+                    return AdminObservation(True, status, content_type, b"", "read_failed")
+                return AdminObservation(True, status, content_type, payload, "present")
         except urllib.error.HTTPError as exc:
             try:
                 code = exc.code if isinstance(exc.code, int) and not isinstance(exc.code, bool) and 0 < exc.code <= 599 else None
-                return AdminObservation(True, code, _content_type_enum(getattr(exc, "headers", None)), b"")
+                return AdminObservation(True, code, _content_type_enum(getattr(exc, "headers", None)), b"", "absent")
             finally:
                 exc.close()
         except Exception:
-            return AdminObservation(True, None, "absent", b"")
+            return AdminObservation(True, None, "absent", b"", "absent")
     return request
 
 
