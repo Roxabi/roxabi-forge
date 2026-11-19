@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 **Out of scope for this file:** team HTML artifacts (hub + live deploy). Those are not versioned in git.
 
+## [Unreleased]
+
+### Added
+
+- Offline owner-availability and owner-byte helpers are a new candidate only. The recovery helper checkpoints the synthetic fixture hash and observed response class before the next call. No bytes are recovered, G1b stays open, the 2026-11-12 cause stays unknown, and the consumed approval is not reused.
+
 ## [2.0.0] - 2026-11-16
 
 ### Changed
