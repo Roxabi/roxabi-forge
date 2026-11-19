@@ -851,14 +851,21 @@ class RecoveryEvidenceTests(unittest.TestCase):
 
         scenario.admin = admin
         result = scenario.run()
-        self.assertEqual(result["classification"], "decoder_depth")
+        self.assertEqual(result["classification"], "exact_fixture")
+        self.assertEqual(result["cleanup_classification"]["classification"], "decoder_depth")
+        self.assertEqual(result["cleanup_classification"]["slot"], "cleanup_pre_get")
+        self.assertEqual(result["cleanup_classification"]["status"], 200)
+        self.assertEqual(result["cleanup_classification"]["content_type"], "json")
         self.assertEqual(scenario.deletes(), [])
         self.assertTrue(result["manual_intervention"])
         self.assertFalse(result["cleanup"]["pre_get_id_match"])
         self.assertNotIn("delete_status", result["cleanup"])
         self.assertEqual(len(scenario.receipts), 1)
         receipt = json.loads(scenario.receipts[0][1].decode("utf-8"))
-        self.assertEqual(receipt["classification"], "decoder_depth")
+        self.assertEqual(receipt["classification"], "exact_fixture")
+        self.assertEqual(receipt["cleanup_classification"]["classification"], "decoder_depth")
+        self.assertEqual(receipt["cleanup_classification"]["status"], 200)
+        self.assertEqual(receipt["cleanup_classification"]["content_type"], "json")
         self.assertIs(receipt["manual_intervention"], True)
         self.assertIs(receipt["cleanup"]["pre_get_id_match"], False)
         self.assertNotIn("delete_status", receipt["cleanup"])
@@ -898,6 +905,182 @@ class RecoveryEvidenceTests(unittest.TestCase):
         result = scenario.run()
         self.assertEqual(scenario.deployments, 1)
         self.assertNotEqual(result["classification"], "envelope_rejected")
+        self.assertEqual(len(scenario.deletes()), 1)
+
+    def test_rejected_or_unreadable_d2_does_not_call_source_after(self):
+        bodies = {
+            "envelope_rejected": b'{"success":false,"result":null}',
+            "unreadable_json": b"{not-json",
+        }
+        for kind, body in bodies.items():
+            with self.subTest(kind=kind):
+                scenario = Scenario()
+                original = scenario.admin
+
+                def admin(method, path, body=None, *, bearer=None, kind=kind, payload=body):
+                    if method == "POST" and path.endswith("/deployments") and scenario.deployments >= 1:
+                        scenario.events.append(("admin", method, path))
+                        scenario.deployments += 1
+                        return _admin(200, payload)
+                    return original(method, path, body, bearer=bearer)
+
+                scenario.admin = admin
+                result = scenario.run()
+                self.assertEqual(result["classification"], kind)
+                self.assertEqual(result["primary_classification"]["slot"], "d2")
+                self.assertEqual(result["primary_classification"]["status"], 200)
+                self.assertIsNone(result["source_after"])
+                self.assertTrue(result["d2_may_exist"])
+                self.assertTrue(result["source_impact_unassessed"])
+                self.assertTrue(result["manual_intervention"])
+                self.assertFalse(result["bytes_recovered"])
+                self.assertEqual(len(scenario.deletes()), 1)
+                delete_at = scenario.events.index(scenario.deletes()[0])
+                self.assertFalse(any(event[0] == "source" for event in scenario.events[delete_at:]))
+
+    def test_primary_class_survives_cleanup_depth_when_class_write_fails(self):
+        bodies = {
+            "unreadable_json": b"{not-json",
+            "envelope_rejected": b'{"success":false,"result":null}',
+        }
+        for kind, body in bodies.items():
+            with self.subTest(kind=kind):
+                scenario = Scenario()
+                original = scenario.admin
+                project = "/accounts/%s/pages/projects/%s" % (
+                    scenario.record["source"]["account_id"], scenario.record["disposable_project"]
+                )
+                nested = "[" * 10000 + "0" + "]" * 10000
+                deep = ('{"success":true,"result":%s}' % nested).encode("ascii")
+
+                def admin(method, path, body=None, *, bearer=None, payload=body):
+                    if method == "POST" and path == "/pages/assets/check-missing":
+                        scenario.events.append(("admin", method, path))
+                        return _admin(200, payload)
+                    if method == "GET" and path == project and scenario.created and not scenario.deleted:
+                        scenario.events.append(("admin", method, path))
+                        return recovery.AdminObservation(True, 200, "json", deep)
+                    return original(method, path, body, bearer=bearer)
+
+                def checkpoint(_name, data):
+                    if b'"slot":"cross_project"' in data and b'"phase":"classification"' in data:
+                        raise OSError("class copy")
+
+                scenario.admin = admin
+                result = scenario.run(checkpoint=checkpoint)
+                self.assertEqual(result["classification"], kind)
+                self.assertEqual(result["primary_classification"]["classification"], kind)
+                self.assertEqual(result["primary_classification"]["status"], 200)
+                self.assertEqual(result["primary_classification"]["content_type"], "json")
+                self.assertEqual(result["cleanup_classification"]["classification"], "decoder_depth")
+                self.assertEqual(result["cleanup_classification"]["slot"], "cleanup_pre_get")
+                self.assertEqual(scenario.deletes(), [])
+                receipt = json.loads(scenario.receipts[0][1].decode("utf-8"))
+                self.assertEqual(receipt["classification"], kind)
+                self.assertEqual(receipt["cleanup_classification"]["classification"], "decoder_depth")
+                self.assertNotEqual(receipt["classification"], receipt["cleanup_classification"]["classification"])
+
+    def test_create_lost_response_write_fault_keeps_may_exist(self):
+        for status, content_type in ((None, "absent"), (500, "other")):
+            with self.subTest(status=status):
+                scenario = Scenario()
+                original = scenario.admin
+                collection = "/accounts/%s/pages/projects" % scenario.record["source"]["account_id"]
+
+                def admin(method, path, body=None, *, bearer=None, status=status, content_type=content_type):
+                    if method == "POST" and path == collection:
+                        scenario.events.append(("admin", method, path))
+                        return recovery.AdminObservation(True, status, content_type, b"")
+                    return original(method, path, body, bearer=bearer)
+
+                def checkpoint(_name, data):
+                    if b'"slot":"create"' in data and b'"phase":"observed"' in data:
+                        raise OSError("observed create")
+
+                scenario.admin = admin
+                result = scenario.run(checkpoint=checkpoint)
+                self.assertTrue(result["create_may_exist"])
+                self.assertTrue(result["manual_intervention"])
+                self.assertFalse(result["d2_may_exist"])
+                self.assertEqual(scenario.deletes(), [])
+                self.assertIsNone(result["source_after"])
+                self.assertNotIn("observed create", json.dumps(result))
+
+    def test_d2_unknown_write_fault_stays_unassessed_without_source_after(self):
+        scenario = Scenario()
+        original = scenario.admin
+
+        def admin(method, path, body=None, *, bearer=None):
+            if method == "POST" and path.endswith("/deployments") and scenario.deployments >= 1:
+                scenario.events.append(("admin", method, path))
+                scenario.deployments += 1
+                return recovery.AdminObservation(True, None, "absent", b"")
+            return original(method, path, body, bearer=bearer)
+
+        def checkpoint(_name, data):
+            if b'"slot":"d2"' in data and b'"phase":"observed"' in data:
+                raise OSError("observed d2")
+
+        scenario.admin = admin
+        result = scenario.run(checkpoint=checkpoint)
+        self.assertTrue(result["d2_may_exist"])
+        self.assertTrue(result["source_impact_unassessed"])
+        self.assertTrue(result["manual_intervention"])
+        self.assertIsNone(result["source_after"])
+        self.assertEqual(len(scenario.deletes()), 1)
+        self.assertNotIn("observed d2", json.dumps(result))
+
+    def test_predispatch_deadline_is_not_mutation_uncertainty(self):
+        scenario = Scenario()
+        advanced = {"on": False}
+
+        def checkpoint(_name, data):
+            if b'"slot":"d2"' in data and b'"phase":"intent"' in data:
+                advanced["on"] = True
+
+        def now():
+            if advanced["on"]:
+                return 1_700_000_000 + 24 * 60 * 60
+            return 1_700_000_000
+
+        result = scenario.run(now=now, checkpoint=checkpoint)
+        self.assertTrue(advanced["on"])
+        self.assertEqual(result["failure"], "deadline")
+        self.assertFalse(result["d2_may_exist"])
+        self.assertFalse(result["source_impact_unassessed"])
+        self.assertFalse(result["manual_intervention"])
+        self.assertIsNone(result["source_after"])
+        self.assertEqual(len(scenario.deletes()), 1)
+
+    def test_clean_success_is_not_a_manual_incident(self):
+        scenario = Scenario()
+        result = scenario.run()
+        self.assertEqual(result["outcome"], "recovered")
+        self.assertTrue(result["bytes_recovered"])
+        self.assertFalse(result["manual_intervention"])
+        self.assertFalse(result["create_may_exist"])
+        self.assertFalse(result["d2_may_exist"])
+        self.assertFalse(result["source_impact_unassessed"])
+        self.assertEqual(result["source_after"], {"availability": "available", "drift": False})
+        self.assertEqual(len(scenario.deletes()), 1)
+
+    def test_unanswered_source_indicator_is_not_assessed(self):
+        scenario = Scenario()
+        original = scenario.source
+
+        def source(method, path, body=None, *, bearer=None):
+            if scenario.deleted:
+                raise OSError("indicator down")
+            return original(method, path, body, bearer=bearer)
+
+        scenario.source = source
+        result = scenario.run()
+        self.assertTrue(result["bytes_recovered"])
+        self.assertEqual(result["source_after"], {"availability": None, "drift": None})
+        self.assertTrue(result["source_impact_unassessed"])
+        self.assertTrue(result["manual_intervention"])
+        self.assertNotEqual(result["outcome"], "recovered")
+        self.assertIn("source_indicator_failed", result["outcome"])
         self.assertEqual(len(scenario.deletes()), 1)
 
 

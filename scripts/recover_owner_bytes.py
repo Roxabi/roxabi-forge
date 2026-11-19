@@ -284,8 +284,10 @@ def _bytes_rng(rng, n):
 def recover_owner_bytes(record, *, template, source_request, admin_request, pages_get, persist, hasher, now, rng, sleep, execute=False, checkpoint=None, receipt=None) -> dict:
     """Run the bounded policy; injected I/O follows the documented callbacks.
 
-    Intent, observed transport facts, and the response class are checkpointed
-    before the next recovery call and before a guard raises. A class is not a cause.
+    Checkpoints cover disposable admin calls and the check-missing classification,
+    before the next disposable call and before those guards raise. A source probe
+    has one group intent. Pages observations are not journaled individually.
+    A class is not a cause.
     """
     _validate_record(record)
     if not isinstance(execute, bool) or not isinstance(template, bytes):
@@ -324,6 +326,10 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
         raise RecoveryError("fixture_hash")
     evidence["fixture_hash"] = fixture_hash
     evidence["evidence_complete"] = True
+    evidence["create_may_exist"] = False
+    evidence["d2_may_exist"] = False
+    evidence["source_impact_unassessed"] = False
+    evidence["manual_intervention"] = False
     forbidden = (
         source["expected_file_hash"].encode("ascii"),
         source["account_id"].encode("ascii"),
@@ -351,14 +357,14 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
                 raise _CheckpointFailed()
 
     def _note_uncertainty(slot, obs):
-        observed_2xx = obs.dispatched and obs.status is not None and 200 <= obs.status < 300
-        if slot == "create" and observed_2xx:
+        uncertain = obs.dispatched and (obs.status is None or obs.status >= 500 or 200 <= obs.status < 300)
+        if not uncertain:
+            return
+        if slot == "create":
             evidence["create_may_exist"] = True
-            evidence["manual_intervention"] = True
-        if slot == "d2" and observed_2xx:
+        elif slot == "d2":
             evidence["d2_may_exist"] = True
             evidence["source_impact_unassessed"] = True
-            evidence["manual_intervention"] = True
 
     def api(slot, method, path, body=None, bearer=None, *, progress=True, before_dispatch=None):
         _save({"phase": "intent", "slot": slot, "method": method, "fixture_hash": fixture_hash, "count": seq[0] + 1}, required=progress)
@@ -372,9 +378,14 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
 
     def note_class(obs, slot, method, klass, historical_present, fixture_missing, count, *, required=True):
         failure = _phase_failure_for(klass)
-        evidence["classification"] = klass
-        if failure is not None and evidence.get("evidence_complete") is not False:
-            evidence["phase_failure"] = failure
+        row = {"slot": slot, "method": method, "status": _status_field(obs.status), "content_type": obs.content_type, "classification": klass}
+        if slot == "cleanup_pre_get":
+            evidence["cleanup_classification"] = row
+        else:
+            evidence["classification"] = klass
+            evidence["primary_classification"] = row
+            if failure is not None and evidence.get("evidence_complete") is not False:
+                evidence["phase_failure"] = failure
         _save({"phase": "classification", "slot": slot, "method": method, "dispatched": obs.dispatched, "status": _status_field(obs.status), "content_type": obs.content_type, "body_state": obs.body_state, "classification": klass, "fixture_hash": fixture_hash, "count": count, "historical_present": historical_present, "fixture_missing": fixture_missing, "phase_failure": failure}, required=required)
 
     def source_probe(slot):
@@ -499,11 +510,13 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
             if deadline - int(now() * 1000) < 20 * 60 * 1000:
                 raise RecoveryError("deadline")
         obs = api("d2", "POST", base + "/deployments", d2, before_dispatch=_d2_reserve)
-        d2_created = obs.status is not None and 200 <= obs.status < 300
         env_class, parsed = _envelope_class(obs)
         if env_class != "ok":
             note_class(obs, "d2", "POST", env_class, None, None, None)
+            raise RecoveryError("deployment_receipt")
         d2_host, _aliases = _deployment_hosts(parsed, subdomain)
+        d2_created = True
+        evidence["d2_may_exist"] = False
         allowed = frozenset([d2_host])
         ready(d2_host, allowed, "d2_url", False)
         negatives(d2_host, allowed, "d2_url")
@@ -572,12 +585,22 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
                     outcome = "recovered_evidence_incomplete"
             else:
                 evidence["source_after"] = source_probe("source_after")
-                evidence["source_impact_unassessed"] = False
-                if evidence["source_after"] != {"availability": "available", "drift": False}:
+                answer = evidence["source_after"]
+                answered = answer.get("availability") in ("available", "missing") and isinstance(answer.get("drift"), bool)
+                evidence["source_impact_unassessed"] = not answered
+                if answer != {"availability": "available", "drift": False}:
                     outcome += "_source_indicator_failed"
     if evidence.get("evidence_complete") is False and outcome == "recovered":
         outcome = "recovered_evidence_incomplete"
     evidence["outcome"] = outcome
+    evidence["manual_intervention"] = (
+        evidence.get("create_may_exist") is True
+        or evidence.get("d2_may_exist") is True
+        or evidence.get("source_impact_unassessed") is True
+        or evidence.get("evidence_complete") is False
+        or (owned_id is not None and not delete_success)
+        or (evidence.get("source_after") is not None and evidence["source_after"] != {"availability": "available", "drift": False})
+    )
     if receipt is not None:
         payload = _evidence_bytes(evidence)
         for item in forbidden:

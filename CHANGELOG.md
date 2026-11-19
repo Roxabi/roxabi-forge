@@ -11,7 +11,7 @@ Versioning follows [Semantic Versioning](https://semver.org/) for the plugin sur
 
 ### Added
 
-- The owner-availability helper's default still performs live metadata reads and needs authorization. Only the owner-byte recovery helper defaults to offline. That recovery helper checkpoints the synthetic fixture hash and observed response class on the disposable admin seam. No bytes are recovered by this change, G1b stays open, the 2026-11-12 cause stays unknown, and the consumed approval is not reused.
+- The owner-availability helper's default still performs live metadata reads and needs authorization. Only the owner-byte recovery helper defaults to offline. That recovery helper checkpoints the synthetic fixture hash and observed response class on the disposable admin seam. A rejected or unreadable D2 response is not an accepted deployment and does not authorize a source-after call. The receipt keeps the primary class and any cleanup class. No bytes are recovered by this change, G1b stays open, the 2026-11-12 cause stays unknown, and the consumed approval is not reused.
 
 ## [2.0.0] - 2026-11-16
 
