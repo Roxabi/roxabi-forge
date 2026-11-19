@@ -311,6 +311,7 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
     owned_id = None
     d2_created = False
     delete_success = False
+    absence_confirmed = False
     outcome = "stopped"
     saved = None
     start = now()
@@ -565,7 +566,9 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
                     delete_success = True
                     obs = api("cleanup_final_get", "GET", base, progress=False)
                     evidence["cleanup"]["final_status"] = _status_field(obs.status)
-                    if obs.status != 404:
+                    if obs.status == 404:
+                        absence_confirmed = True
+                    else:
                         outcome += "_cleanup_failed"
                 else:
                     outcome += "_cleanup_failed"
@@ -598,7 +601,7 @@ def recover_owner_bytes(record, *, template, source_request, admin_request, page
         or evidence.get("d2_may_exist") is True
         or evidence.get("source_impact_unassessed") is True
         or evidence.get("evidence_complete") is False
-        or (owned_id is not None and not delete_success)
+        or (owned_id is not None and not absence_confirmed)
         or (evidence.get("source_after") is not None and evidence["source_after"] != {"availability": "available", "drift": False})
     )
     if receipt is not None:

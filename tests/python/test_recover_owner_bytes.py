@@ -1083,6 +1083,50 @@ class RecoveryEvidenceTests(unittest.TestCase):
         self.assertIn("source_indicator_failed", result["outcome"])
         self.assertEqual(len(scenario.deletes()), 1)
 
+    def test_delete_ack_without_final_404_stays_manual(self):
+        cases = (
+            ("before_d2", None, "unknown"),
+            ("before_d2", 200, 200),
+            ("before_d2", 500, 500),
+            ("accepted_d2", None, "unknown"),
+            ("accepted_d2", 200, 200),
+            ("accepted_d2", 500, 500),
+        )
+        for phase, status, retained in cases:
+            with self.subTest(phase=phase, status=status):
+                scenario = Scenario(missing_historical=phase == "before_d2")
+                original = scenario.admin
+                project = "/accounts/%s/pages/projects/%s" % (
+                    scenario.record["source"]["account_id"], scenario.record["disposable_project"]
+                )
+
+                def admin(method, path, body=None, *, bearer=None, status=status):
+                    if method == "GET" and path == project and scenario.deleted:
+                        scenario.events.append(("admin", method, path))
+                        if status is None:
+                            return recovery.AdminObservation(True, None, "absent", b"")
+                        if status == 500:
+                            return recovery.AdminObservation(True, 500, "other", b"")
+                        return recovery.AdminObservation(True, 200, "json", b'{"success":true,"result":{}}')
+                    return original(method, path, body, bearer=bearer)
+
+                scenario.admin = admin
+                result = scenario.run()
+                receipt = json.loads(scenario.receipts[0][1].decode("utf-8"))
+                self.assertEqual(len(scenario.deletes()), 1)
+                self.assertEqual(receipt["cleanup"]["delete_status"], 200)
+                self.assertEqual(receipt["cleanup"]["final_status"], retained)
+                self.assertIn("cleanup_failed", receipt["outcome"])
+                self.assertIs(receipt["manual_intervention"], True)
+                self.assertEqual(result["cleanup"]["final_status"], retained)
+                if phase == "before_d2":
+                    self.assertIs(receipt["bytes_recovered"], False)
+                    self.assertIsNone(receipt["source_after"])
+                else:
+                    self.assertIs(receipt["bytes_recovered"], True)
+                    self.assertEqual(receipt["source_after"], {"availability": "available", "drift": False})
+                    self.assertEqual(receipt["file"]["sha256"], hashlib.sha256(HISTORICAL).hexdigest())
+
 
 if __name__ == "__main__":
     unittest.main()
